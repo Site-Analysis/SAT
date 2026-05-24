@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            contracts:
+              - 'contracts/**'
+      - name: Contract gate
+        if: steps.filter.outputs.contracts == 'true'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
+          echo "$changed"
+          echo "$changed" | grep -q '^contracts/CHANGELOG.md$' || {
+            echo "contracts/CHANGELOG.md must be updated when contracts change."
+            exit 1
+          }
+      - name: No contract changes
+        if: steps.filter.outputs.contracts != 'true'
+        run: echo "No contract changes."
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            js:
+              - 'package.json'
+              - 'apps/**/package.json'
+              - 'packages/**/package.json'
+      - name: Skip
+        if: steps.filter.outputs.js != 'true'
+        run: echo "No JS packages detected."
+      - name: Setup Node
+        if: steps.filter.outputs.js == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        if: steps.filter.outputs.js == 'true'
+        run: npm ci
+      - name: Lint
+        if: steps.filter.outputs.js == 'true'
+        run: npm run lint --workspaces --if-present
+
+  py:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            py:
+              - 'services/**/pyproject.toml'
+              - 'services/**/requirements.txt'
+      - name: Skip
+        if: steps.filter.outputs.py != 'true'
+        run: echo "No Python services detected."
+      - name: Placeholder
+        if: steps.filter.outputs.py == 'true'
+        run: echo "Python checks placeholder. Add per-service CI in services/README.md."
