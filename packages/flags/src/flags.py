@@ -9,21 +9,17 @@ Enable flags via env var:
 """
 
 import os
-from enum import Enum
+from enum import StrEnum
 
 
-class FeatureFlag(str, Enum):
+class FeatureFlag(StrEnum):
     TEMPERATURE_THERMAL_PROFILE = "feature.temperature.thermal-profile"
     FLOOD_RISK_ANALYSIS = "feature.flood.risk-analysis"
     SUNPATH_DIAGRAM = "feature.sunpath.diagram"
     WIND_CLIMATOLOGY = "feature.wind.climatology"
 
 
-_enabled: set[str] = {
-    f.strip()
-    for f in os.getenv("FLAGS", "").split(",")
-    if f.strip()
-}
+_enabled: set[str] = {f.strip() for f in os.getenv("FLAGS", "").split(",") if f.strip()}
 
 
 def is_enabled(flag: FeatureFlag) -> bool:
