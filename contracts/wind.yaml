@@ -1,0 +1,123 @@
+openapi: "3.1.0"
+info:
+  title: Wind Analysis Service
+  version: "1.0.0"
+  description: Wind climatology via ERA5-Land GEE. 16-sector wind rose, IMD 4-season analysis, and architectural orientation recommendations.
+
+servers:
+  - url: http://localhost:8003
+    description: Local dev
+
+paths:
+  /analysis/wind/climatology:
+    get:
+      operationId: getWindClimatology
+      summary: Wind climatology for a location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: years
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 30
+      responses:
+        "200":
+          description: Wind analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WindAnalysisResponse"
+        "422":
+          description: Validation error
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+
+components:
+  schemas:
+    WindFrequencyBin:
+      type: object
+      required: [direction, frequency_percentage, avg_speed_ms]
+      properties:
+        direction:
+          type: string
+          enum: ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
+        frequency_percentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        avg_speed_ms:
+          type: number
+          format: float
+          minimum: 0
+
+    SeasonalWindData:
+      type: object
+      required: [season_name, prevailing_direction, wind_rose, architectural_advice]
+      properties:
+        season_name:
+          type: string
+          enum: ["Winter", "Pre-Monsoon", "SW Monsoon", "Post-Monsoon"]
+        prevailing_direction:
+          type: string
+        wind_rose:
+          type: array
+          items:
+            $ref: "#/components/schemas/WindFrequencyBin"
+          minItems: 16
+          maxItems: 16
+        architectural_advice:
+          type: object
+          additionalProperties:
+            type: string
+
+    WindAnalysisResponse:
+      type: object
+      required: [site_coordinates, annual_prevailing_direction, annual_architectural_advice, annual_wind_rose, seasonal_data]
+      properties:
+        site_coordinates:
+          type: object
+          required: [lat, lon]
+          properties:
+            lat:
+              type: number
+            lon:
+              type: number
+        annual_prevailing_direction:
+          type: string
+        annual_architectural_advice:
+          type: object
+          additionalProperties:
+            type: string
+        annual_wind_rose:
+          type: array
+          items:
+            $ref: "#/components/schemas/WindFrequencyBin"
+          minItems: 16
+          maxItems: 16
+        seasonal_data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeasonalWindData"
+          minItems: 4
+          maxItems: 4

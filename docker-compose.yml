@@ -1,0 +1,94 @@
+version: "3.9"
+
+# Local dev orchestration — runs all backend services concurrently.
+# Frontend (apps/web) runs separately via: npm run dev --workspace apps/web
+
+services:
+  temperature:
+    build:
+      context: ./services/temperature
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/temperature:/app
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - FLAGS=${FLAGS:-}
+      - GEE_SA_KEY_PATH=/app/gee-sa.json
+      - IMD_DATA_DIR=/app/data
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  sunpath:
+    build:
+      context: ./services/sunpath
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/sunpath:/app
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - FLAGS=${FLAGS:-}
+      - GEE_SA_KEY_PATH=/app/gee-sa.json
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  flood:
+    build:
+      context: ./services/flood
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/flood:/app
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - FLAGS=${FLAGS:-}
+      - GEE_SA_KEY_PATH=/app/gee-sa.json
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  wind:
+    build:
+      context: ./services/wind
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/wind:/app
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - FLAGS=${FLAGS:-}
+      - GEE_SA_KEY_PATH=/app/gee-sa.json
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# Uncomment when geo service is ready:
+#  geo:
+#    build:
+#      context: ./services/geo
+#    ports:
+#      - "8004:8004"
+#    ...

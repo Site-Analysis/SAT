@@ -71,9 +71,52 @@ jobs:
             py:
               - 'services/**/pyproject.toml'
               - 'services/**/requirements.txt'
+              - 'services/**/*.py'
+              - 'packages/flags/src/flags.py'
       - name: Skip
         if: steps.filter.outputs.py != 'true'
-        run: echo "No Python services detected."
-      - name: Placeholder
+        run: echo "No Python changes."
+      - name: Setup Python
         if: steps.filter.outputs.py == 'true'
-        run: echo "Python checks placeholder. Add per-service CI in services/README.md."
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        if: steps.filter.outputs.py == 'true'
+        run: pip install ruff
+      - name: Lint (ruff)
+        if: steps.filter.outputs.py == 'true'
+        run: ruff check services/ packages/flags/src/flags.py
+      - name: Format check (ruff)
+        if: steps.filter.outputs.py == 'true'
+        run: ruff format --check services/ packages/flags/src/flags.py
+
+  smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            tests:
+              - 'tests/**'
+              - 'services/**'
+      - name: Skip
+        if: steps.filter.outputs.tests != 'true'
+        run: echo "No service or test changes."
+      - name: Setup Python
+        if: steps.filter.outputs.tests == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run smoke tests
+        if: steps.filter.outputs.tests == 'true'
+        run: |
+          if ls tests/*_smoke.py 1>/dev/null 2>&1; then
+            pip install pytest httpx
+            pytest tests/ -v --tb=short
+          else
+            echo "No smoke tests yet."
+          fi

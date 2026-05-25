@@ -1,0 +1,145 @@
+openapi: "3.1.0"
+info:
+  title: SunPath Service
+  version: "1.0.0"
+  description: Solar position and sun path diagram generation via pvlib NREL SPA.
+
+servers:
+  - url: http://localhost:8001
+    description: Local dev
+
+paths:
+  /sunpath/summer:
+    get:
+      operationId: getSummerSunPath
+      summary: Summer solstice sun path diagram
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: Sun path data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SunPathResponse"
+
+  /sunpath/winter:
+    get:
+      operationId: getWinterSunPath
+      summary: Winter solstice sun path diagram
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: Sun path data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SunPathResponse"
+
+  /sunpath/annual:
+    get:
+      operationId: getAnnualSunPath
+      summary: Annual sun path — equinox + both solstices overlaid
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: Annual sun path data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SunPathResponse"
+
+  /sunpath/events:
+    get:
+      operationId: getSolarEvents
+      summary: Solar events — sunrise, sunset, solar noon
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: Solar events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolarEventsResponse"
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+
+components:
+  parameters:
+    lat:
+      name: lat
+      in: query
+      required: true
+      schema:
+        type: number
+        format: float
+    lon:
+      name: lon
+      in: query
+      required: true
+      schema:
+        type: number
+        format: float
+
+  schemas:
+    SolarPoint:
+      type: object
+      required: [hour, azimuth, elevation]
+      properties:
+        hour:
+          type: number
+        azimuth:
+          type: number
+          description: Degrees from North, clockwise
+        elevation:
+          type: number
+          description: Degrees above horizon
+
+    SunPathResponse:
+      type: object
+      required: [latitude, longitude, timezone, hourly_data]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+        hourly_data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SolarPoint"
+
+    SolarEventsResponse:
+      type: object
+      required: [latitude, longitude, events]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        events:
+          type: object
+          properties:
+            sunrise:
+              type: string
+              format: time
+            solar_noon:
+              type: string
+              format: time
+            sunset:
+              type: string
+              format: time

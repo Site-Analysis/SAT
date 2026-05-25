@@ -1,0 +1,121 @@
+openapi: "3.1.0"
+info:
+  title: Temperature Service
+  version: "1.0.0"
+  description: Annual thermal profile analysis for any global coordinate.
+
+servers:
+  - url: http://localhost:8000
+    description: Local dev
+
+paths:
+  /weather/thermal-profile:
+    get:
+      operationId: getThermalProfile
+      summary: Annual thermal profile for a location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 2023
+      responses:
+        "200":
+          description: Thermal profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClimateReport"
+        "422":
+          description: Validation error
+
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+components:
+  schemas:
+    MonthlyTemperature:
+      type: object
+      required: [month, avg_tmax, avg_tmin]
+      properties:
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        avg_tmax:
+          type: number
+          format: float
+          description: Monthly average daily max temperature (°C)
+        avg_tmin:
+          type: number
+          format: float
+          description: Monthly average daily min temperature (°C)
+
+    ClimateSummary:
+      type: object
+      required: [annual_avg_temp, peak_max_temp, lowest_min_temp]
+      properties:
+        annual_avg_temp:
+          type: number
+          format: float
+        peak_max_temp:
+          type: number
+          format: float
+        lowest_min_temp:
+          type: number
+          format: float
+
+    ClimateRecommendations:
+      type: object
+      required: [material_suggestion, insulation_strategy, thermal_comfort_status]
+      properties:
+        material_suggestion:
+          type: string
+        insulation_strategy:
+          type: string
+        thermal_comfort_status:
+          type: string
+          enum:
+            - "Hot / High Thermal Mass"
+            - "Cold / Insulation"
+            - "Moderate"
+
+    ClimateReport:
+      type: object
+      required: [monthly_data, summary, recommendations]
+      properties:
+        monthly_data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthlyTemperature"
+          minItems: 12
+          maxItems: 12
+        summary:
+          $ref: "#/components/schemas/ClimateSummary"
+        recommendations:
+          $ref: "#/components/schemas/ClimateRecommendations"

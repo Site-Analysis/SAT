@@ -1,0 +1,114 @@
+openapi: "3.1.0"
+info:
+  title: Flood Risk Service
+  version: "1.0.0"
+  description: 4-component flood risk scoring using GEE MERIT DEM, hydrology, JRC water, and MODIS LULC.
+
+servers:
+  - url: http://localhost:8002
+    description: Local dev
+
+paths:
+  /flood/analyze:
+    post:
+      operationId: analyzeFloodRisk
+      summary: Flood risk score for a location or polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FloodRequest"
+      responses:
+        "200":
+          description: Flood risk result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FloodReport"
+        "422":
+          description: Validation error
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+
+components:
+  schemas:
+    FloodRequest:
+      type: object
+      required: [lat, lon]
+      properties:
+        lat:
+          type: number
+          format: float
+        lon:
+          type: number
+          format: float
+        radius_m:
+          type: integer
+          default: 1000
+        polygon:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+          description: Optional GeoJSON polygon coordinates
+
+    FloodScoreComponents:
+      type: object
+      required: [elevation_score, flow_accumulation_score, water_proximity_score, imperviousness_score]
+      properties:
+        elevation_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: MERIT DEM elevation component (0=high, 1=low)
+        flow_accumulation_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: MERIT Hydro flow accumulation
+        water_proximity_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: JRC distance-to-water proximity
+        imperviousness_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: MODIS LULC surface imperviousness
+
+    FloodReport:
+      type: object
+      required: [composite_score, risk_tier, components, recommendations]
+      properties:
+        composite_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        risk_tier:
+          type: string
+          enum: ["Very Low", "Low", "Moderate", "High"]
+        components:
+          $ref: "#/components/schemas/FloodScoreComponents"
+        recommendations:
+          type: object
+          properties:
+            setback_guidance:
+              type: string
+            construction_level:
+              type: string
+            mitigation_measures:
+              type: string
