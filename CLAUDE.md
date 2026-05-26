@@ -11,7 +11,7 @@ Canonical, deployable build of the Site Analysis Tool. Heavy features are migrat
 - Public GitHub repo: `Site-Analysis/SAT`
 - Main branch protected: 1 review + CI required, no direct push
 - All changes via feature branch + PR
-- `.claude/` is gitignored (contains credentials)
+- `.claude/` is **partially** committed — team-shared agents/skills/commands/`settings.json` ARE in git; only `.claude/mcp.json` and `.claude/settings.local.json` are gitignored (they hold per-developer credentials). See § Claude Tooling for the full split.
 
 ---
 
@@ -42,7 +42,7 @@ tests/                 Cross-service smoke tests
 2. **Flag-default-off.** Every new behavior gated by a `FeatureFlag` enum value in `packages/flags/src/flags.py`. Enable via `FLAGS=` env var only after validation.
 3. **One feature per PR.** Tooling/refactor exceptions allowed but rare. PRs touching `contracts/` must update `contracts/CHANGELOG.md` (CI enforced).
 4. **No direct push to main.** Branch + PR + 1 review + green CI.
-5. **No secrets in committed files.** `.env` and `.claude/` are gitignored. Use `.env.example` for documentation.
+5. **No secrets in committed files.** `.env`, `.claude/mcp.json`, and `.claude/settings.local.json` are gitignored. Never paste tokens, API keys, service-account JSON, or personal emails into any tracked file. Use `.env.example` for documentation and reference env vars in code/docs.
 6. **FVD before code.** New feature requires `docs/feature-validation/SAT-XX_*.md` first. Acceptance criteria → code traceability is the contract for migration.
 
 See `docs/integration-rules.md` for the canonical statement.
@@ -154,19 +154,38 @@ Add new flag to enum BEFORE first commit that depends on it.
 
 ## Jira Access (MCP Broken)
 
-`jira-mcp` returns HTTP 410 Gone on its v2 `/search` endpoint. Use REST API v3 directly:
+`jira-mcp` (the npm package wired in `.claude/mcp.json`) returns HTTP 410 Gone on its deprecated v2 `/search` endpoint. Two working options:
 
+**Option A (recommended):** install the official Atlassian plugin:
+```
+/plugin install atlassian@claude-plugins-official
+```
+This bundles a working MCP server backed by Atlassian's current API.
+
+**Option B (manual fallback):** call REST API v3 directly. Read credentials from env vars, never hardcode:
+```bash
+# In your shell (or .env, also gitignored):
+export ATLASSIAN_EMAIL="<your-atlassian-email>"
+export ATLASSIAN_API_TOKEN="<your-token>"   # https://id.atlassian.com/manage-profile/security/api-tokens
+export ATLASSIAN_BASE_URL="https://<your-workspace>.atlassian.net"
+```
 ```python
-import urllib.request, base64, json
-token = "<from .claude/mcp.json or ~/.claude.json>"
-creds = base64.b64encode(b"dcet2300097@reva.edu.in:" + token.encode()).decode()
+import os, urllib.request, base64, json
+
+email = os.environ["ATLASSIAN_EMAIL"]
+token = os.environ["ATLASSIAN_API_TOKEN"]
+base  = os.environ["ATLASSIAN_BASE_URL"]
+
+creds = base64.b64encode(f"{email}:{token}".encode()).decode()
 req = urllib.request.Request(
-    "https://aipoweredsiteanalysis.atlassian.net/rest/api/3/search/jql",
+    f"{base}/rest/api/3/search/jql",
     data=json.dumps({"jql": "project=SAT AND status=Done", "maxResults": 100}).encode(),
     headers={"Authorization": f"Basic {creds}", "Content-Type": "application/json"},
 )
 data = json.loads(urllib.request.urlopen(req).read())
 ```
+
+Do **not** paste a token into any tracked file. `.claude/mcp.json` (gitignored) is the only acceptable place to persist it for MCP use.
 
 ---
 
