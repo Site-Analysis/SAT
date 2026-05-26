@@ -19,5 +19,9 @@ venv/
 # OS
 .DS_Store
 
-# Claude Code local config (contains credentials — never commit)
-.claude/
+# Claude Code: gitignore credential files only.
+# Team-shared agents, skills, commands, and settings.json are committed.
+.claude/mcp.json
+.claude/settings.local.json
+.claude/projects/
+.claude/cache/
