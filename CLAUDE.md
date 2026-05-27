@@ -57,7 +57,6 @@ cd apps/web
 npm install              # first time
 npm run dev              # http://localhost:3000
 npm run build
-npm run lint
 ```
 
 Note: Next.js 16 has breaking changes. Read `apps/web/AGENTS.md` and `node_modules/next/dist/docs/` before writing component code.
