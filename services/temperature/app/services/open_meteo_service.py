@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from threading import Lock
-import time
-from typing import Dict, Tuple
 import logging
+import time
+from threading import Lock
 
 import pandas as pd
 import requests
@@ -21,11 +20,11 @@ class OpenMeteoService:
 
     def __init__(self) -> None:
         self._session = requests.Session()
-        self._cache: Dict[Tuple[int, float, float], pd.DataFrame] = {}
+        self._cache: dict[tuple[int, float, float], pd.DataFrame] = {}
         self._cache_lock = Lock()
 
     @staticmethod
-    def _cache_key(lat: float, lon: float, year: int) -> Tuple[int, float, float]:
+    def _cache_key(lat: float, lon: float, year: int) -> tuple[int, float, float]:
         # Round for stable cache hits while retaining locality precision.
         return (year, round(lat, 4), round(lon, 4))
 
@@ -62,7 +61,7 @@ class OpenMeteoService:
                 if resp.status_code == 429:
                     retry_after_raw = resp.headers.get("Retry-After")
                     retry_after = float(retry_after_raw) if retry_after_raw else 0.0
-                    backoff_s = retry_after if retry_after > 0 else 0.6 * (2 ** attempt)
+                    backoff_s = retry_after if retry_after > 0 else 0.6 * (2**attempt)
                     if attempt < retries:
                         time.sleep(min(backoff_s, 8.0))
                         continue
@@ -90,4 +89,4 @@ class OpenMeteoService:
                 if attempt >= retries:
                     logger.exception("OpenMeteo API request failed")
                     raise
-                time.sleep(0.4 * (2 ** attempt))
+                time.sleep(0.4 * (2**attempt))

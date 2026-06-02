@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import logging
 from threading import Lock
-from typing import List
 
 import pandas as pd
-
 from app.models.climate import (
     ClimateRecommendations,
     ClimateReport,
@@ -54,7 +52,9 @@ class ClimateAnalyticsService:
             df = self.open_meteo.get_daily_data(lat, lon, year)
 
         if df.empty:
-            raise RuntimeError("No daily temperature data available for the requested year/location")
+            raise RuntimeError(
+                "No daily temperature data available for the requested year/location"
+            )
 
         # Normalize
         df = df.copy()
@@ -72,13 +72,17 @@ class ClimateAnalyticsService:
         # Compute monthly aggregates
         df["month"] = df["date"].dt.month
         monthly = (
-            df.groupby("month").agg(avg_tmax=("tmax", "mean"), avg_tmin=("tmin", "mean")).reset_index()
+            df.groupby("month")
+            .agg(avg_tmax=("tmax", "mean"), avg_tmin=("tmin", "mean"))
+            .reset_index()
         )
 
-        monthly_list: List[MonthlyTemperature] = []
+        monthly_list: list[MonthlyTemperature] = []
         for row in monthly.itertuples(index=False):
             monthly_list.append(
-                MonthlyTemperature(month=int(row.month), avg_tmax=float(row.avg_tmax), avg_tmin=float(row.avg_tmin))
+                MonthlyTemperature(
+                    month=int(row.month), avg_tmax=float(row.avg_tmax), avg_tmin=float(row.avg_tmin)
+                )
             )
 
         # Summary statistics
@@ -86,7 +90,9 @@ class ClimateAnalyticsService:
         peak_max = float(df["tmax"].max())
         lowest_min = float(df["tmin"].min())
 
-        summary = ClimateSummary(annual_avg_temp=annual_avg, peak_max_temp=peak_max, lowest_min_temp=lowest_min)
+        summary = ClimateSummary(
+            annual_avg_temp=annual_avg, peak_max_temp=peak_max, lowest_min_temp=lowest_min
+        )
 
         # Recommendations based on annual average (thresholds tuned for Indian context)
         if annual_avg > 24.0:
@@ -103,10 +109,14 @@ class ClimateAnalyticsService:
             insulation = "Use standard insulation practices with emphasis on passive solar gain where beneficial."
 
         recommendations = ClimateRecommendations(
-            material_suggestion=material, insulation_strategy=insulation, thermal_comfort_status=status
+            material_suggestion=material,
+            insulation_strategy=insulation,
+            thermal_comfort_status=status,
         )
 
-        report = ClimateReport(monthly_data=monthly_list, summary=summary, recommendations=recommendations)
+        report = ClimateReport(
+            monthly_data=monthly_list, summary=summary, recommendations=recommendations
+        )
         with self._profile_cache_lock:
             if len(self._profile_cache) >= 256:
                 self._profile_cache.pop(next(iter(self._profile_cache)))

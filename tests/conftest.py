@@ -1,4 +1,5 @@
 """Pytest configuration for SAT integration tests."""
+
 import sys
 from pathlib import Path
 

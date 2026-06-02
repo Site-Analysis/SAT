@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
-import json
 from contextlib import asynccontextmanager
 
+from app.routers.weather import weather_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.routers.weather import weather_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("temperature")
@@ -42,7 +41,12 @@ app = FastAPI(title="SAT-Platform Backend", lifespan=lifespan)
 
 # CORS middleware (open for development; restrict in production)
 cors_origins = _parse_cors_origins(os.getenv("CORS_ORIGINS", "*"))
-allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() in {"1", "true", "yes", "on"}
+allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 if "*" in cors_origins:
     allow_credentials = False
 app.add_middleware(

@@ -15,9 +15,9 @@ When this feature is promoted to Enhancement-Ready:
 Run:
     pytest tests/temperature_imd_validation.py -v
 """
+
 from __future__ import annotations
 
-import os
 import tempfile
 
 import pytest
@@ -68,7 +68,10 @@ def test_imd_service_adapter_reads_grd():
         pytest.skip("imdlib not installed")
 
     import sys
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).parents[1] / "services" / "temperature"))
+
+    sys.path.insert(
+        0, str(__import__("pathlib").Path(__file__).parents[1] / "services" / "temperature")
+    )
 
     try:
         from app.services.imd_weather_service import IMDWeatherService
@@ -77,6 +80,7 @@ def test_imd_service_adapter_reads_grd():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         import imdlib
+
         imdlib.get_data("tmax", 2023, 2023, "yearwise", "stn", tmpdir)
         imdlib.get_data("tmin", 2023, 2023, "yearwise", "stn", tmpdir)
 

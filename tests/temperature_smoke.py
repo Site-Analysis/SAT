@@ -7,20 +7,20 @@ use the mock fixtures below which patch httpx to avoid live network calls.
 Run:
     pytest tests/temperature_smoke.py -v
 """
+
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-
 
 # ---------------------------------------------------------------------------
 # App import (requires app/ to be in sys.path — handled by conftest or pytest.ini)
 # ---------------------------------------------------------------------------
 try:
     from app.main import app
+
     CLIENT = TestClient(app)
     APP_AVAILABLE = True
 except ImportError:
@@ -39,8 +39,34 @@ MOCK_OPEN_METEO_PAYLOAD = {
     "timezone": "UTC",
     "daily": {
         "time": [f"2023-{str(m).zfill(2)}-15" for m in range(1, 13)],
-        "temperature_2m_max": [32.0, 33.0, 36.0, 38.0, 39.0, 34.0, 30.0, 30.0, 31.0, 33.0, 31.0, 29.0],
-        "temperature_2m_min": [18.0, 19.0, 22.0, 26.0, 28.0, 26.0, 25.0, 25.0, 24.0, 22.0, 19.0, 17.0],
+        "temperature_2m_max": [
+            32.0,
+            33.0,
+            36.0,
+            38.0,
+            39.0,
+            34.0,
+            30.0,
+            30.0,
+            31.0,
+            33.0,
+            31.0,
+            29.0,
+        ],
+        "temperature_2m_min": [
+            18.0,
+            19.0,
+            22.0,
+            26.0,
+            28.0,
+            26.0,
+            25.0,
+            25.0,
+            24.0,
+            22.0,
+            19.0,
+            17.0,
+        ],
     },
 }
 
@@ -56,6 +82,7 @@ def _mock_httpx_get(url: str, **kwargs):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 @skip_no_app
 def test_health():
@@ -106,16 +133,20 @@ def test_thermal_grid_small_polygon():
     """
     polygon = {
         "type": "Polygon",
-        "coordinates": [[
-            [72.85, 19.05],
-            [72.90, 19.05],
-            [72.90, 19.10],
-            [72.85, 19.10],
-            [72.85, 19.05],
-        ]],
+        "coordinates": [
+            [
+                [72.85, 19.05],
+                [72.90, 19.05],
+                [72.90, 19.10],
+                [72.85, 19.10],
+                [72.85, 19.05],
+            ]
+        ],
     }
-    with patch("httpx.get", side_effect=_mock_httpx_get), \
-         patch("requests.get", side_effect=lambda url, **kw: _mock_httpx_get(url, **kw)):
+    with (
+        patch("httpx.get", side_effect=_mock_httpx_get),
+        patch("requests.get", side_effect=lambda url, **kw: _mock_httpx_get(url, **kw)),
+    ):
         resp = CLIENT.post(
             "/weather/thermal-grid",
             json={"geometry": polygon, "year": 2023, "grid_size": 3},
@@ -185,23 +216,47 @@ def test_feature_flag_off_returns_403(monkeypatch):
     monkeypatch.setenv("FLAGS", "")
 
     flagged_requests = [
-        ("get", "/weather/climate-archive", {"params": {
-            "latitude": 12.97, "longitude": 77.59,
-            "start_date": "2023-01-01", "end_date": "2023-12-31",
-            "daily": "temperature_2m_max",
-        }}),
+        (
+            "get",
+            "/weather/climate-archive",
+            {
+                "params": {
+                    "latitude": 12.97,
+                    "longitude": 77.59,
+                    "start_date": "2023-01-01",
+                    "end_date": "2023-12-31",
+                    "daily": "temperature_2m_max",
+                }
+            },
+        ),
         ("get", "/weather/thermal-profile", {"params": {"lat": 12.97, "lon": 77.59}}),
         ("get", "/weather/analyze-wind", {"params": {"lat": 12.97, "lon": 77.59}}),
-        ("post", "/weather/thermal-grid", {"json": {
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[[72.85, 19.05], [72.90, 19.05], [72.90, 19.10], [72.85, 19.10], [72.85, 19.05]]],
+        (
+            "post",
+            "/weather/thermal-grid",
+            {
+                "json": {
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [72.85, 19.05],
+                                [72.90, 19.05],
+                                [72.90, 19.10],
+                                [72.85, 19.10],
+                                [72.85, 19.05],
+                            ]
+                        ],
+                    },
+                }
             },
-        }}),
+        ),
     ]
     for method, path, kwargs in flagged_requests:
         resp = getattr(CLIENT, method)(path, **kwargs)
-        assert resp.status_code == 403, f"{method.upper()} {path} expected 403, got {resp.status_code}"
+        assert resp.status_code == 403, (
+            f"{method.upper()} {path} expected 403, got {resp.status_code}"
+        )
 
 
 @skip_no_app
@@ -209,9 +264,14 @@ def test_feature_flag_on_climate_archive_200(monkeypatch):
     """climate-archive returns 200 when feature flag is enabled."""
     monkeypatch.setenv("FLAGS", "feature.temperature.thermal-profile")
     with patch("httpx.get", side_effect=_mock_httpx_get):
-        resp = CLIENT.get("/weather/climate-archive", params={
-            "latitude": 12.97, "longitude": 77.59,
-            "start_date": "2023-01-01", "end_date": "2023-12-31",
-            "daily": "temperature_2m_max,temperature_2m_min",
-        })
+        resp = CLIENT.get(
+            "/weather/climate-archive",
+            params={
+                "latitude": 12.97,
+                "longitude": 77.59,
+                "start_date": "2023-01-01",
+                "end_date": "2023-12-31",
+                "daily": "temperature_2m_max,temperature_2m_min",
+            },
+        )
     assert resp.status_code == 200

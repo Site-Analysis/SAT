@@ -1,16 +1,25 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date
 import logging
 import math
 import os
 import threading
 import time
-from typing import Any, Dict, List, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date
+from typing import Any
 
 import httpx
-from fastapi import APIRouter, Query, HTTPException
+from app.models.climate import (
+    ClimateRecommendations,
+    ClimateReport,
+    ClimateSummary,
+    MonthlyTemperature,
+    ThermalGridRequest,
+    ThermalGridResponse,
+)
+from app.services.climate_analytics import ClimateAnalyticsService
+from fastapi import APIRouter, HTTPException, Query
 
 # Feature flag — enabled by including "feature.temperature.thermal-profile" in
 # the FLAGS env var (comma-separated). All endpoints check this at request time.
@@ -22,15 +31,6 @@ def _require_flag() -> None:
     if _TEMPERATURE_FLAG not in enabled:
         raise HTTPException(status_code=403, detail=f"Feature flag disabled: {_TEMPERATURE_FLAG}")
 
-from app.models.climate import (
-    ClimateRecommendations,
-    ClimateReport,
-    ClimateSummary,
-    MonthlyTemperature,
-    ThermalGridRequest,
-    ThermalGridResponse,
-)
-from app.services.climate_analytics import ClimateAnalyticsService
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ weather_router = router
 # Key: cache key string → threading.Event that is set once the result is written.
 # Concurrent requests for the same location wait on the event then read from cache.
 _wind_inflight_lock = threading.Lock()
-_wind_inflight: Dict[str, threading.Event] = {}
+_wind_inflight: dict[str, threading.Event] = {}
 
 
 def get_default_year() -> int:
@@ -51,20 +51,24 @@ def get_default_year() -> int:
     return date.today().year - 1
 
 
-def _extract_polygon_ring(geometry: Dict[str, Any]) -> List[Tuple[float, float]]:
+def _extract_polygon_ring(geometry: dict[str, Any]) -> list[tuple[float, float]]:
     geometry_type = str(geometry.get("type", ""))
     if geometry_type != "Polygon":
         raise HTTPException(status_code=422, detail="geometry.type must be 'Polygon'")
 
     coords = geometry.get("coordinates")
     if not isinstance(coords, list) or len(coords) == 0:
-        raise HTTPException(status_code=422, detail="geometry.coordinates must contain at least one ring")
+        raise HTTPException(
+            status_code=422, detail="geometry.coordinates must contain at least one ring"
+        )
 
     outer_ring = coords[0]
     if not isinstance(outer_ring, list) or len(outer_ring) < 4:
-        raise HTTPException(status_code=422, detail="Polygon outer ring must have at least 4 coordinates")
+        raise HTTPException(
+            status_code=422, detail="Polygon outer ring must have at least 4 coordinates"
+        )
 
-    ring: List[Tuple[float, float]] = []
+    ring: list[tuple[float, float]] = []
     for pair in outer_ring:
         if not isinstance(pair, list) or len(pair) < 2:
             raise HTTPException(status_code=422, detail="Invalid polygon coordinate pair")
@@ -77,7 +81,7 @@ def _extract_polygon_ring(geometry: Dict[str, Any]) -> List[Tuple[float, float]]
     return ring
 
 
-def _point_in_polygon(lon: float, lat: float, ring: List[Tuple[float, float]]) -> bool:
+def _point_in_polygon(lon: float, lat: float, ring: list[tuple[float, float]]) -> bool:
     # Ray-casting algorithm on outer ring
     inside = False
     j = len(ring) - 1
@@ -93,7 +97,9 @@ def _point_in_polygon(lon: float, lat: float, ring: List[Tuple[float, float]]) -
     return inside
 
 
-def _estimated_climate_report(lat: float, lon: float, year: int, reason: str | None = None) -> ClimateReport:
+def _estimated_climate_report(
+    lat: float, lon: float, year: int, reason: str | None = None
+) -> ClimateReport:
     """Generate an estimated thermal profile when upstream weather APIs are unavailable.
 
     This keeps analysis workflows functional under provider throttling/outage.
@@ -104,7 +110,7 @@ def _estimated_climate_report(lat: float, lon: float, year: int, reason: str | N
     continentality = min(abs(lon - 78.0), 12.0) * 0.05
     amplitude = 5.0 + min(lat_abs, 30.0) * 0.08 + continentality
 
-    monthly_data: List[MonthlyTemperature] = []
+    monthly_data: list[MonthlyTemperature] = []
     for month in range(1, 13):
         # Peak heat around May in Indian climate contexts.
         angle = ((month - 5) / 12.0) * 2.0 * math.pi
@@ -196,7 +202,7 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
         lon_step = (max_lon - min_lon) / grid_size
         lat_step = (max_lat - min_lat) / grid_size
 
-        candidate_cells: List[Dict[str, Any]] = []
+        candidate_cells: list[dict[str, Any]] = []
         for row in range(grid_size):
             for col in range(grid_size):
                 lon0 = min_lon + col * lon_step
@@ -218,13 +224,15 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
                         "center_lat": center_lat,
                         "geometry": {
                             "type": "Polygon",
-                            "coordinates": [[
-                                [lon0, lat0],
-                                [lon1, lat0],
-                                [lon1, lat1],
-                                [lon0, lat1],
-                                [lon0, lat0],
-                            ]],
+                            "coordinates": [
+                                [
+                                    [lon0, lat0],
+                                    [lon1, lat0],
+                                    [lon1, lat1],
+                                    [lon0, lat1],
+                                    [lon0, lat0],
+                                ]
+                            ],
                         },
                     }
                 )
@@ -245,7 +253,7 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
             ((min_lat + max_lat) / 2.0, min_lon),
             ((min_lat + max_lat) / 2.0, max_lon),
         ]
-        unique_samples: List[Tuple[float, float]] = []
+        unique_samples: list[tuple[float, float]] = []
         seen_samples = set()
         for lat, lon in sample_candidates:
             key = (round(lat, 6), round(lon, 6))
@@ -254,15 +262,19 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
             seen_samples.add(key)
             unique_samples.append((lat, lon))
 
-        def _sample_annual_avg_temp(point: Tuple[float, float]) -> Tuple[float, float, float]:
+        def _sample_annual_avg_temp(point: tuple[float, float]) -> tuple[float, float, float]:
             sample_lat, sample_lon = point
-            report = service.get_annual_thermal_profile(lat=sample_lat, lon=sample_lon, year=target_year)
+            report = service.get_annual_thermal_profile(
+                lat=sample_lat, lon=sample_lon, year=target_year
+            )
             return sample_lat, sample_lon, float(report.summary.annual_avg_temp)
 
-        sampled_temps: List[Tuple[float, float, float]] = []
+        sampled_temps: list[tuple[float, float, float]] = []
         max_workers = min(6, max(1, len(unique_samples)))
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            future_map = {pool.submit(_sample_annual_avg_temp, point): point for point in unique_samples}
+            future_map = {
+                pool.submit(_sample_annual_avg_temp, point): point for point in unique_samples
+            }
             for fut in as_completed(future_map):
                 point = future_map[fut]
                 try:
@@ -320,8 +332,8 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
                 return sample_avg
             return weighted_sum / weight_total
 
-        features: List[Dict[str, Any]] = []
-        temps: List[float] = []
+        features: list[dict[str, Any]] = []
+        temps: list[float] = []
         for cell in candidate_cells:
             temp = _interpolated_temp(cell["center_lat"], cell["center_lon"])
             temps.append(temp)
@@ -341,7 +353,9 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
             )
 
         if not features:
-            raise HTTPException(status_code=500, detail="Thermal grid generation failed for all cells")
+            raise HTTPException(
+                status_code=500, detail="Thermal grid generation failed for all cells"
+            )
 
         return ThermalGridResponse(
             type="FeatureCollection",
@@ -361,7 +375,7 @@ def get_thermal_grid(request: ThermalGridRequest) -> ThermalGridResponse:
 def analyze_wind(
     lat: float = Query(..., description="Latitude"),
     lon: float = Query(..., description="Longitude"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Wind rose analysis using ERA5 5-year daily data via Open-Meteo Archive API.
 
@@ -392,7 +406,9 @@ def analyze_wind(
         f"&timezone=auto"
     )
 
-    import hashlib, json, pathlib
+    import hashlib
+    import json
+    import pathlib
 
     cache_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "_climate_cache"
     cache_dir.mkdir(exist_ok=True)
@@ -445,14 +461,20 @@ def analyze_wind(
                 cache_file.write_text(json.dumps(data))
                 return data
             except httpx.HTTPStatusError:
-                raise HTTPException(status_code=502, detail=f"Open-Meteo wind error: {resp.status_code}")
+                raise HTTPException(
+                    status_code=502, detail=f"Open-Meteo wind error: {resp.status_code}"
+                )
             except Exception as exc:
                 last_err = str(exc)
                 if "429" not in str(exc) and "rate" not in str(exc).lower():
                     logger.warning("Wind fetch failed for %s,%s: %s", lat, lon, exc)
-                    raise HTTPException(status_code=502, detail=f"Open-Meteo wind fetch failed: {exc}")
+                    raise HTTPException(
+                        status_code=502, detail=f"Open-Meteo wind fetch failed: {exc}"
+                    )
 
-        raise HTTPException(status_code=429, detail=f"Open-Meteo rate limited after all retries: {last_err}")
+        raise HTTPException(
+            status_code=429, detail=f"Open-Meteo rate limited after all retries: {last_err}"
+        )
     finally:
         with _wind_inflight_lock:
             _wind_inflight.pop(key, None)
@@ -467,14 +489,16 @@ def climate_archive_proxy(
     end_date: str = Query(...),
     daily: str = Query(...),
     timezone: str = Query("auto"),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Caching proxy for Open-Meteo archive API.
 
     Saves responses to disk so identical requests never hit the upstream API
     twice — survives server restarts + browser cache clears.
     """
     _require_flag()
-    import hashlib, json, pathlib
+    import hashlib
+    import json
+    import pathlib
 
     cache_dir = pathlib.Path(__file__).resolve().parent.parent.parent / "_climate_cache"
     cache_dir.mkdir(exist_ok=True)
@@ -520,4 +544,6 @@ def climate_archive_proxy(
             if "429" not in str(exc) and "rate" not in str(exc).lower():
                 raise HTTPException(status_code=502, detail=f"Open-Meteo fetch failed: {exc}")
 
-    raise HTTPException(status_code=429, detail=f"Open-Meteo rate limited after all retries: {last_err}")
+    raise HTTPException(
+        status_code=429, detail=f"Open-Meteo rate limited after all retries: {last_err}"
+    )

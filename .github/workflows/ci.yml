@@ -111,11 +111,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Run smoke tests
+      - name: Install service dependencies
         if: steps.filter.outputs.tests == 'true'
         run: |
+          for req in services/*/requirements.txt; do
+            echo "Installing $req"
+            pip install -r "$req" --quiet
+          done
+      - name: Run smoke tests
+        if: steps.filter.outputs.tests == 'true'
+        env:
+          FLAGS: "feature.temperature.thermal-profile"
+        run: |
           if ls tests/*_smoke.py 1>/dev/null 2>&1; then
-            pip install pytest httpx
             pytest tests/ -v --tb=short
           else
             echo "No smoke tests yet."

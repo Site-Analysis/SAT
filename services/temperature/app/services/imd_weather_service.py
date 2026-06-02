@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 
@@ -52,12 +52,14 @@ class IMDWeatherService:
         # Some libs return dict/series-like structures
         if hasattr(out, "items") or isinstance(out, dict):
             return pd.DataFrame(out)
-        raise RuntimeError("imdlib returned an unsupported object; please adapt or extend this adapter")
+        raise RuntimeError(
+            "imdlib returned an unsupported object; please adapt or extend this adapter"
+        )
 
     def _load_year(self, year: int) -> pd.DataFrame:
         try:
             import imdlib
-        except Exception as exc:  # pragma: no cover - optional dependency
+        except Exception:  # pragma: no cover - optional dependency
             logger.exception("Failed to import imdlib")
             raise
 
@@ -131,7 +133,9 @@ class IMDWeatherService:
         try:
             return self._load_year(year)
         except Exception as exc:  # pragma: no cover - runtime fallback
-            logger.warning("Reading IMD data for %s failed: %s; attempting fallback to %s", year, exc, year - 1)
+            logger.warning(
+                "Reading IMD data for %s failed: %s; attempting fallback to %s", year, exc, year - 1
+            )
             try:
                 return self._load_year(year - 1)
             except Exception:
