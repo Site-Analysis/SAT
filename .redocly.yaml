@@ -1,0 +1,17 @@
+apis:
+  temperature:
+    root: contracts/temperature.yaml
+  flood:
+    root: contracts/flood.yaml
+  sunpath:
+    root: contracts/sunpath.yaml
+  wind:
+    root: contracts/wind.yaml
+
+rules:
+  # Internal APIs — no auth layer yet; suppress until auth is added
+  security-defined: off
+  # Internal tooling — no public license required
+  info-license: off
+  # Health endpoints intentionally have no 4XX — suppress warning
+  operation-4xx-response: warn

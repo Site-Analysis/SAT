@@ -3,32 +3,47 @@
 **Port:** 8000
 **Contract:** `contracts/temperature.yaml`
 **Feature flag:** `feature.temperature.thermal-profile`
-**FVD:** `docs/feature-validation/SAT-09_annual-temperature-analysis.md`
-**Jira:** SAT-9 (Done, 2026-03-26)
 
 ## Source location
-`/Volumes/LocalDrive/Site Analysis/Site-Analysis-Tool/src/Backend/Temperature/`
+`/Volumes/LocalDrive/SiteAnalysisToolV3/backend/Temperature/`
 
-## Architecture
-- Primary data: IMD gridded (1° × 1°) — `data/imd_*.grd` files
-- Fallback: Open-Meteo Archive API (`https://archive-api.open-meteo.com/v1/archive`)
-- No external API keys required
+## Data source
+**Primary:** Open-Meteo Archive API (ERA5 reanalysis, `https://archive-api.open-meteo.com/v1/archive`)
+**Enhancement-Later:** IMD imdlib — requires `.grd` data files not in repository; adapter needs rewrite before use.
 
-## Endpoint
+## Live endpoints (frontend uses these)
 ```
-GET /weather/thermal-profile?lat={lat}&lon={lon}&year={year}
+GET  /weather/climate-archive   — disk-cached proxy → Open-Meteo (main panel data)
+POST /weather/thermal-grid      — spatial temperature heatmap for polygon ROI
+GET  /weather/analyze-wind      — ERA5 5-year wind rose data (disk-cached)
+GET  /health                    — service health check
 ```
-Returns monthly tmax/tmin, annual summary, material/insulation recommendations.
+
+## Deprecated endpoint (zero frontend call sites)
+```
+GET  /weather/thermal-profile   — dead code; no component calls this
+```
+
+## Architecture note
+`TemperatureAnalysisPanel` → `fetchClimateAnalysis()` → `/weather/climate-archive` → Open-Meteo  
+`TemperatureResultView` → `getThermalGrid()` → `/weather/thermal-grid`  
+`temperatureApi.getThermalProfile()` → **never called** — zero callers in codebase.
+
+## CORS
+Set `CORS_ORIGINS=http://localhost:5173` (Vite dev port) in env. Do NOT use `:3000`.
 
 ## Gotchas
-- IMD data is large (~MB per year) — don't commit to git; mount via volume in docker-compose
-- Open-Meteo fallback triggers when IMD file missing OR location outside India bounds
-- CORS must allow `http://localhost:3000` for dev
+- Open-Meteo responses cached to `_climate_cache/` on disk — survives server restarts
+- IMD `.grd` files would live in `data/` — mount as Docker volume; never commit to git
+- Estimated fallback profile triggers when both IMD and Open-Meteo fail — returns valid `ClimateReport` with status suffixed `/ Estimated`
 
 ## Migration checklist
-- [ ] Copy `app/` directory
-- [ ] Add `pyproject.toml` + `requirements.txt` (pin: fastapi, uvicorn, requests, xarray, netcdf4)
-- [ ] Wire flag check: `require_flag(FeatureFlag.TEMPERATURE_THERMAL_PROFILE)` at endpoint
-- [ ] Add `Dockerfile` with IMD data volume mount
-- [ ] Add `tests/temperature_smoke.py` hitting `/health` + one valid coord
-- [ ] Bump `contracts/CHANGELOG.md` if schema changes
+- [x] Contract updated to reflect live endpoints (v1.1.0)
+- [x] Copy `SiteAnalysisToolV3/backend/Temperature/app/` → `services/temperature/app/`
+- [x] Add `GET /health` endpoint returning `{"status": "ok", "service": "temperature"}`
+- [x] Pin `requirements.txt` to exact versions
+- [x] Wire flag check: `_require_flag()` at all 4 endpoints in `app/routers/weather.py` — reads `FLAGS` env var directly (packages/flags outside Docker build context)
+- [x] Add `Dockerfile` (Python 3.11-slim, `data/` volume mount)
+- [x] Add service block to root `docker-compose.yml` (already present; healthcheck updated to `/health`)
+- [ ] Add `tests/temperature_smoke.py` covering `/health`, `climate-archive`, `thermal-grid`
+- [ ] Add `tests/temperature_imd_validation.py` (marked xfail — documents Enhancement-Later)

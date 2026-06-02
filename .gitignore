@@ -32,3 +32,6 @@ venv/
 # Secrets
 /services/service-account.json
 gee-sa.json
+
+# IMD test download artifacts
+stn/
