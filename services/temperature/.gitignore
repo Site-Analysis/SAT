@@ -1,0 +1,7 @@
+# Runtime cache (Open-Meteo disk cache populated at runtime)
+_climate_cache/
+
+# IMD data files (large, downloaded separately — see AGENTS.md)
+data/
+*.grd
+*.GRD

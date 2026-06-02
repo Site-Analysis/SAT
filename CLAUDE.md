@@ -62,10 +62,10 @@ npm run build
 Note: Next.js 16 has breaking changes. Read `apps/web/AGENTS.md` and `node_modules/next/dist/docs/` before writing component code.
 
 ### Services (per service)
-Each service gets its own `.venv/`:
+Each service gets its own `.venv/`. **Use `python3.12`** — 3.14 is missing wheels for earthengine-api, pvlib, imdlib, netCDF4:
 ```bash
 cd services/<service>
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port <port>
@@ -153,17 +153,16 @@ Add new flag to enum BEFORE first commit that depends on it.
 
 ## Jira Access (MCP Broken)
 
-`jira-mcp` (the npm package wired in `.claude/mcp.json`) returns HTTP 410 Gone on its deprecated v2 `/search` endpoint. Two working options:
+**Atlassian plugin is installed and OAuth-authenticated** — use `mcp__plugin_atlassian_atlassian__*` MCP tools directly.
+Cloud ID: `f53059b9-cd1d-4106-abf6-848d8e9069da`
 
-**Option A (recommended):** install the official Atlassian plugin:
-```
-/plugin install atlassian@claude-plugins-official
-```
-This bundles a working MCP server backed by Atlassian's current API.
+API gotchas discovered in practice:
+- **Sprint creation** requires board-level OAuth scope (not in current token) — create sprints via Jira UI board, then assign issues via API
+- **`story_points` field** is not on the default create screen — do NOT pass in `additional_fields`; set via Jira UI after creation
+- **Chirag's account ID**: `712020:99b3330a-a7a6-4ea9-ace5-e80e0e3e334e`
 
-**Option B (manual fallback):** call REST API v3 directly. Read credentials from env vars, never hardcode:
+`jira-mcp` npm package (deprecated) returns HTTP 410 Gone. **Fallback** if plugin disconnects — call REST API v3 directly via Python urllib. Read credentials from env vars, never hardcode:
 ```bash
-# In your shell (or .env, also gitignored):
 export ATLASSIAN_EMAIL="<your-atlassian-email>"
 export ATLASSIAN_API_TOKEN="<your-token>"   # https://id.atlassian.com/manage-profile/security/api-tokens
 export ATLASSIAN_BASE_URL="https://<your-workspace>.atlassian.net"

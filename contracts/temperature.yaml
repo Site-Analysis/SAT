@@ -1,18 +1,163 @@
 openapi: "3.1.0"
 info:
   title: Temperature Service
-  version: "1.0.0"
-  description: Annual thermal profile analysis for any global coordinate.
+  version: "1.1.0"
+  description: >
+    Annual thermal profile and spatial temperature analysis for any global coordinate.
+    Primary data: Open-Meteo Archive API (ERA5 reanalysis, 1940-present).
+    IMD imdlib integration: enhancement-only — requires .grd data files not in repository.
 
 servers:
   - url: http://localhost:8000
     description: Local dev
 
 paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "temperature"
+
+  /weather/climate-archive:
+    get:
+      operationId: getClimateArchive
+      summary: >
+        Caching proxy for Open-Meteo Archive API (ERA5). Persists responses to disk
+        so identical requests never hit the upstream API twice. This is the primary
+        endpoint used by the frontend temperature analysis panel.
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2019-01-01"
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-12-31"
+        - name: daily
+          in: query
+          required: true
+          description: >
+            Comma-separated Open-Meteo daily variable names. Frontend requests:
+            temperature_2m_max,temperature_2m_min,apparent_temperature_max,
+            apparent_temperature_min,relative_humidity_2m_max,relative_humidity_2m_min,
+            wind_speed_10m_max,shortwave_radiation_sum,precipitation_sum,precipitation_hours
+          schema:
+            type: string
+        - name: timezone
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "auto"
+      responses:
+        "200":
+          description: Open-Meteo daily climate data (pass-through, disk-cached)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenMeteoArchiveResponse"
+        "429":
+          description: Open-Meteo rate limited after all retries
+        "502":
+          description: Upstream Open-Meteo error
+
+  /weather/thermal-grid:
+    post:
+      operationId: getThermalGrid
+      summary: >
+        Spatial annual-average temperature grid over a polygon ROI. Used by
+        TemperatureResultView for the MapLibre heatmap overlay.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThermalGridRequest"
+      responses:
+        "200":
+          description: GeoJSON FeatureCollection with per-cell annual average temperature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThermalGridResponse"
+        "422":
+          description: Validation error (invalid polygon geometry)
+        "500":
+          description: Grid generation failed for all cells
+
+  /weather/analyze-wind:
+    get:
+      operationId: analyzeWind
+      summary: >
+        Wind rose analysis using ERA5 5-year daily data via Open-Meteo Archive API.
+        Returns raw daily wind speed, gust, and dominant direction data.
+        Frontend windApi.ts processes this into WindAnalysis/WindRose format.
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        "200":
+          description: Raw Open-Meteo daily wind data (5-year window, disk-cached)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenMeteoArchiveResponse"
+        "429":
+          description: Open-Meteo rate limited after all retries
+        "503":
+          description: Wind data unavailable — upstream fetch failed
+
   /weather/thermal-profile:
     get:
       operationId: getThermalProfile
-      summary: Annual thermal profile for a location
+      deprecated: true
+      summary: >
+        [DEPRECATED — zero frontend call sites] Annual thermal profile for a location.
+        Returns monthly tmax/tmin aggregates + material/insulation recommendations.
+        Use /weather/climate-archive for the live frontend data path instead.
       parameters:
         - name: lat
           in: query
@@ -31,31 +176,18 @@ paths:
           required: false
           schema:
             type: integer
-            default: 2023
+            description: >
+              Target year. Defaults to last completed year (today.year - 1).
+              Note: contract previously stated default 2023; code default is today.year-1.
       responses:
         "200":
-          description: Thermal profile
+          description: Annual thermal profile (may be estimated fallback if upstream unavailable)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ClimateReport"
         "422":
           description: Validation error
-
-  /:
-    get:
-      operationId: healthCheck
-      summary: Health check
-      responses:
-        "200":
-          description: Service running
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
 
 components:
   schemas:
@@ -100,10 +232,23 @@ components:
           type: string
         thermal_comfort_status:
           type: string
+          description: >
+            Qualitative comfort classification. Estimated-fallback variants suffixed
+            with "/ Estimated" are returned when upstream weather APIs are unavailable.
           enum:
             - "Hot / High Thermal Mass"
             - "Cold / Insulation"
             - "Moderate"
+            - "Hot / Estimated"
+            - "Cold / Estimated"
+            - "Moderate / Estimated"
+        climate_zone:
+          type: ["string", "null"]
+          description: ECBC/Köppen climate zone label (e.g. "Hot & Dry", "Warm & Humid")
+        cdd_hdd_ratio:
+          type: ["number", "null"]
+          format: float
+          description: Ratio of annual Cooling Degree Days to Heating Degree Days
 
     ClimateReport:
       type: object
@@ -113,9 +258,88 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MonthlyTemperature"
-          minItems: 12
+          minItems: 1
           maxItems: 12
         summary:
           $ref: "#/components/schemas/ClimateSummary"
         recommendations:
           $ref: "#/components/schemas/ClimateRecommendations"
+
+    ThermalGridRequest:
+      type: object
+      required: [geometry]
+      properties:
+        geometry:
+          type: object
+          description: GeoJSON Polygon geometry with coordinates in [lng, lat] order
+          required: [type, coordinates]
+          properties:
+            type:
+              type: string
+              enum: ["Polygon"]
+            coordinates:
+              type: array
+              items:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: number
+        year:
+          type: ["integer", "null"]
+          description: Target year. Defaults to last completed year (today.year - 1).
+        grid_size:
+          type: integer
+          minimum: 3
+          maximum: 20
+          default: 8
+          description: Grid resolution — NxN cells over the polygon bounding box
+
+    ThermalGridResponse:
+      type: object
+      required: [type, features, min_temp, max_temp, year]
+      properties:
+        type:
+          type: string
+          enum: ["FeatureCollection"]
+        features:
+          type: array
+          description: GeoJSON Features; each has annual_avg_temp in properties
+          items:
+            type: object
+        min_temp:
+          type: number
+          format: float
+          description: Minimum annual average temperature across all cells (°C)
+        max_temp:
+          type: number
+          format: float
+          description: Maximum annual average temperature across all cells (°C)
+        year:
+          type: integer
+
+    OpenMeteoArchiveResponse:
+      type: object
+      description: >
+        Raw Open-Meteo API response (pass-through). Shape matches the Open-Meteo
+        Archive API documentation. Key field: daily object containing arrays indexed
+        by date. Variable names depend on the `daily` query parameter.
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        timezone:
+          type: string
+        daily:
+          type: object
+          properties:
+            time:
+              type: array
+              items:
+                type: string
+                format: date
+          additionalProperties:
+            type: array
+            items:
+              type: number
