@@ -25,3 +25,7 @@ venv/
 .claude/settings.local.json
 .claude/projects/
 .claude/cache/
+
+# Secrets
+/services/service-account.json
+gee-sa.json
