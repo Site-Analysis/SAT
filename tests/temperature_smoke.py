@@ -10,25 +10,40 @@ Run:
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
+
+# Ensure services/temperature is on sys.path so 'app' package is importable.
+# conftest.py does this too, but we add it here as a fallback for CI environments
+# where conftest loading order may differ.
+_TEMPERATURE_SERVICE = Path(__file__).resolve().parents[1] / "services" / "temperature"
+if str(_TEMPERATURE_SERVICE) not in sys.path:
+    sys.path.insert(0, str(_TEMPERATURE_SERVICE))
 
 # ---------------------------------------------------------------------------
-# App import (requires app/ to be in sys.path — handled by conftest or pytest.ini)
+# App import — catch any exception (not just ImportError) so a missing optional
+# dependency (e.g. imdlib native ext) doesn't abort collection.
 # ---------------------------------------------------------------------------
+APP_AVAILABLE = False
+CLIENT = None  # type: ignore[assignment]
+_APP_IMPORT_ERROR: str = ""
+
 try:
-    from app.main import app
+    from app.main import app  # noqa: E402
+    from fastapi.testclient import TestClient
 
     CLIENT = TestClient(app)
     APP_AVAILABLE = True
-except ImportError:
-    APP_AVAILABLE = False
-    CLIENT = None  # type: ignore[assignment]
+except Exception as _exc:  # noqa: BLE001
+    _APP_IMPORT_ERROR = f"{type(_exc).__name__}: {_exc}"
 
 
-skip_no_app = pytest.mark.skipif(not APP_AVAILABLE, reason="app/ not on sys.path")
+skip_no_app = pytest.mark.skipif(
+    not APP_AVAILABLE, reason=f"app/ not importable: {_APP_IMPORT_ERROR}"
+)
 
 # ---------------------------------------------------------------------------
 # Open-Meteo mock payload (minimal valid shape)

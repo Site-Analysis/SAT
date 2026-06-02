@@ -124,7 +124,7 @@ jobs:
           FLAGS: "feature.temperature.thermal-profile"
         run: |
           if ls tests/*_smoke.py 1>/dev/null 2>&1; then
-            pytest tests/ -v --tb=short
+            pytest tests/ -v --tb=long --import-mode=importlib
           else
             echo "No smoke tests yet."
           fi
