@@ -84,6 +84,25 @@ services:
       timeout: 5s
       retries: 3
 
+  rainfall:
+    build:
+      context: ./services/rainfall
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./services/rainfall:/app
+    environment:
+      - FLAGS=${FLAGS:-}
+      - CORS_ORIGINS=http://localhost:5173
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 # Uncomment when geo service is ready:
 #  geo:
 #    build:

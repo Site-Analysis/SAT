@@ -11,7 +11,9 @@ export type FeatureFlag =
   | "feature.temperature.thermal-profile"
   | "feature.flood.risk-analysis"
   | "feature.sunpath.diagram"
-  | "feature.wind.climatology";
+  | "feature.wind.climatology"
+  | "feature.rainfall.archive"
+  | "feature.rainfall.summary";
 
 const enabled: Set<string> = new Set(
   (process.env.FLAGS ?? "").split(",").map((f) => f.trim()).filter(Boolean)
