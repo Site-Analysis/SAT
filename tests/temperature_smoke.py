@@ -20,8 +20,14 @@ import pytest
 # conftest.py does this too, but we add it here as a fallback for CI environments
 # where conftest loading order may differ.
 _TEMPERATURE_SERVICE = Path(__file__).resolve().parents[1] / "services" / "temperature"
-if str(_TEMPERATURE_SERVICE) not in sys.path:
-    sys.path.insert(0, str(_TEMPERATURE_SERVICE))
+_TEMP_PATH = str(_TEMPERATURE_SERVICE)
+if _TEMP_PATH in sys.path:
+    sys.path.remove(_TEMP_PATH)
+sys.path.insert(0, _TEMP_PATH)
+
+# Ensure we import the temperature app, not another service's app.
+sys.modules.pop("app", None)
+sys.modules.pop("app.main", None)
 
 # ---------------------------------------------------------------------------
 # App import — catch any exception (not just ImportError) so a missing optional
@@ -119,11 +125,12 @@ def test_root_still_responds():
 @skip_no_app
 @patch("httpx.get", side_effect=_mock_httpx_get)
 @patch("requests.get", side_effect=lambda url, **kw: _mock_httpx_get(url, **kw))
-def test_climate_archive_mumbai(mock_req, mock_httpx):
+def test_climate_archive_mumbai(mock_req, mock_httpx, monkeypatch):
     """
     GET /weather/climate-archive returns Open-Meteo response shape
     for Mumbai coords (lat=19.07, lon=72.87).
     """
+    monkeypatch.setenv("FLAGS", "feature.temperature.thermal-profile")
     resp = CLIENT.get(
         "/weather/climate-archive",
         params={
@@ -141,7 +148,7 @@ def test_climate_archive_mumbai(mock_req, mock_httpx):
 
 
 @skip_no_app
-def test_thermal_grid_small_polygon():
+def test_thermal_grid_small_polygon(monkeypatch):
     """
     POST /weather/thermal-grid returns FeatureCollection shape
     for a small polygon around Mumbai.
@@ -162,6 +169,7 @@ def test_thermal_grid_small_polygon():
         patch("httpx.get", side_effect=_mock_httpx_get),
         patch("requests.get", side_effect=lambda url, **kw: _mock_httpx_get(url, **kw)),
     ):
+        monkeypatch.setenv("FLAGS", "feature.temperature.thermal-profile")
         resp = CLIENT.post(
             "/weather/thermal-grid",
             json={"geometry": polygon, "year": 2023, "grid_size": 3},
@@ -177,11 +185,12 @@ def test_thermal_grid_small_polygon():
 
 @skip_no_app
 @patch("httpx.get", side_effect=_mock_httpx_get)
-def test_thermal_profile_deprecated_still_works(mock_httpx):
+def test_thermal_profile_deprecated_still_works(mock_httpx, monkeypatch):
     """
     GET /weather/thermal-profile is deprecated but must still return a valid
     ClimateReport shape (some integrations may still use it).
     """
+    monkeypatch.setenv("FLAGS", "feature.temperature.thermal-profile")
     resp = CLIENT.get(
         "/weather/thermal-profile",
         params={"lat": 19.07, "lon": 72.87, "year": 2023},
@@ -211,6 +220,7 @@ def test_no_live_network_calls(monkeypatch):
         return _mock_httpx_get(url, **kwargs)
 
     monkeypatch.setattr(httpx, "get", counting_get)
+    monkeypatch.setenv("FLAGS", "feature.temperature.thermal-profile")
 
     resp = CLIENT.get(
         "/weather/climate-archive",
