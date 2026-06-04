@@ -81,7 +81,9 @@ class FloodRiskService:
         historical = self._score_from_seed(seed, factor=0.25, offset=2.1)
         llai = self._score_from_seed(seed, factor=0.75, offset=0.8)
 
-        return FloodScores(elevation=elevation, hydrology=hydrology, historical=historical, llai=llai)
+        return FloodScores(
+            elevation=elevation, hydrology=hydrology, historical=historical, llai=llai
+        )
 
     def _score_from_seed(self, seed: float, factor: float, offset: float) -> float:
         raw = math.sin(seed * factor + offset) * 0.5 + 0.5
@@ -108,7 +110,9 @@ class FloodRiskService:
             return "High"
         return "Very High"
 
-    def _elevation_analysis(self, request: FloodRequest, elevation_score: float) -> ElevationAnalysis:
+    def _elevation_analysis(
+        self, request: FloodRequest, elevation_score: float
+    ) -> ElevationAnalysis:
         mean_m = 80.0 + (abs(request.latitude) % 30) * 6.0 + (request.radius_meters / 1000.0)
         min_m = max(0.0, mean_m - (12.0 + (abs(request.longitude) % 8) * 2.0))
         max_m = mean_m + (14.0 + (abs(request.latitude) % 10) * 2.5)
@@ -133,7 +137,9 @@ class FloodRiskService:
             terrain_classification=terrain,
         )
 
-    def _hydrology_analysis(self, request: FloodRequest, hydrology_score: float) -> HydrologyAnalysis:
+    def _hydrology_analysis(
+        self, request: FloodRequest, hydrology_score: float
+    ) -> HydrologyAnalysis:
         flow_accumulation = round(hydrology_score / 100.0, 3)
         nearest_river_distance = 200.0 + (1.0 - hydrology_score / 100.0) * 800.0
         water_occurrence = min(100.0, hydrology_score * 0.8)
