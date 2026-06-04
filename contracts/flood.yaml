@@ -1,18 +1,38 @@
 openapi: "3.1.0"
 info:
   title: Flood Risk Service
-  version: "1.0.0"
-  description: 4-component flood risk scoring using GEE MERIT DEM, hydrology, JRC water, and MODIS LULC.
+  version: "1.1.0"
+  description: Flood risk scoring with deterministic fallback and GEE-ready placeholders.
 
 servers:
   - url: http://localhost:8002
     description: Local dev
 
 paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "flood"
+
   /flood/analyze:
     post:
       operationId: analyzeFloodRisk
-      summary: Flood risk score for a location or polygon
+      summary: Flood risk score for a location
       requestBody:
         required: true
         content:
@@ -26,89 +46,190 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FloodReport"
+        "403":
+          description: Feature flag disabled
         "422":
           description: Validation error
-
-  /health:
-    get:
-      operationId: healthCheck
-      summary: Health check
-      responses:
-        "200":
-          description: Service running
 
 components:
   schemas:
     FloodRequest:
       type: object
-      required: [lat, lon]
+      required: [latitude, longitude]
       properties:
-        lat:
+        latitude:
           type: number
           format: float
-        lon:
+        longitude:
           type: number
           format: float
-        radius_m:
-          type: integer
+        radius_meters:
+          type: number
+          format: float
           default: 1000
-        polygon:
-          type: array
-          items:
-            type: array
-            items:
-              type: number
-          description: Optional GeoJSON polygon coordinates
 
-    FloodScoreComponents:
+    RiskCategory:
+      type: string
+      enum: ["Very Low", "Low", "Moderate", "High", "Very High"]
+
+    FloodComponentScores:
       type: object
-      required: [elevation_score, flow_accumulation_score, water_proximity_score, imperviousness_score]
+      required: [elevation_risk, hydrology_risk, historical_risk, llai_risk]
       properties:
-        elevation_score:
+        elevation_risk:
           type: number
           format: float
           minimum: 0
-          maximum: 1
-          description: MERIT DEM elevation component (0=high, 1=low)
-        flow_accumulation_score:
+          maximum: 100
+        hydrology_risk:
           type: number
           format: float
           minimum: 0
-          maximum: 1
-          description: MERIT Hydro flow accumulation
-        water_proximity_score:
+          maximum: 100
+        historical_risk:
           type: number
           format: float
           minimum: 0
-          maximum: 1
-          description: JRC distance-to-water proximity
-        imperviousness_score:
+          maximum: 100
+        llai_risk:
           type: number
           format: float
           minimum: 0
-          maximum: 1
-          description: MODIS LULC surface imperviousness
+          maximum: 100
+
+    ElevationAnalysis:
+      type: object
+      required:
+        [mean_m, min_m, max_m, range_m, slope_degrees, low_lying_area_pct, terrain_classification]
+      properties:
+        mean_m:
+          type: number
+          format: float
+        min_m:
+          type: number
+          format: float
+        max_m:
+          type: number
+          format: float
+        range_m:
+          type: number
+          format: float
+        slope_degrees:
+          type: number
+          format: float
+        low_lying_area_pct:
+          type: number
+          format: float
+        terrain_classification:
+          type: string
+
+    HydrologyAnalysis:
+      type: object
+      required:
+        [flow_accumulation, nearest_river_distance_m, water_occurrence_pct, drainage_density, river_proximity_risk]
+      properties:
+        flow_accumulation:
+          type: number
+          format: float
+        nearest_river_distance_m:
+          type: number
+          format: float
+        water_occurrence_pct:
+          type: number
+          format: float
+        drainage_density:
+          type: number
+          format: float
+        river_proximity_risk:
+          type: string
+
+    FloodHistory:
+      type: object
+      required: [historical_events_count, annual_rainfall_mm, flood_history_score]
+      properties:
+        historical_events_count:
+          type: integer
+        annual_rainfall_mm:
+          type: number
+          format: float
+        flood_history_score:
+          type: number
+          format: float
+
+    LowLyingAreaIndex:
+      type: object
+      required: [mean, min, max, primary_risk_category]
+      properties:
+        mean:
+          type: number
+          format: float
+        min:
+          type: number
+          format: float
+        max:
+          type: number
+          format: float
+        primary_risk_category:
+          type: string
+
+    FloodMetadata:
+      type: object
+      required: [latitude, longitude, radius_meters, data_source, gee_enabled]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        radius_meters:
+          type: number
+          format: float
+        data_source:
+          type: string
+        gee_enabled:
+          type: boolean
 
     FloodReport:
       type: object
-      required: [composite_score, risk_tier, components, recommendations]
+      required:
+        [
+          overall_score,
+          risk_category,
+          component_scores,
+          elevation,
+          hydrology,
+          flood_history,
+          llai,
+          recommendations,
+          visualization_urls,
+          metadata,
+        ]
       properties:
-        composite_score:
+        overall_score:
           type: number
           format: float
           minimum: 0
-          maximum: 1
-        risk_tier:
-          type: string
-          enum: ["Very Low", "Low", "Moderate", "High"]
-        components:
-          $ref: "#/components/schemas/FloodScoreComponents"
+          maximum: 100
+        risk_category:
+          $ref: "#/components/schemas/RiskCategory"
+        component_scores:
+          $ref: "#/components/schemas/FloodComponentScores"
+        elevation:
+          $ref: "#/components/schemas/ElevationAnalysis"
+        hydrology:
+          $ref: "#/components/schemas/HydrologyAnalysis"
+        flood_history:
+          $ref: "#/components/schemas/FloodHistory"
+        llai:
+          $ref: "#/components/schemas/LowLyingAreaIndex"
         recommendations:
+          type: array
+          items:
+            type: string
+        visualization_urls:
           type: object
-          properties:
-            setback_guidance:
-              type: string
-            construction_level:
-              type: string
-            mitigation_measures:
-              type: string
+          additionalProperties:
+            type: string
+        metadata:
+          $ref: "#/components/schemas/FloodMetadata"

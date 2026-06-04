@@ -1,5 +1,12 @@
 # Contract Changelog
 
+## 1.3.0 — 2026-06-04
+
+### Changed — flood.yaml
+- Expanded flood response schema (0-100 scoring, component analyses, metadata)
+- Updated request shape to latitude/longitude + radius_meters
+- Added 403 response for feature-flag gating
+
 ## 1.2.0 — 2026-06-03
 
 ### Added — rainfall.yaml
