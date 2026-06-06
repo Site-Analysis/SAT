@@ -12,7 +12,8 @@ Unknown in this repo. FVD references `Site-Analysis/SiteAnalysisToolV3` `backend
 
 ## Architecture
 - Historical rainfall archive for point + polygon summary stats
-- No external calls in CI; mock all upstream dependencies
+- Deterministic synthetic rainfall generator (deterministic fallback)
+- TODO: Replace with Open-Meteo API calls for real historical data
 
 ## Endpoints
 ```

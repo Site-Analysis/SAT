@@ -8,4 +8,5 @@ class RainfallSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     cors_origins: str = Field("*", validation_alias="CORS_ORIGINS")
-    default_source: str = Field("open-meteo", validation_alias="RAINFALL_DEFAULT_SOURCE")
+    # TODO: Replace synthetic rainfall generator with Open-Meteo integration
+    default_source: str = Field("synthetic", validation_alias="RAINFALL_DEFAULT_SOURCE")

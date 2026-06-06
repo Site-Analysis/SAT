@@ -1,6 +1,6 @@
 # Rainfall Service
 
-Historical precipitation archive and summary statistics for points or polygons.
+Historical precipitation archive and summary statistics for points or polygons. Current implementation uses deterministic synthetic data.
 
 ## Port
 
