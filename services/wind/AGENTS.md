@@ -2,31 +2,28 @@
 
 **Port:** 8003
 **Contract:** `contracts/wind.yaml`
-**Feature flag:** `feature.wind.climatology`
-**FVD:** `docs/feature-validation/SAT-04_wind-climatology.md` (verify path)
-
-## Source location
-Multiple candidates — check git log:
-- `Vishwas721/sat` repo (rewrite reference from FVD-09)
-- Open-Meteo Wind Climatology endpoint
+**Feature flag:** `feature.wind.analysis`
+**FVD:** `docs/feature-validation/SAT-09_wind-analysis.md`
 
 ## Architecture
-- Open-Meteo Wind API (free, no key)
-- Returns wind speed/direction frequency rose, monthly averages
-- Optional: NBC compliance flags for site wind loads
 
-## Endpoint
+- Historical wind speed and direction analysis for point + polygon summary stats
+- Deterministic synthetic wind generator (deterministic fallback)
+- TODO: Replace with ERA5-Land or GEE wind climatology integration
+- Seasonal breakdown (summer/monsoon/winter for Indian context)
+- Comfort and building impact analysis
+
+## Endpoints
+
 ```
-GET /wind/climatology?lat={lat}&lon={lon}&years={N}
+POST /wind/analyze
+  body: {latitude, longitude, radius_meters}
+GET  /health
 ```
 
 ## Gotchas
-- Open-Meteo rate limit: 10,000 req/day free tier — cache responses by lat/lon (rounded to 0.1°)
-- Wind direction convention: meteorological (FROM) not vector (TO) — confirm in contract
-- NBC compliance is India-specific; only run if location in India bounds
 
-## Migration checklist
-- [ ] Identify canonical source (FVD-09 has clues)
-- [ ] requirements: requests, fastapi, uvicorn, pandas, numpy
-- [ ] Wire flag check
-- [ ] Smoke test with mocked Open-Meteo response
+- Feature flag is required for /wind/analyze
+- All endpoints must enforce feature flag gating
+- Wind direction uses 8-point compass (N, NE, E, SE, S, SW, W, NW)
+- Seasonal analysis is for Indian climatic context (summer/monsoon/winter)

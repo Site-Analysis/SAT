@@ -2,7 +2,7 @@
  * Feature flag registry.
  *
  * All flags default false. Enable per-environment via FLAGS env var:
- *   FLAGS=feature.temperature.thermal-profile,feature.wind.climatology
+ *   FLAGS=feature.temperature.thermal-profile,feature.wind.analysis
  *
  * Naming convention: feature.<domain>.<name>
  */
@@ -11,7 +11,7 @@ export type FeatureFlag =
   | "feature.temperature.thermal-profile"
   | "feature.flood.risk-analysis"
   | "feature.sunpath.diagram"
-  | "feature.wind.climatology"
+  | "feature.wind.analysis"
   | "feature.rainfall.archive"
   | "feature.rainfall.summary";
 
