@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 
 ComfortLevel = Literal["Poor", "Fair", "Good", "Excellent"]
 WindLoadRisk = Literal["Low", "Moderate", "High", "Very High"]
-Orientation = Literal["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"]
+Orientation = Literal[
+    "North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"
+]
 
 
 class WindRequest(BaseModel):

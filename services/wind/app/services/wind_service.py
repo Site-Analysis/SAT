@@ -60,7 +60,16 @@ class WindAnalysisService:
         return avg * 1.8 + 2.0
 
     def _prevailing_direction(self, request: WindRequest) -> str:
-        directions = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"]
+        directions = [
+            "North",
+            "Northeast",
+            "East",
+            "Southeast",
+            "South",
+            "Southwest",
+            "West",
+            "Northwest",
+        ]
         seed = (abs(request.latitude) + abs(request.longitude)) % 8.0
         idx = int(seed) % len(directions)
         return directions[idx]
@@ -128,8 +137,26 @@ class WindAnalysisService:
         else:
             load_risk = "Very High"
 
-        dir_idx = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"].index(direction)
-        recommended = ["Southeast", "South", "Southwest", "South", "Southwest", "West", "Northwest", "North"][dir_idx]
+        dir_idx = [
+            "North",
+            "Northeast",
+            "East",
+            "Southeast",
+            "South",
+            "Southwest",
+            "West",
+            "Northwest",
+        ].index(direction)
+        recommended = [
+            "Southeast",
+            "South",
+            "Southwest",
+            "South",
+            "Southwest",
+            "West",
+            "Northwest",
+            "North",
+        ][dir_idx]
 
         return BuildingImpact(
             cross_ventilation_score=round(cross_vent, 2),
@@ -143,7 +170,9 @@ class WindAnalysisService:
             "Plan window placement to maximize natural ventilation during moderate seasons.",
         ]
         if speed > 10.0:
-            recs.append("Design wind-resistant details (roof tiedowns, cladding bracing) for high wind load.")
+            recs.append(
+                "Design wind-resistant details (roof tiedowns, cladding bracing) for high wind load."
+            )
             recs.append("Consider wind breaks or shelterbelts on windward sides.")
         elif speed > 6.0:
             recs.append("Standard wind-resistant construction practices are recommended.")
