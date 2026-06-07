@@ -1,9 +1,6 @@
 # Flood Service
 
-4-component flood risk scoring — MERIT DEM elevation, flow accumulation, JRC water proximity, MODIS LULC imperviousness. Color-coded risk tiers + setback recommendations.
-
-## Status
-Backend complete. Source at `Site-Analysis-Tool/src/Backend/FloodPlains/` and `SiteAnalysis_GEE` commit `edd4c29`.
+Flood risk scoring with deterministic fallback output and GEE-ready placeholders.
 
 ## Port
 8002
@@ -14,18 +11,28 @@ Backend complete. Source at `Site-Analysis-Tool/src/Backend/FloodPlains/` and `S
 ## Feature flag
 `feature.flood.risk-analysis`
 
-## Run (current source)
+## Run (local)
 ```bash
-cd Site-Analysis-Tool/src/Backend/FloodPlains
-source venv/bin/activate
+cd services/flood
 uvicorn app.main:app --reload --port 8002
 ```
 
-## Integration checklist
-- [ ] Copy `Site-Analysis-Tool/src/Backend/FloodPlains/app/` → `services/flood/app/`
-- [ ] Add `pyproject.toml` + `requirements.txt`
-- [ ] Wire feature flag via `packages/flags/src/flags.py`
-- [ ] Add `Dockerfile`
-- [ ] Add service block to root `docker-compose.yml`
-- [ ] Add smoke test to `tests/flood_smoke.py`
-- [ ] Update `contracts/CHANGELOG.md` if API shape changes
+## Run (docker)
+```bash
+cd /Volumes/LocalDrive/SAT
+docker-compose up flood
+```
+
+## Endpoints
+
+- `GET /health`
+- `POST /flood/analyze`
+
+## Notes
+
+- Deterministic fallback logic is used until GEE integration is wired.
+- GEE credentials are optional for local deterministic runs.
+
+## FVD traceability
+
+See `docs/feature-validation/SAT-07_flood-risk-analysis.md`.

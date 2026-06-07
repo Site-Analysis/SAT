@@ -1,5 +1,13 @@
 # Contract Changelog
 
+## 1.6.0 — 2026-06-07
+
+### Added — flood.yaml (SAT-07 service delivered)
+- Flood service now in the monorepo (`services/flood`); `flood.yaml` updated to the
+  expanded contract the earlier `1.3.0` entry described: 0–100 component scoring
+  (`elevation`, `hydrology`, `flood_history`, `llai`), `metadata`, and the
+  `feature.flood.risk-analysis` 403 gate on `POST /flood/analyze`.
+
 ## 1.5.0 — 2026-06-07
 
 ### Added (sunpath.yaml — SAT-226 migration)
