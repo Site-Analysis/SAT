@@ -8,8 +8,8 @@ RiskCategory = Literal["Very Low", "Low", "Moderate", "High", "Very High"]
 
 
 class FloodRequest(BaseModel):
-    latitude: float = Field(..., description="Latitude in decimal degrees")
-    longitude: float = Field(..., description="Longitude in decimal degrees")
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude in decimal degrees")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude in decimal degrees")
     radius_meters: float = Field(1000.0, gt=0, description="Analysis radius in meters")
 
 
