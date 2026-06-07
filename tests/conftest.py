@@ -1,10 +1,14 @@
-"""Pytest configuration for SAT integration tests."""
+"""Pytest configuration for SAT integration tests.
 
-import sys
-from pathlib import Path
+Each service ships a package literally named ``app``. We deliberately do NOT add
+every service directory to ``sys.path`` here: doing so merges all of them into a
+single ``app`` (implicit) namespace package, and submodule resolution then picks
+whichever service is earliest on the path — so a temperature test would import
+the sunpath ``app`` and vice-versa.
 
-# Add each service's directory to sys.path so tests can import app/
-SERVICES_ROOT = Path(__file__).resolve().parents[1] / "services"
-for service_dir in SERVICES_ROOT.iterdir():
-    if service_dir.is_dir() and (service_dir / "app").exists():
-        sys.path.insert(0, str(service_dir))
+Instead, every ``*_smoke.py`` / validation module inserts only its own service
+directory at import time, and CI runs each file in its own pytest process (see
+the ``smoke`` job). That keeps exactly one service's ``app`` importable per
+process. When running locally, invoke one service's tests at a time
+(``pytest tests/sunpath_smoke.py``) for the same reason.
+"""
