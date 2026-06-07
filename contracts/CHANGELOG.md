@@ -1,5 +1,11 @@
 # Contract Changelog
 
+## 1.2.0 — 2026-06-03
+
+### Added — rainfall.yaml
+- Added `GET /rainfall/archive`, `POST /rainfall/summary`, and `GET /health`
+- Added schemas for `RainfallArchiveResponse`, `RainfallSummaryRequest`, `RainfallSummaryResponse`
+
 ## 1.1.0 — 2026-06-02
 
 ### Changed — temperature.yaml

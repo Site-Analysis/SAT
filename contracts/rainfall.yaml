@@ -1,0 +1,215 @@
+openapi: "3.1.0"
+info:
+  title: Rainfall Service
+  version: "1.0.0"
+  description: >
+    Historical rainfall archive and summary statistics for points or polygons.
+
+servers:
+  - url: http://localhost:8004
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "rainfall"
+
+  /rainfall/archive:
+    get:
+      operationId: getRainfallArchive
+      summary: Historical daily rainfall for a point and date range
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-01-01"
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-01-31"
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "open-meteo"
+      responses:
+        "200":
+          description: Daily rainfall time series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RainfallArchiveResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+  /rainfall/summary:
+    post:
+      operationId: getRainfallSummary
+      summary: Rainfall summary statistics for a point or polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RainfallSummaryRequest"
+      responses:
+        "200":
+          description: Summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RainfallSummaryResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    RainfallArchiveDailyUnits:
+      type: object
+      required: [time, precipitation_sum]
+      properties:
+        time:
+          type: string
+          example: "iso8601"
+        precipitation_sum:
+          type: string
+          example: "mm"
+
+    RainfallArchiveDaily:
+      type: object
+      required: [time, precipitation_sum]
+      properties:
+        time:
+          type: array
+          items:
+            type: string
+            format: date
+        precipitation_sum:
+          type: array
+          items:
+            type: number
+            format: float
+
+    RainfallArchiveResponse:
+      type: object
+      required: [latitude, longitude, timezone, daily_units, daily, source]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        timezone:
+          type: string
+          nullable: true
+        daily_units:
+          $ref: "#/components/schemas/RainfallArchiveDailyUnits"
+        daily:
+          $ref: "#/components/schemas/RainfallArchiveDaily"
+        source:
+          type: string
+
+    RainfallSummaryRequest:
+      type: object
+      required: [start_date, end_date]
+      properties:
+        geometry:
+          type: object
+          nullable: true
+          description: GeoJSON object
+        latitude:
+          type: number
+          format: float
+          nullable: true
+        longitude:
+          type: number
+          format: float
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    RainfallDateRange:
+      type: object
+      required: [start_date, end_date]
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    RainfallSummaryResponse:
+      type: object
+      required:
+        [
+          total_rainfall_mm,
+          mean_daily_rainfall_mm,
+          max_daily_rainfall_mm,
+          rainy_days,
+          dry_days,
+          date_range,
+          source,
+        ]
+      properties:
+        total_rainfall_mm:
+          type: number
+          format: float
+        mean_daily_rainfall_mm:
+          type: number
+          format: float
+        max_daily_rainfall_mm:
+          type: number
+          format: float
+        rainy_days:
+          type: integer
+        dry_days:
+          type: integer
+        date_range:
+          $ref: "#/components/schemas/RainfallDateRange"
+        source:
+          type: string
