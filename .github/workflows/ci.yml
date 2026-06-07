@@ -116,6 +116,9 @@ jobs:
         run: |
           if ls tests/*_smoke.py 1>/dev/null 2>&1; then
             pip install pytest httpx
+            # SunPath smoke tests import the app (pvlib/matplotlib/shapely); install its
+            # deps so the tz/hour regressions actually run instead of skipping.
+            [ -f services/sunpath/requirements.txt ] && pip install -r services/sunpath/requirements.txt
             pytest tests/ -v --tb=short
           else
             echo "No smoke tests yet."
