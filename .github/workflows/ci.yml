@@ -22,7 +22,10 @@ jobs:
       - name: Contract gate
         if: steps.filter.outputs.contracts == 'true'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
+          # No --depth=1: a shallow tip can't reach the merge-base once the base
+          # branch has advanced past where this PR forked, which makes the
+          # three-dot diff drop legitimately-changed files (e.g. CHANGELOG.md).
+          git fetch origin "${{ github.base_ref }}"
           changed=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
           echo "$changed"
           echo "$changed" | grep -q '^contracts/CHANGELOG.md$' || {
@@ -121,10 +124,21 @@ jobs:
       - name: Run smoke tests
         if: steps.filter.outputs.tests == 'true'
         env:
-          FLAGS: "feature.temperature.thermal-profile"
+          FLAGS: "feature.temperature.thermal-profile,feature.sunpath.diagram"
         run: |
           if ls tests/*_smoke.py 1>/dev/null 2>&1; then
-            pytest -v --tb=long -p no:warnings
+            pip install pytest httpx
+            # Each service exposes a package literally named `app`, and conftest puts
+            # every service dir on sys.path. Running all smoke files in one pytest
+            # process lets the first-imported `app` shadow the others (a temperature
+            # test would hit the sunpath app and vice-versa). Run each file in its own
+            # process so `app` resolves to the matching service; files whose deps are
+            # absent skip cleanly.
+            rc=0
+            for f in tests/*_smoke.py; do
+              pytest "$f" -v --tb=short -p no:warnings || rc=1
+            done
+            exit $rc
           else
             echo "No smoke tests yet."
           fi

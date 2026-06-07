@@ -4,9 +4,9 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class RainfallSettings(BaseSettings):
+class WindSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     cors_origins: str = Field("*", validation_alias="CORS_ORIGINS")
-    # TODO: Replace synthetic rainfall generator with Open-Meteo integration
-    default_source: str = Field("synthetic", validation_alias="RAINFALL_DEFAULT_SOURCE")
+    # TODO: Replace synthetic wind generator with ERA5-Land or GEE wind climatology integration
+    data_source: str = Field("synthetic", validation_alias="WIND_DATA_SOURCE")

@@ -1,49 +1,14 @@
 openapi: "3.1.0"
 info:
   title: Wind Analysis Service
-  version: "1.0.0"
-  description: Wind climatology via ERA5-Land GEE. 16-sector wind rose, IMD 4-season analysis, and architectural orientation recommendations.
+  version: "1.1.0"
+  description: Wind analysis with deterministic fallback and ERA5-Land-ready placeholders.
 
 servers:
   - url: http://localhost:8003
     description: Local dev
 
 paths:
-  /analysis/wind/climatology:
-    get:
-      operationId: getWindClimatology
-      summary: Wind climatology for a location
-      parameters:
-        - name: lat
-          in: query
-          required: true
-          schema:
-            type: number
-            format: float
-        - name: lon
-          in: query
-          required: true
-          schema:
-            type: number
-            format: float
-        - name: years
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 30
-      responses:
-        "200":
-          description: Wind analysis result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WindAnalysisResponse"
-        "422":
-          description: Validation error
-
   /health:
     get:
       operationId: healthCheck
@@ -51,53 +16,165 @@ paths:
       responses:
         "200":
           description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "wind"
+
+  /wind/analyze:
+    post:
+      operationId: analyzeWind
+      summary: Wind analysis for a location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WindRequest"
+      responses:
+        "200":
+          description: Wind analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WindAnalysis"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
 
 components:
   schemas:
-    WindFrequencyBin:
+    WindRequest:
       type: object
-      required: [direction, frequency_percentage, avg_speed_ms]
+      required: [latitude, longitude]
       properties:
-        direction:
-          type: string
-          enum: ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
-        frequency_percentage:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        radius_meters:
+          type: number
+          format: float
+          default: 1000
+
+    Orientation:
+      type: string
+      enum: [North, Northeast, East, Southeast, South, Southwest, West, Northwest]
+
+    ComfortLevel:
+      type: string
+      enum: [Poor, Fair, Good, Excellent]
+
+    WindLoadRisk:
+      type: string
+      enum: [Low, Moderate, High, "Very High"]
+
+    SeasonalAnalysis:
+      type: object
+      required: [summer, monsoon, winter]
+      properties:
+        summer:
+          type: number
+          format: float
+        monsoon:
+          type: number
+          format: float
+        winter:
+          type: number
+          format: float
+
+    ComfortAnalysis:
+      type: object
+      required: [pedestrian_comfort, natural_ventilation_potential, outdoor_usability]
+      properties:
+        pedestrian_comfort:
+          $ref: "#/components/schemas/ComfortLevel"
+        natural_ventilation_potential:
+          $ref: "#/components/schemas/ComfortLevel"
+        outdoor_usability:
+          $ref: "#/components/schemas/ComfortLevel"
+
+    BuildingImpact:
+      type: object
+      required: [cross_ventilation_score, wind_load_risk, recommended_orientation]
+      properties:
+        cross_ventilation_score:
           type: number
           format: float
           minimum: 0
           maximum: 100
-        avg_speed_ms:
+        wind_load_risk:
+          $ref: "#/components/schemas/WindLoadRisk"
+        recommended_orientation:
+          $ref: "#/components/schemas/Orientation"
+
+    WindMetadata:
+      type: object
+      required: [latitude, longitude, radius_meters, data_source]
+      properties:
+        latitude:
           type: number
           format: float
-          minimum: 0
+        longitude:
+          type: number
+          format: float
+        radius_meters:
+          type: number
+          format: float
+        data_source:
+          type: string
 
-    SeasonalWindData:
+    WindAnalysis:
       type: object
-      required: [season_name, prevailing_direction, wind_rose, architectural_advice]
+      required:
+        [
+          average_wind_speed,
+          max_wind_speed,
+          prevailing_direction,
+          wind_category,
+          gust_risk,
+          seasonal_analysis,
+          comfort_analysis,
+          building_impact,
+          recommendations,
+          metadata,
+        ]
       properties:
-        season_name:
-          type: string
-          enum: ["Winter", "Pre-Monsoon", "SW Monsoon", "Post-Monsoon"]
+        average_wind_speed:
+          type: number
+          format: float
+        max_wind_speed:
+          type: number
+          format: float
         prevailing_direction:
+          $ref: "#/components/schemas/Orientation"
+        wind_category:
           type: string
-        wind_rose:
+        gust_risk:
+          type: string
+        seasonal_analysis:
+          $ref: "#/components/schemas/SeasonalAnalysis"
+        comfort_analysis:
+          $ref: "#/components/schemas/ComfortAnalysis"
+        building_impact:
+          $ref: "#/components/schemas/BuildingImpact"
+        recommendations:
           type: array
           items:
-            $ref: "#/components/schemas/WindFrequencyBin"
-          minItems: 16
-          maxItems: 16
-        architectural_advice:
-          type: object
-          additionalProperties:
             type: string
-
-    WindAnalysisResponse:
-      type: object
-      required: [site_coordinates, annual_prevailing_direction, annual_architectural_advice, annual_wind_rose, seasonal_data]
-      properties:
-        site_coordinates:
-          type: object
-          required: [lat, lon]
+        metadata:
+          $ref: "#/components/schemas/WindMetadata"
           properties:
             lat:
               type: number

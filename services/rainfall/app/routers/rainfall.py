@@ -46,8 +46,6 @@ def get_rainfall_archive(
     parsed_end = _parse_date(end_date, "end_date")
     if parsed_start > parsed_end:
         raise HTTPException(status_code=422, detail="start_date must be on or before end_date")
-    if parsed_start > parsed_end:
-        raise HTTPException(status_code=422, detail="start_date must be on or before end_date")
 
     return service.get_archive(
         latitude=latitude,

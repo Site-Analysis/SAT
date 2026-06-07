@@ -1,8 +1,8 @@
 openapi: "3.1.0"
 info:
   title: SunPath Service
-  version: "1.0.0"
-  description: Solar position and sun path diagram generation via pvlib NREL SPA.
+  version: "1.5.0"
+  description: Solar position, sun path diagrams (pvlib NREL SPA), shadow analysis, orientation & sunlight-hours.
 
 servers:
   - url: http://localhost:8001
@@ -68,6 +68,142 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SolarEventsResponse"
+
+  /sunpath/diagram.svg:
+    get:
+      operationId: getSunPathDiagram
+      summary: Andrew Marsh-style polar sun path diagram as SVG
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - name: date
+          in: query
+          required: false
+          description: ISO date for the highlighted day path (default today)
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: SVG image
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+
+  /sunpath/orientation:
+    get:
+      operationId: getOrientationRecommendation
+      summary: Building orientation & shading recommendation from annual solar geometry
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+      responses:
+        "200":
+          description: Orientation recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrientationResponse"
+
+  /shadow/calculate/polygon:
+    post:
+      operationId: calculateShadowsPolygon
+      summary: Building shadows for a single timestamp within a polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShadowPolygonRequest"
+      responses:
+        "200":
+          description: Buildings + shadows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShadowResponse"
+
+  /shadow/calculate/radius:
+    post:
+      operationId: calculateShadowsRadius
+      summary: Building shadows for a single timestamp within a radius
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShadowRadiusRequest"
+      responses:
+        "200":
+          description: Buildings + shadows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShadowResponse"
+
+  /shadow/timeseries/polygon:
+    post:
+      operationId: shadowTimeseriesPolygon
+      summary: Shadow snapshots over a time range within a polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShadowTimeseriesRequest"
+      responses:
+        "200":
+          description: Shadow timeseries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShadowTimeseriesResponse"
+
+  /shadow/sunlight-hours:
+    get:
+      operationId: getSunlightHours
+      summary: Ground/roof sunshine-hours grid (ported from pybdshadow, pvlib-driven)
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: radius_meters
+          in: query
+          required: false
+          schema:
+            type: number
+            default: 250
+      responses:
+        "200":
+          description: Sunlight-hours grid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SunlightHoursResponse"
+
+  /buildings/extract:
+    post:
+      operationId: extractBuildings
+      summary: Extract building footprints + heights from OSM/GEE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShadowRadiusRequest"
+      responses:
+        "200":
+          description: Building FeatureCollection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureCollection"
 
   /health:
     get:
@@ -143,3 +279,143 @@ components:
             sunset:
               type: string
               format: time
+
+    OrientationResponse:
+      type: object
+      required: [latitude, longitude, optimal_facade_orientation, optimal_facade_azimuth_deg]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        optimal_facade_orientation:
+          type: string
+          description: Equator-facing direction (south in N hemisphere, north in S)
+          enum: [north, south]
+        optimal_facade_azimuth_deg:
+          type: number
+        summer_noon_altitude_deg:
+          type: number
+        winter_noon_altitude_deg:
+          type: number
+        overhang_projection_factor:
+          type: number
+          description: PF = overhang depth / window height to fully shade summer-noon sun (provisional heuristic)
+        notes:
+          type: string
+
+    ShadowPolygonRequest:
+      type: object
+      required: [coordinates, timestamp]
+      properties:
+        coordinates:
+          type: array
+          description: Polygon ring as [[lon, lat], ...]
+          items:
+            type: array
+            items:
+              type: number
+        timestamp:
+          type: string
+          format: date-time
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    ShadowRadiusRequest:
+      type: object
+      required: [latitude, longitude, radius_meters, timestamp]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        radius_meters:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    ShadowTimeseriesRequest:
+      type: object
+      required: [coordinates, start_datetime, end_datetime, interval_minutes]
+      properties:
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+        start_datetime:
+          type: string
+          format: date-time
+        end_datetime:
+          type: string
+          format: date-time
+        interval_minutes:
+          type: integer
+
+    FeatureCollection:
+      type: object
+      description: GeoJSON FeatureCollection
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            type: object
+
+    ShadowResponse:
+      type: object
+      required: [buildings, shadows, metadata]
+      properties:
+        buildings:
+          $ref: "#/components/schemas/FeatureCollection"
+        shadows:
+          $ref: "#/components/schemas/FeatureCollection"
+        metadata:
+          type: object
+
+    ShadowTimeseriesResponse:
+      type: object
+      required: [buildings, snapshots, metadata]
+      properties:
+        buildings:
+          $ref: "#/components/schemas/FeatureCollection"
+        snapshots:
+          type: array
+          items:
+            type: object
+        metadata:
+          type: object
+
+    SunlightHoursResponse:
+      type: object
+      required: [latitude, longitude, date, grid]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        date:
+          type: string
+          format: date
+        grid:
+          type: array
+          description: Per-cell sunshine hours [0..24]
+          items:
+            type: object
+            properties:
+              lat:
+                type: number
+              lon:
+                type: number
+              sunlight_hours:
+                type: number
+        attribution:
+          type: string
+          description: pybdshadow (BSD-3-Clause) — sunshine-duration method
