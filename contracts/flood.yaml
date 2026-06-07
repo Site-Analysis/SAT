@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Flood Risk Service
-  version: "1.1.0"
+  version: "1.6.0"
   description: Flood risk scoring with deterministic fallback and GEE-ready placeholders.
 
 servers:
