@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+
+from app.routers.weather import weather_router
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("temperature")
+
+
+def _parse_cors_origins(raw_value: str) -> list[str]:
+    stripped = (raw_value or "").strip()
+    if not stripped:
+        return ["*"]
+    if stripped.startswith("["):
+        try:
+            parsed = json.loads(stripped)
+            if isinstance(parsed, list):
+                origins = [str(origin).strip() for origin in parsed if str(origin).strip()]
+                return origins or ["*"]
+        except json.JSONDecodeError:
+            pass
+    origins = [origin.strip() for origin in stripped.split(",") if origin.strip()]
+    return origins or ["*"]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting Temperature API")
+    logger.info("Service ready")
+    yield
+    logger.info("Shutting down Temperature API")
+
+
+app = FastAPI(title="SAT-Platform Backend", lifespan=lifespan)
+
+# CORS middleware (open for development; restrict in production)
+cors_origins = _parse_cors_origins(os.getenv("CORS_ORIGINS", "*"))
+allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+if "*" in cors_origins:
+    allow_credentials = False
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(weather_router)
+
+
+@app.get("/")
+def root() -> dict:
+    return {"message": "SAT-Platform API is running"}
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok", "service": "temperature"}

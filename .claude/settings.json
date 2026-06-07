@@ -1,0 +1,20 @@
+{
+  "_comment": "Team-shared Claude Code config for SAT. Personal overrides go in settings.local.json (gitignored).",
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      },
+      "autoUpdate": true
+    }
+  },
+  "_recommendedPlugins": [
+    "atlassian@claude-plugins-official",
+    "supabase@claude-plugins-official",
+    "commit-commands@claude-plugins-official",
+    "pr-review-toolkit@claude-plugins-official",
+    "typescript-lsp@claude-plugins-official",
+    "pyright-lsp@claude-plugins-official"
+  ]
+}

@@ -1,18 +1,16 @@
 # Contract Changelog
 
-## 1.1.0 — 2026-06-07
+## 1.1.0 — 2026-06-02
 
-### Added (sunpath.yaml — SAT-226 migration)
-- `GET /sunpath/diagram.svg` → Andrew Marsh-style polar diagram as `image/svg+xml`
-- `GET /sunpath/orientation` → `OrientationResponse` (optimal facade azimuth + overhang projection factor)
-- `POST /shadow/calculate/{polygon,radius}` → `ShadowResponse` (buildings + shadow FeatureCollections)
-- `POST /shadow/timeseries/polygon` → `ShadowTimeseriesResponse`
-- `GET /shadow/sunlight-hours` → `SunlightHoursResponse` (ground/roof sunshine grid; method ported from pybdshadow, BSD-3, pvlib-driven)
-- `POST /buildings/extract` → building `FeatureCollection` (OSM/GEE)
-- Schemas: `OrientationResponse`, `ShadowPolygonRequest`, `ShadowRadiusRequest`, `ShadowTimeseriesRequest`, `ShadowResponse`, `ShadowTimeseriesResponse`, `SunlightHoursResponse`, `FeatureCollection`
-
-### Note
-- Existing `GET /sunpath/{summer|winter|annual|events}` unchanged. Service moves from prototype `POST /api/v1/solar/*` to these root GET paths; `hour` field sourced from tz-aware local time.
+### Changed — temperature.yaml
+- Added live endpoints: `GET /weather/climate-archive`, `POST /weather/thermal-grid`, `GET /weather/analyze-wind`
+- Added `GET /health` endpoint
+- Marked `GET /weather/thermal-profile` as **deprecated** (zero frontend call sites; use `climate-archive` instead)
+- Extended `ClimateRecommendations` schema: added optional `climate_zone` and `cdd_hdd_ratio` fields
+- Extended `thermal_comfort_status` enum to include estimated-fallback variants (`Hot / Estimated`, etc.)
+- Added `ThermalGridRequest`, `ThermalGridResponse`, `OpenMeteoArchiveResponse` schemas
+- Corrected `year` parameter default: `today.year - 1` (was incorrectly documented as `2023`)
+- Relaxed `ClimateReport.monthly_data` array constraint: `minItems: 1` (was `12`, too strict for estimated fallback)
 
 ## 1.0.0 — 2026-05-25
 

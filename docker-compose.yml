@@ -11,16 +11,15 @@ services:
       - "8000:8000"
     volumes:
       - ./services/temperature:/app
-      - ./gee-sa.json:/app/gee-sa.json:ro
     environment:
       - FLAGS=${FLAGS:-}
-      - GEE_SA_KEY_PATH=/app/gee-sa.json
       - IMD_DATA_DIR=/app/data
+      - CORS_ORIGINS=http://localhost:5173
     env_file:
       - .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
