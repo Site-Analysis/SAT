@@ -5,7 +5,7 @@ Usage:
     from packages.flags.src.flags import is_enabled, FeatureFlag
 
 Enable flags via env var:
-    FLAGS=feature.temperature.thermal-profile,feature.wind.climatology
+    FLAGS=feature.temperature.thermal-profile,feature.wind.analysis
 """
 
 import os
@@ -16,7 +16,7 @@ class FeatureFlag(StrEnum):
     TEMPERATURE_THERMAL_PROFILE = "feature.temperature.thermal-profile"
     FLOOD_RISK_ANALYSIS = "feature.flood.risk-analysis"
     SUNPATH_DIAGRAM = "feature.sunpath.diagram"
-    WIND_CLIMATOLOGY = "feature.wind.climatology"
+    WIND_ANALYSIS = "feature.wind.analysis"
     RAINFALL_ARCHIVE = "feature.rainfall.archive"
     RAINFALL_SUMMARY = "feature.rainfall.summary"
 
