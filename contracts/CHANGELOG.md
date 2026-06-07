@@ -1,6 +1,6 @@
 # Contract Changelog
 
-## 1.2.0 — 2026-06-07
+## 1.5.0 — 2026-06-07
 
 ### Added (sunpath.yaml — SAT-226 migration)
 - `GET /sunpath/diagram.svg` → Andrew Marsh-style polar diagram as `image/svg+xml`
@@ -13,6 +13,27 @@
 
 ### Note
 - Existing `GET /sunpath/{summer|winter|annual|events}` unchanged. Service moves from prototype `POST /api/v1/solar/*` to these root GET paths; `hour` field sourced from tz-aware local time.
+
+## 1.4.0 — 2026-06-06
+
+### Changed — wind.yaml
+- Updated wind response schema: simplified to POST `/wind/analyze` endpoint
+- Added comfort_analysis and building_impact sections
+- Added seasonal breakdown (summer/monsoon/winter)
+- Added 403 response for feature-flag gating
+
+## 1.3.0 — 2026-06-04
+
+### Changed — flood.yaml
+- Expanded flood response schema (0-100 scoring, component analyses, metadata)
+- Updated request shape to latitude/longitude + radius_meters
+- Added 403 response for feature-flag gating
+
+## 1.2.0 — 2026-06-03
+
+### Added — rainfall.yaml
+- Added `GET /rainfall/archive`, `POST /rainfall/summary`, and `GET /health`
+- Added schemas for `RainfallArchiveResponse`, `RainfallSummaryRequest`, `RainfallSummaryResponse`
 
 ## 1.1.0 — 2026-06-02
 
