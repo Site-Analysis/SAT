@@ -1,5 +1,13 @@
 # Contract Changelog
 
+## 1.5.1 — 2026-06-09
+
+### Fixed — sunpath service (`osm_extractor.py`)
+- Added `User-Agent` header to all Overpass API `requests.post()` calls.
+  Overpass API rejects headerless requests with `406 Not Acceptable`, which
+  caused `POST /shadow/calculate/*` to fail for every request.
+  No contract change; shadow endpoints behave identically.
+
 ## 1.6.0 — 2026-06-07
 
 ### Added — flood.yaml (SAT-07 service delivered)

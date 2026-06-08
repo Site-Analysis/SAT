@@ -91,8 +91,12 @@ pre-commit install       # once per clone
 
 ### Tests
 ```bash
-pytest tests/            # cross-service smoke
-pytest services/<service>/tests/   # service-level
+# Smoke tests: ONE FILE PER PROCESS. Every service ships a package named `app`;
+# running all *_smoke.py in one pytest process merges them into one namespace
+# and they shadow each other. conftest deliberately does NOT add all service
+# dirs to sys.path — each smoke file self-inserts its own + sys.modules.pop("app").
+for f in tests/*_smoke.py; do pytest "$f"; done   # CI does this
+pytest tests/sunpath_smoke.py    # or one at a time
 ```
 
 ---
@@ -127,7 +131,9 @@ class FeatureFlag(StrEnum):
     TEMPERATURE_THERMAL_PROFILE = "feature.temperature.thermal-profile"
     FLOOD_RISK_ANALYSIS = "feature.flood.risk-analysis"
     SUNPATH_DIAGRAM = "feature.sunpath.diagram"
-    WIND_CLIMATOLOGY = "feature.wind.climatology"
+    WIND_ANALYSIS = "feature.wind.analysis"
+    RAINFALL_ARCHIVE = "feature.rainfall.archive"
+    RAINFALL_SUMMARY = "feature.rainfall.summary"
 ```
 
 Enable via env var:
@@ -227,6 +233,17 @@ After install: `/reload-plugins`.
 5. `npm install` (root) — installs workspaces
 6. `pip install pre-commit && pre-commit install` (root)
 7. Open Claude Code in this dir, run the `/plugin install` commands above
+
+---
+
+## Gotchas (learned)
+
+- **`app` name collision.** Every service's package is literally `app`. Never run cross-service tests in one process (see § Tests). New smoke file must self-insert its service dir + `sys.modules.pop("app")` + set FLAGS via `monkeypatch` per-test.
+- **CHANGELOG is one aggregate, monotonic version.** `contracts/CHANGELOG.md` rises across ALL services (1.1.0 temp → 1.2.0 rainfall → … → 1.6.0 flood). Parallel PRs collide on version numbers — pick the next free one when rebasing. The CI contract gate requires `contracts/CHANGELOG.md` to appear in the PR's diff vs `main`, so if a sibling PR already merged your entry, add a fresh dated entry.
+- **Service PRs carry siblings' files.** A branch forked before a sibling merged ships a stale copy of that sibling (e.g. flood/wind PRs each re-added `rainfall`). Merge `main` into the branch and verify the sibling's files are byte-identical to `main` before merging — else you silently revert it.
+- **Flags enforced in-process, per service.** Each service reads `os.getenv("FLAGS")` directly and raises `HTTPException(403)` — it does NOT import `packages/flags` (that's outside the Docker build context). Gated endpoints return 403 unless `FLAGS=` lists the flag.
+- **Stubs must be honest.** Synthetic/deterministic services set `data_source`/`source` to `"synthetic"` or `"deterministic-fallback"`, never a real provider name like `"open-meteo"`. Mislabeling fake data is a review blocker.
+- **Local run without Docker:** per-service `.venv` uvicorn; `rainfall` has no venv (reuse `flood`'s — same deps). Must export `FLAGS` or every gated endpoint 403s. GEE absent → services log `GEEServiceError` but degrade gracefully.
 
 ---
 
