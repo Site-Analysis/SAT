@@ -1,5 +1,34 @@
 # Contract Changelog
 
+## 1.7.0 — 2026-06-08
+
+### Changed — rainfall.yaml
+- Updated rainfall data source from synthetic to CHIRPS Daily via Google Earth Engine
+- Updated service description to note GEE as primary source with synthetic fallback
+- Version bumped to 1.1.0
+
+## 1.6.0 — 2026-06-07
+
+### Added — flood.yaml (SAT-07 service delivered)
+- Flood service now in the monorepo (`services/flood`); `flood.yaml` updated to the
+  expanded contract the earlier `1.3.0` entry described: 0–100 component scoring
+  (`elevation`, `hydrology`, `flood_history`, `llai`), `metadata`, and the
+  `feature.flood.risk-analysis` 403 gate on `POST /flood/analyze`.
+
+## 1.5.0 — 2026-06-07
+
+### Added (sunpath.yaml — SAT-226 migration)
+- `GET /sunpath/diagram.svg` → Andrew Marsh-style polar diagram as `image/svg+xml`
+- `GET /sunpath/orientation` → `OrientationResponse` (optimal facade azimuth + overhang projection factor)
+- `POST /shadow/calculate/{polygon,radius}` → `ShadowResponse` (buildings + shadow FeatureCollections)
+- `POST /shadow/timeseries/polygon` → `ShadowTimeseriesResponse`
+- `GET /shadow/sunlight-hours` → `SunlightHoursResponse` (ground/roof sunshine grid; method ported from pybdshadow, BSD-3, pvlib-driven)
+- `POST /buildings/extract` → building `FeatureCollection` (OSM/GEE)
+- Schemas: `OrientationResponse`, `ShadowPolygonRequest`, `ShadowRadiusRequest`, `ShadowTimeseriesRequest`, `ShadowResponse`, `ShadowTimeseriesResponse`, `SunlightHoursResponse`, `FeatureCollection`
+
+### Note
+- Existing `GET /sunpath/{summer|winter|annual|events}` unchanged. Service moves from prototype `POST /api/v1/solar/*` to these root GET paths; `hour` field sourced from tz-aware local time.
+
 ## 1.4.0 — 2026-06-06
 
 ### Changed — wind.yaml
