@@ -35,6 +35,9 @@ class OverpassService:
         self.timeout = settings.OVERPASS_TIMEOUT_SECONDS
         self.tile_size = settings.OVERPASS_TILE_SIZE_DEGREES
         self.max_concurrent = settings.OVERPASS_MAX_CONCURRENT_REQUESTS
+        self._headers = {
+            "User-Agent": "SAT-Platform/1.0 (site-analysis-tool; contact@sat-platform.dev)"
+        }
 
     def query_buildings(
         self,
@@ -197,7 +200,9 @@ class OverpassService:
         """
 
         try:
-            response = requests.post(self.overpass_url, data={"data": query}, timeout=self.timeout)
+            response = requests.post(
+                self.overpass_url, data={"data": query}, headers=self._headers, timeout=self.timeout
+            )
             response.raise_for_status()
             data = response.json()
 
@@ -227,7 +232,9 @@ class OverpassService:
         """
 
         try:
-            response = requests.post(self.overpass_url, data={"data": query}, timeout=self.timeout)
+            response = requests.post(
+                self.overpass_url, data={"data": query}, headers=self._headers, timeout=self.timeout
+            )
             response.raise_for_status()
             data = response.json()
 
