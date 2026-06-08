@@ -125,7 +125,9 @@ class RainfallService:
             logger.warning("GEE not initialized; falling back to synthetic data")
             return self._generate_synthetic_series(latitude, longitude, start_date, end_date)
 
-    def _fetch_chirps_from_gee(self, latitude: float, longitude: float, start_date: date, end_date: date) -> DailySeries:
+    def _fetch_chirps_from_gee(
+        self, latitude: float, longitude: float, start_date: date, end_date: date
+    ) -> DailySeries:
         """Fetch CHIRPS Daily data from GEE UCSB-CHG/CHIRPS/DAILY dataset."""
         try:
             point = ee.Geometry.Point([longitude, latitude])
@@ -134,9 +136,7 @@ class RainfallService:
             )
 
             def extract_value(img: Any) -> dict[str, Any]:
-                reduction = img.reduceRegion(
-                    reducer=ee.Reducer.first(), geometry=point, scale=5000
-                )
+                reduction = img.reduceRegion(reducer=ee.Reducer.first(), geometry=point, scale=5000)
                 return reduction.set("date", img.date().format("YYYY-MM-dd"))
 
             daily_data = chirps.map(extract_value).getInfo()
@@ -155,7 +155,9 @@ class RainfallService:
             logger.error("GEE CHIRPS fetch failed: %s; falling back to synthetic", exc)
             return self._generate_synthetic_series(latitude, longitude, start_date, end_date)
 
-    def _generate_synthetic_series(self, latitude: float, longitude: float, start_date: date, end_date: date) -> DailySeries:
+    def _generate_synthetic_series(
+        self, latitude: float, longitude: float, start_date: date, end_date: date
+    ) -> DailySeries:
         """Generate synthetic rainfall series as fallback."""
         import math
 
