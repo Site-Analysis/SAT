@@ -1,9 +1,11 @@
 openapi: "3.1.0"
 info:
   title: Rainfall Service
-  version: "1.0.0"
+  version: "1.1.0"
   description: >
     Historical rainfall archive and summary statistics for points or polygons.
+    Primary source: CHIRPS Daily via Google Earth Engine (UCSB-CHG/CHIRPS/DAILY).
+    Fallback: Synthetic deterministic data if GEE credentials unavailable.
 
 servers:
   - url: http://localhost:8004
@@ -66,7 +68,7 @@ paths:
           required: false
           schema:
             type: string
-            example: "open-meteo"
+            example: "CHIRPS Daily via Google Earth Engine"
       responses:
         "200":
           description: Daily rainfall time series

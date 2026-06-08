@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-import math
+import logging
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Any
+
+try:
+    import ee
+except ImportError:
+    ee = None  # type: ignore[assignment,misc]
 
 from app.models.rainfall import (
     RainfallArchiveDaily,
@@ -14,6 +20,8 @@ from app.models.rainfall import (
 )
 from app.settings import RainfallSettings
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class DailySeries:
@@ -24,6 +32,24 @@ class DailySeries:
 class RainfallService:
     def __init__(self, settings: RainfallSettings | None = None) -> None:
         self.settings = settings or RainfallSettings()
+        self._gee_initialized = False
+        if self.settings.gee_project_id and self.settings.gee_service_account_key_path:
+            self._initialize_gee()
+
+    def _initialize_gee(self) -> None:
+        if ee is None:
+            logger.warning("earthengine-api not installed; GEE features disabled")
+            return
+        try:
+            credentials = ee.ServiceAccountCredentials(
+                self.settings.gee_service_account_email, self.settings.gee_service_account_key_path
+            )
+            ee.Initialize(credentials, project=self.settings.gee_project_id)
+            self._gee_initialized = True
+            logger.info("GEE initialized successfully")
+        except Exception as exc:
+            logger.error("Failed to initialize GEE: %s", exc)
+            self._gee_initialized = False
 
     def get_archive(
         self,
@@ -34,7 +60,7 @@ class RainfallService:
         source: str | None = None,
     ) -> RainfallArchiveResponse:
         resolved_source = source or self.settings.default_source
-        series = self._generate_daily_series(latitude, longitude, start_date, end_date)
+        series = self._fetch_chirps_daily_series(latitude, longitude, start_date, end_date)
 
         return RainfallArchiveResponse(
             latitude=latitude,
@@ -57,7 +83,7 @@ class RainfallService:
         latitude, longitude = self._resolve_point(request)
         start_date = date.fromisoformat(request.start_date)
         end_date = date.fromisoformat(request.end_date)
-        series = self._generate_daily_series(latitude, longitude, start_date, end_date)
+        series = self._fetch_chirps_daily_series(latitude, longitude, start_date, end_date)
 
         total = float(sum(series.precipitation_mm))
         count = len(series.precipitation_mm)
@@ -79,13 +105,60 @@ class RainfallService:
             source=resolved_source,
         )
 
-    def _generate_daily_series(
+    def _fetch_chirps_daily_series(
         self,
         latitude: float,
         longitude: float,
         start_date: date,
         end_date: date,
     ) -> DailySeries:
+        """Fetch CHIRPS Daily rainfall data from Google Earth Engine.
+
+        Falls back to synthetic data if GEE is unavailable.
+        """
+        if end_date < start_date:
+            raise ValueError("end_date must be on or after start_date")
+
+        if self._gee_initialized and ee is not None:
+            return self._fetch_chirps_from_gee(latitude, longitude, start_date, end_date)
+        else:
+            logger.warning("GEE not initialized; falling back to synthetic data")
+            return self._generate_synthetic_series(latitude, longitude, start_date, end_date)
+
+    def _fetch_chirps_from_gee(self, latitude: float, longitude: float, start_date: date, end_date: date) -> DailySeries:
+        """Fetch CHIRPS Daily data from GEE UCSB-CHG/CHIRPS/DAILY dataset."""
+        try:
+            point = ee.Geometry.Point([longitude, latitude])
+            chirps = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY").filterDate(
+                start_date.isoformat(), (end_date + timedelta(days=1)).isoformat()
+            )
+
+            def extract_value(img: Any) -> dict[str, Any]:
+                reduction = img.reduceRegion(
+                    reducer=ee.Reducer.first(), geometry=point, scale=5000
+                )
+                return reduction.set("date", img.date().format("YYYY-MM-dd"))
+
+            daily_data = chirps.map(extract_value).getInfo()
+            dates = []
+            values = []
+            if isinstance(daily_data, list):
+                for feature in daily_data:
+                    if isinstance(feature, dict):
+                        date_str = feature.get("date")
+                        precip = feature.get("precipitation")
+                        if date_str and precip is not None:
+                            dates.append(date_str)
+                            values.append(max(0.0, float(precip)))
+            return DailySeries(dates=dates, precipitation_mm=[round(v, 2) for v in values])
+        except Exception as exc:
+            logger.error("GEE CHIRPS fetch failed: %s; falling back to synthetic", exc)
+            return self._generate_synthetic_series(latitude, longitude, start_date, end_date)
+
+    def _generate_synthetic_series(self, latitude: float, longitude: float, start_date: date, end_date: date) -> DailySeries:
+        """Generate synthetic rainfall series as fallback."""
+        import math
+
         if end_date < start_date:
             raise ValueError("end_date must be on or after start_date")
         dates: list[str] = []
@@ -104,7 +177,7 @@ class RainfallService:
 
         return DailySeries(dates=dates, precipitation_mm=values)
 
-    def _resolve_point(self, request: RainfallSummaryRequest) -> tuple[float, float]:
+    def _resolve_point(self, request: RainfallSummaryRequest) -> tuple[float, float]:  # noqa: F841
         if request.latitude is not None and request.longitude is not None:
             return float(request.latitude), float(request.longitude)
 

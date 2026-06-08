@@ -1,10 +1,18 @@
 # Rainfall Service
 
-Historical precipitation archive and summary statistics for points or polygons. Current implementation uses deterministic synthetic data.
+Historical precipitation archive and summary statistics for points or polygons using CHIRPS Daily data via Google Earth Engine.
 
 ## Port
 
 8004
+
+## Data Source
+
+**Primary:** CHIRPS Daily (Climate Hazards Group InfraRed Precipitation with Stations) via Google Earth Engine (`UCSB-CHG/CHIRPS/DAILY`)
+
+**Fallback:** Synthetic deterministic data (if GEE credentials unavailable)
+
+**Units:** mm/day
 
 ## Contract
 

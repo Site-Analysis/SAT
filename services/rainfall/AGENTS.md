@@ -7,22 +7,22 @@
 - `feature.rainfall.summary`
 **FVD:** `docs/feature-validation/SAT-18_rainfall-analysis.md`
 
-## Source location
-Unknown in this repo. FVD references `Site-Analysis/SiteAnalysisToolV3` `backend/Rainfall/`.
-
 ## Architecture
-- Historical rainfall archive for point + polygon summary stats
-- Deterministic synthetic rainfall generator (deterministic fallback)
-- TODO: Replace with Open-Meteo API calls for real historical data
+- Primary: CHIRPS Daily rainfall data via Google Earth Engine (UCSB-CHG/CHIRPS/DAILY)
+- Fallback: Deterministic synthetic rainfall generator (if GEE unavailable)
+- Point queries: reduceRegion at point geometry
+- Polygon queries: reduceRegion over polygon centroid
+- Summary stats: total, mean, max daily, rainy days, dry days
 
-## Endpoints
-```
-GET  /rainfall/archive
-POST /rainfall/summary
-GET  /health
-```
+## GEE Credentials
 
-## Gotchas
-- All non-health endpoints must enforce feature flags
-- Do not call external APIs in tests
-- Keep response shapes aligned with contracts/rainfall.yaml
+Requires environment variables:
+- `GEE_PROJECT_ID`: GEE project ID
+- `GEE_SERVICE_ACCOUNT_EMAIL`: service account email
+- `GEE_SERVICE_ACCOUNT_KEY_PATH` or `GEE_SA_KEY_PATH`: path to service account JSON key
+
+If credentials missing, falls back to synthetic fallback.
+
+## Testing
+
+All tests use mocked service methods; no live GEE calls in CI.
