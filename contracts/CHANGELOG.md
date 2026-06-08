@@ -1,5 +1,19 @@
 # Contract Changelog
 
+## 2.0.0 — 2026-06-08
+
+### Changed — rainfall.yaml (production-grade climate intelligence)
+- **Version**: 1.1.0 → 2.0.0
+- **New endpoints**:
+  - `GET /rainfall/climate-profile` → 30-year climate analysis (Köppen-Geiger, reliability, monsoon strength)
+  - `GET /rainfall/anomaly` → rainfall anomaly detection (vs 10-year average)
+  - `GET /rainfall/seasonality` → seasonal distribution analysis (summer/monsoon/winter/spring)
+  - `POST /rainfall/site-analysis` → SAT-specific comprehensive site analysis
+- **Enhanced schemas**: ClimateProfileResponse, AnomalyResponse, SeasonalityResponse, SiteAnalysisResponse, SuitabilityScores
+- **Production requirements**: Missing GEE credentials now returns HTTP 503 (no synthetic fallback in production)
+- **Analytics**: Trend analysis (5yr/10yr), drought risk, runoff potential, flood susceptibility, multi-factor suitability scoring
+- **Data sources**: CHIRPS Daily (primary), with documented fallback strategy for testing
+
 ## 1.7.0 — 2026-06-08
 
 ### Changed — rainfall.yaml

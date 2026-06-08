@@ -13,7 +13,11 @@ export type FeatureFlag =
   | "feature.sunpath.diagram"
   | "feature.wind.analysis"
   | "feature.rainfall.archive"
-  | "feature.rainfall.summary";
+  | "feature.rainfall.summary"
+  | "feature.rainfall.climate-profile"
+  | "feature.rainfall.anomaly"
+  | "feature.rainfall.seasonality"
+  | "feature.rainfall.site-analysis";
 
 const enabled: Set<string> = new Set(
   (process.env.FLAGS ?? "").split(",").map((f) => f.trim()).filter(Boolean)
