@@ -1,9 +1,13 @@
 openapi: "3.1.0"
 info:
   title: Rainfall Service
-  version: "1.0.0"
+  version: "2.0.0"
   description: >
-    Historical rainfall archive and summary statistics for points or polygons.
+    Multi-dataset climate and rainfall intelligence service. Provides historical archive,
+    climate profiles, anomaly detection, seasonal analysis, and site-specific suitability metrics.
+    Primary sources: CHIRPS Daily (UCSB-CHG/CHIRPS/DAILY) via Google Earth Engine.
+    Fallback: Synthetic deterministic data if GEE credentials unavailable.
+    Production mode requires valid GEE credentials; missing credentials returns HTTP 503.
 
 servers:
   - url: http://localhost:8004
@@ -66,7 +70,672 @@ paths:
           required: false
           schema:
             type: string
-            example: "open-meteo"
+            example: "CHIRPS Daily via Google Earth Engine"
+      responses:
+        "200":
+          description: Daily rainfall time series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RainfallArchiveResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+        "503":
+          description: GEE service unavailable; production requires valid credentials
+
+  /rainfall/summary:
+    post:
+      operationId: getRainfallSummary
+      summary: Rainfall summary statistics for a point or polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RainfallSummaryRequest"
+      responses:
+        "200":
+          description: Summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RainfallSummaryResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+        "503":
+          description: GEE service unavailable; production requires valid credentials
+
+  /rainfall/climate-profile:
+    get:
+      operationId: getClimateProfile
+      summary: Long-term climate profile (30-year analysis)
+      description: >
+        Analyze 30-year CHIRPS data to determine Köppen-Geiger climate classification,
+        rainfall reliability, monsoon characteristics, and variability metrics.
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        "200":
+          description: Climate profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClimateProfileResponse"
+        "403":
+          description: Feature flag disabled
+        "503":
+          description: GEE service unavailable
+
+  /rainfall/anomaly:
+    get:
+      operationId: getAnomaly
+      summary: Rainfall anomaly relative to long-term normal
+      description: >
+        Compare current period rainfall against 10-year average for same period.
+        Returns anomaly category: Very Dry, Dry, Normal, Wet, or Very Wet.
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+      responses:
+        "200":
+          description: Anomaly analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnomalyResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error (days not 1-365)
+        "503":
+          description: GEE service unavailable
+
+  /rainfall/seasonality:
+    get:
+      operationId: getSeasonality
+      summary: Seasonal rainfall distribution (10-year analysis)
+      description: >
+        Analyze seasonal rainfall patterns: summer, monsoon, winter, spring.
+        Returns seasonal totals, % distribution, and concentration index.
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        "200":
+          description: Seasonality analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeasonalityResponse"
+        "403":
+          description: Feature flag disabled
+        "503":
+          description: GEE service unavailable
+
+  /rainfall/site-analysis:
+    post:
+      operationId: getSiteAnalysis
+      summary: Comprehensive site analysis for SAT (SAT-specific endpoint)
+      description: >
+        Integrates rainfall, climate, trends, and suitability scoring for site planning.
+        Provides drought risk, runoff potential, flood susceptibility, and multi-factor
+        suitability scores (water, agriculture, drainage, groundwater, infiltration).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteAnalysisRequest"
+      responses:
+        "200":
+          description: Comprehensive site analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteAnalysisResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error (radius 500-50000 m)
+        "503":
+          description: GEE service unavailable
+
+components:
+  schemas:
+    RainfallArchiveDailyUnits:
+      type: object
+      required: [time, precipitation_sum]
+      properties:
+        time:
+          type: string
+          example: "iso8601"
+        precipitation_sum:
+          type: string
+          example: "mm"
+
+    RainfallArchiveDaily:
+      type: object
+      required: [time, precipitation_sum]
+      properties:
+        time:
+          type: array
+          items:
+            type: string
+            format: date
+        precipitation_sum:
+          type: array
+          items:
+            type: number
+            format: float
+
+    RainfallArchiveResponse:
+      type: object
+      required: [latitude, longitude, timezone, daily_units, daily, source]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        timezone:
+          type: string
+          nullable: true
+        daily_units:
+          $ref: "#/components/schemas/RainfallArchiveDailyUnits"
+        daily:
+          $ref: "#/components/schemas/RainfallArchiveDaily"
+        source:
+          type: string
+
+    RainfallSummaryRequest:
+      type: object
+      required: [start_date, end_date]
+      properties:
+        geometry:
+          type: object
+          nullable: true
+          description: GeoJSON object
+        latitude:
+          type: number
+          format: float
+          nullable: true
+        longitude:
+          type: number
+          format: float
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    RainfallDateRange:
+      type: object
+      required: [start_date, end_date]
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    RainfallSummaryResponse:
+      type: object
+      required:
+        [
+          total_rainfall_mm,
+          mean_daily_rainfall_mm,
+          max_daily_rainfall_mm,
+          rainy_days,
+          dry_days,
+          date_range,
+          source,
+        ]
+      properties:
+        total_rainfall_mm:
+          type: number
+          format: float
+        mean_daily_rainfall_mm:
+          type: number
+          format: float
+        max_daily_rainfall_mm:
+          type: number
+          format: float
+        rainy_days:
+          type: integer
+        dry_days:
+          type: integer
+        date_range:
+          $ref: "#/components/schemas/RainfallDateRange"
+        source:
+          type: string
+
+    ClimateProfileResponse:
+      type: object
+      required:
+        [
+          latitude,
+          longitude,
+          annual_rainfall_mm,
+          wettest_month,
+          driest_month,
+          rainfall_variability,
+          monsoon_strength,
+          climate_classification,
+          rainfall_reliability_score,
+          datasets,
+        ]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        annual_rainfall_mm:
+          type: number
+          format: float
+          description: Mean annual rainfall
+        wettest_month:
+          type: string
+          description: Month with highest average rainfall (1-12)
+        driest_month:
+          type: string
+          description: Month with lowest average rainfall (1-12)
+        rainfall_variability:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Coefficient of variation
+        monsoon_strength:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Monsoon contribution % to annual rainfall
+        climate_classification:
+          type: string
+          description: Köppen-Geiger classification
+          example: "Cfa (Humid Subtropical)"
+        rainfall_reliability_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Higher = more reliable
+        datasets:
+          type: array
+          items:
+            type: string
+          example: ["CHIRPS Daily (UCSB-CHG)"]
+
+    AnomalyResponse:
+      type: object
+      required:
+        [
+          latitude,
+          longitude,
+          period_label,
+          current_period_rainfall_mm,
+          long_term_average_mm,
+          anomaly_percent,
+          anomaly_category,
+          datasets,
+        ]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        period_label:
+          type: string
+          example: "Last 30 days"
+        current_period_rainfall_mm:
+          type: number
+          format: float
+        long_term_average_mm:
+          type: number
+          format: float
+        anomaly_percent:
+          type: number
+          format: float
+          description: "-100 to 200+"
+        anomaly_category:
+          type: string
+          enum: ["Very Dry", "Dry", "Normal", "Wet", "Very Wet"]
+        datasets:
+          type: array
+          items:
+            type: string
+
+    SeasonalityResponse:
+      type: object
+      required:
+        [
+          latitude,
+          longitude,
+          summer_rainfall_mm,
+          monsoon_rainfall_mm,
+          winter_rainfall_mm,
+          spring_rainfall_mm,
+          seasonal_distribution,
+          rainfall_concentration_index,
+          datasets,
+        ]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        summer_rainfall_mm:
+          type: number
+          format: float
+          description: "Jun-Aug"
+        monsoon_rainfall_mm:
+          type: number
+          format: float
+          description: "Sep-Nov"
+        winter_rainfall_mm:
+          type: number
+          format: float
+          description: "Dec-Feb"
+        spring_rainfall_mm:
+          type: number
+          format: float
+          description: "Mar-May"
+        seasonal_distribution:
+          type: object
+          description: "% distribution by season"
+          properties:
+            summer:
+              type: number
+              format: float
+            monsoon:
+              type: number
+              format: float
+            winter:
+              type: number
+              format: float
+            spring:
+              type: number
+              format: float
+        rainfall_concentration_index:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: "0=uniform, 1=extreme"
+        datasets:
+          type: array
+          items:
+            type: string
+
+    SiteAnalysisRequest:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        radius_meters:
+          type: integer
+          minimum: 500
+          maximum: 50000
+          default: 5000
+          description: Analysis radius
+
+    SuitabilityScores:
+      type: object
+      required:
+        [
+          water_availability_score,
+          agriculture_score,
+          drainage_score,
+          groundwater_recharge_score,
+          infiltration_suitability_score,
+        ]
+      properties:
+        water_availability_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        agriculture_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        drainage_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: "lower=better drainage"
+        groundwater_recharge_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        infiltration_suitability_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+
+    SiteAnalysisResponse:
+      type: object
+      required:
+        [
+          latitude,
+          longitude,
+          radius_meters,
+          annual_rainfall_mm,
+          summer_rainfall_mm,
+          monsoon_rainfall_mm,
+          winter_rainfall_mm,
+          spring_rainfall_mm,
+          rainfall_trend_5yr_percent,
+          rainfall_trend_10yr_percent,
+          trend_direction,
+          drought_risk_level,
+          dry_day_frequency,
+          runoff_potential,
+          flood_susceptibility_contribution,
+          water_availability_score,
+          suitability_scores,
+          recommendations,
+          datasets,
+        ]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        radius_meters:
+          type: integer
+        annual_rainfall_mm:
+          type: number
+          format: float
+        summer_rainfall_mm:
+          type: number
+          format: float
+        monsoon_rainfall_mm:
+          type: number
+          format: float
+        winter_rainfall_mm:
+          type: number
+          format: float
+        spring_rainfall_mm:
+          type: number
+          format: float
+        rainfall_trend_5yr_percent:
+          type: number
+          format: float
+          description: "% change per year"
+        rainfall_trend_10yr_percent:
+          type: number
+          format: float
+          description: "% change per year"
+        trend_direction:
+          type: string
+          enum: ["increasing", "decreasing", "stable"]
+        drought_risk_level:
+          type: string
+          enum: ["very_low", "low", "moderate", "high", "very_high"]
+        dry_day_frequency:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: "% of days with <0.1mm"
+        runoff_potential:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        flood_susceptibility_contribution:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        water_availability_score:
+          type: number
+          format: float
+        suitability_scores:
+          $ref: "#/components/schemas/SuitabilityScores"
+        recommendations:
+          type: array
+          items:
+            type: string
+          example:
+            [
+              "High drought risk: implement water harvesting systems",
+              "Strong monsoon influence: plan for seasonal flooding and water abundance",
+            ]
+        datasets:
+          type: array
+          items:
+            type: string
+          example: ["CHIRPS Daily (UCSB-CHG)"]
+
+servers:
+  - url: http://localhost:8004
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "rainfall"
+
+  /rainfall/archive:
+    get:
+      operationId: getRainfallArchive
+      summary: Historical daily rainfall for a point and date range
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: longitude
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-01-01"
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2023-01-31"
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "CHIRPS Daily via Google Earth Engine"
       responses:
         "200":
           description: Daily rainfall time series

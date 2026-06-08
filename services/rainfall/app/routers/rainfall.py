@@ -4,9 +4,14 @@ import os
 from datetime import date
 
 from app.models.rainfall import (
+    AnomalyResponse,
+    ClimateProfileResponse,
     RainfallArchiveResponse,
     RainfallSummaryRequest,
     RainfallSummaryResponse,
+    SeasonalityResponse,
+    SiteAnalysisRequest,
+    SiteAnalysisResponse,
 )
 from app.services.rainfall_service import RainfallService
 from fastapi import APIRouter, HTTPException, Query
@@ -72,3 +77,59 @@ def get_rainfall_summary(request: RainfallSummaryRequest) -> RainfallSummaryResp
         return service.get_summary(request)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+_CLIMATE_PROFILE_FLAG = "feature.rainfall.climate-profile"
+_ANOMALY_FLAG = "feature.rainfall.anomaly"
+_SEASONALITY_FLAG = "feature.rainfall.seasonality"
+_SITE_ANALYSIS_FLAG = "feature.rainfall.site-analysis"
+
+
+@router.get("/climate-profile", response_model=ClimateProfileResponse)
+def get_climate_profile(
+    latitude: float = Query(..., description="Latitude in decimal degrees"),
+    longitude: float = Query(..., description="Longitude in decimal degrees"),
+) -> ClimateProfileResponse:
+    _require_flag(_CLIMATE_PROFILE_FLAG)
+    try:
+        return service.get_climate_profile(latitude, longitude)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.get("/anomaly", response_model=AnomalyResponse)
+def get_anomaly(
+    latitude: float = Query(..., description="Latitude in decimal degrees"),
+    longitude: float = Query(..., description="Longitude in decimal degrees"),
+    days: int = Query(30, description="Number of days to analyze"),
+) -> AnomalyResponse:
+    _require_flag(_ANOMALY_FLAG)
+    if days < 1 or days > 365:
+        raise HTTPException(status_code=422, detail="days must be between 1 and 365")
+    try:
+        return service.get_anomaly(latitude, longitude, days)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.get("/seasonality", response_model=SeasonalityResponse)
+def get_seasonality(
+    latitude: float = Query(..., description="Latitude in decimal degrees"),
+    longitude: float = Query(..., description="Longitude in decimal degrees"),
+) -> SeasonalityResponse:
+    _require_flag(_SEASONALITY_FLAG)
+    try:
+        return service.get_seasonality(latitude, longitude)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.post("/site-analysis", response_model=SiteAnalysisResponse)
+def get_site_analysis(request: SiteAnalysisRequest) -> SiteAnalysisResponse:
+    _require_flag(_SITE_ANALYSIS_FLAG)
+    if request.radius_meters < 500 or request.radius_meters > 50000:
+        raise HTTPException(status_code=422, detail="radius_meters must be between 500 and 50000")
+    try:
+        return service.get_site_analysis(request.latitude, request.longitude, request.radius_meters)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
