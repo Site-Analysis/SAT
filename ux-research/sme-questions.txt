@@ -1,0 +1,89 @@
+SAT UX RESEARCH — SME SESSION QUESTIONS
+Phase 1 | 2026-06-09
+================================================================================
+
+SENIOR ARCHITECT — Studio Lead (5–12 yrs) [SYNTHETIC — SME-derived]
+----------------------------------------------------------------------
+SA·Q1  For a senior architect with 5–12 years leading projects in India —
+       what does their site analysis process look like day-to-day?
+       Tools, data sources, manual steps?
+
+SA·Q2  Which regulatory requirements — NBC 2016, BBMP, BDA, local DCRs —
+       most directly force extra work during site analysis at this level?
+
+SA·Q3  How does a senior architect present site analysis findings to clients?
+       What do clients push back on most?
+
+SA·Q4  What is the biggest gap between what their tools give them and what
+       they actually need?
+
+SA·Q5  [SAT-PRIORITY]
+       If a senior architect had one live dashboard during site analysis —
+       what is on it?
+
+SA·Q6  [SAT-PRIORITY]
+       What would the ideal site analysis tool do for them that nothing
+       today does?
+
+
+SENIOR ARCHITECT — Principal / Director (12+ yrs) [SYNTHETIC — SME-derived]
+-----------------------------------------------------------------------------
+SP·Q1  For a principal or director with 12+ years — how do they oversee
+       site analysis done by junior team members? At what stage do they
+       step in?
+
+SP·Q2  What is the most common quality control issue they see in site
+       analysis deliverables from juniors?
+
+SP·Q3  How does site analysis feed into strategic decisions — massing,
+       orientation, phasing — at this level?
+
+SP·Q4  What would it take for someone at this level to adopt a new site
+       analysis tool firm-wide? What are the blockers?
+
+SP·Q5  [SAT-PRIORITY]
+       What would the ideal tool do for them that nothing today does?
+
+
+URBAN PLANNER / M.ARCH STUDENT [SYNTHETIC — SME-derived]
+----------------------------------------------------------
+UP·Q1  For an urban planner or final-year M.Arch student in India — what
+       geospatial data sources do they rely on? Survey of India, OSM,
+       ISRO Bhuvan, CGWB, state portals — what is missing or unreliable?
+
+UP·Q2  How do zoning overlays, FSI calculations, and land-use compatibility
+       checks factor into their workflow?
+
+UP·Q3  How do environmental factors — flood zones, heat islands, wind
+       corridors — enter their work? What tools do they use for those?
+
+UP·Q4  What is the biggest gap between what planning/studio software gives
+       them and what they actually need?
+
+UP·Q5  [SAT-PRIORITY]
+       One live dashboard during site analysis — what is on it for them?
+
+UP·Q6  [SAT-PRIORITY]
+       What would the ideal site analysis tool built for Indian practice
+       do for them specifically?
+
+
+SME SIGN-OFF (all profiles)
+----------------------------
+SIGN·Q1  Here are the 5 profiles we have built — 2 from real interviews,
+         3 from your input today. Do these accurately reflect real
+         professionals you know? Any corrections, missing nuance, or
+         disqualifying criteria that are wrong?
+
+         Profiles doc: /Volumes/LocalDrive/SAT/ux-research/phase-1/step-1-participant-profiles.md
+
+
+WRAP
+----
+WRAP·Q1  Thanks — we will use this to build the full research repository.
+         Can we follow up if we have questions?
+
+         Confirm: recordings saved, meeting notes captured.
+
+================================================================================
+END

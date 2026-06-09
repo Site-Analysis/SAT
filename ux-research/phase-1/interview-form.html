@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAT UX Interview Form</title>
+<style>
+  :root{--brand:#1a1a2e;--accent:#e94560;--accent2:#0f3460;--bg:#f8f9fa;--card:#fff;--text:#1a1a2e;--muted:#6c757d;--border:#dee2e6;--success:#198754;--warn:#856404;--warn-bg:#fff3cd;--warn-border:#ffc107;--radius:8px;--shadow:0 2px 12px rgba(0,0,0,.08);}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 60px;}
+  .shell{max-width:760px;margin:0 auto;padding:24px 16px;}
+  header{background:var(--brand);color:white;border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;}
+  header h1{font-size:1.4rem;font-weight:700;margin-bottom:4px;}
+  header p{font-size:.875rem;opacity:.7;}
+  .tag{display:inline-block;background:var(--accent);color:white;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:10px;letter-spacing:.04em;text-transform:uppercase;}
+  .progress-wrap{background:var(--card);border-radius:var(--radius);padding:16px 24px;margin-bottom:20px;box-shadow:var(--shadow);}
+  .progress-label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:8px;}
+  .progress-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s ease;}
+  .step-dots{display:flex;gap:6px;margin-top:10px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s;}
+  .dot.done{background:var(--success);}
+  .dot.active{background:var(--accent);}
+  .card{background:var(--card);border-radius:var(--radius);padding:28px 32px;box-shadow:var(--shadow);margin-bottom:20px;}
+  .card h2{font-size:1.1rem;font-weight:700;margin-bottom:6px;color:var(--brand);}
+  .section-desc{font-size:.85rem;color:var(--muted);margin-bottom:22px;line-height:1.5;}
+  .form-section{display:none;}
+  .form-section.active{display:block;}
+  .field{margin-bottom:20px;}
+  .field label{display:block;font-size:.875rem;font-weight:600;margin-bottom:6px;}
+  .req{color:var(--accent);margin-left:2px;}
+  .field input,.field select,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:10px 14px;font-size:.9rem;color:var(--text);background:var(--bg);transition:border-color .2s;font-family:inherit;}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent2);background:white;}
+  .field textarea{min-height:100px;resize:vertical;line-height:1.5;}
+  .profile-grid{display:grid;gap:12px;margin-top:4px;}
+  .profile-option{display:flex;align-items:flex-start;gap:12px;border:2px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;transition:border-color .2s,background .2s;}
+  .profile-option:hover{border-color:var(--accent2);background:#f0f4ff;}
+  .profile-option input[type=radio]{margin-top:2px;accent-color:var(--accent);flex-shrink:0;}
+  .profile-option.selected{border-color:var(--accent);background:#fff0f3;}
+  .pot strong{display:block;font-size:.9rem;}
+  .pot span{font-size:.8rem;color:var(--muted);}
+  .q-block{margin-bottom:22px;padding:16px 18px;border-left:4px solid var(--border);border-radius:0 6px 6px 0;background:var(--bg);}
+  .q-block.priority{border-left-color:var(--warn-border);background:var(--warn-bg);}
+  .q-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .q-block.priority .q-label{color:var(--warn);}
+  .sat-badge{background:var(--warn-border);color:#3d2c00;padding:1px 6px;border-radius:3px;font-size:.7rem;margin-left:6px;}
+  .q-text{font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.4;}
+  .q-block textarea{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:10px 14px;font-size:.875rem;font-family:inherit;background:white;resize:vertical;min-height:90px;transition:border-color .2s;}
+  .q-block textarea:focus{outline:none;border-color:var(--accent2);}
+  .qsh{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:28px 0 14px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .qsh span{color:var(--accent2);}
+  .consent-block{background:#f0f4ff;border:1.5px solid #c5d3f0;border-radius:8px;padding:16px 18px;margin-bottom:20px;}
+  .consent-block p{font-size:.85rem;line-height:1.6;margin-bottom:12px;}
+  .consent-block label{display:flex;align-items:flex-start;gap:10px;font-size:.875rem;font-weight:600;cursor:pointer;}
+  .consent-block input[type=checkbox]{margin-top:2px;accent-color:var(--accent);flex-shrink:0;width:16px;height:16px;}
+  .nav-row{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);}
+  .btn{padding:11px 28px;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;transition:opacity .2s,transform .1s;font-family:inherit;}
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--accent);color:white;}
+  .btn-primary:hover{opacity:.88;}
+  .btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--muted);}
+  .btn-success{background:var(--success);color:white;}
+  .btn-success:hover{opacity:.88;}
+  .err-msg{background:#fff0f3;border:1px solid #f5c2cc;color:#b02a37;border-radius:6px;padding:10px 14px;font-size:.85rem;margin-bottom:16px;display:none;}
+  .done-card{text-align:center;padding:40px 32px;}
+  .done-icon{font-size:3rem;margin-bottom:16px;}
+  .done-card h2{font-size:1.4rem;margin-bottom:8px;}
+  .done-sub{color:var(--muted);font-size:.9rem;margin-bottom:28px;line-height:1.6;}
+  .done-actions{display:flex;flex-direction:column;gap:10px;}
+  .done-actions button{width:100%;padding:13px;border-radius:6px;font-size:.9rem;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:opacity .2s;}
+  .done-actions button:hover{opacity:.88;}
+  .btn-dl{background:var(--accent2);color:white;}
+  .btn-new{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
+  .status-banner{border-radius:6px;padding:12px 16px;font-size:.85rem;margin-bottom:20px;display:none;line-height:1.4;}
+  .status-banner.ok{background:#d1edda;border:1px solid #a3cfb4;color:#0a5c2a;}
+  .status-banner.fail{background:#fff0f3;border:1px solid #f5c2cc;color:#b02a37;}
+  @media(max-width:540px){.card{padding:20px 18px;}header{padding:22px 20px;}.nav-row{flex-direction:column-reverse;}.btn{width:100%;text-align:center;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <h1>SAT User Research &mdash; Interview Form</h1>
+  <p>Site Analysis Tool &middot; Phase 1 Research &middot; Indian AEC Practice</p>
+  <span class="tag">Confidential &mdash; Internal Use Only</span>
+</header>
+<div class="progress-wrap">
+  <div class="progress-label"><span id="ptxt">Step 1 of 4</span><span id="ppct">0%</span></div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="pfill" style="width:0%"></div></div>
+  <div class="step-dots" id="sdots"></div>
+</div>
+
+<!-- S1: Details -->
+<div class="form-section active card" id="sec-details">
+  <h2>Participant Details</h2>
+  <p class="section-desc">Fill in before the interview begins. Nothing is sent until the interview is complete.</p>
+  <div class="consent-block">
+    <p>The participant agrees this session may be recorded and used for internal UX research on the Site Analysis Tool. Participation is voluntary and can be stopped at any time.</p>
+    <label><input type="checkbox" id="consent">Participant has verbally consented to recording and research use.</label>
+  </div>
+  <div class="field"><label>Full Name <span class="req">*</span></label><input type="text" id="p-name" placeholder="e.g. Priya Sharma"></div>
+  <div class="field"><label>Email</label><input type="email" id="p-email" placeholder="optional &mdash; for follow-up"></div>
+  <div class="field"><label>Phone / WhatsApp</label><input type="tel" id="p-phone" placeholder="optional"></div>
+  <div class="field"><label>City / Region <span class="req">*</span></label><input type="text" id="p-city" placeholder="e.g. Bangalore, Delhi NCR, Mumbai"></div>
+  <div class="field"><label>Firm / Organisation <span class="req">*</span></label><input type="text" id="p-firm" placeholder="Name of firm or institution"></div>
+  <div class="field"><label>Firm Size</label>
+    <select id="p-fsize">
+      <option value="">Select&hellip;</option>
+      <option>Solo practitioner</option>
+      <option>Small studio (2&ndash;10)</option>
+      <option>Mid-size firm (11&ndash;50)</option>
+      <option>Large firm (50+)</option>
+      <option>Government / public body</option>
+      <option>Academic institution</option>
+    </select>
+  </div>
+  <div class="field"><label>Date of Interview</label><input type="text" id="p-date" placeholder="DD/MM/YYYY"></div>
+  <div class="field"><label>Interviewer Name <span class="req">*</span></label><input type="text" id="p-iview" placeholder="Your name"></div>
+  <div class="err-msg" id="err-d">Please fill all required fields and confirm consent.</div>
+  <div class="nav-row"><span></span><button class="btn btn-primary" onclick="nxt('details')">Next: Select Profile &rarr;</button></div>
+</div>
+
+<!-- S2: Profile -->
+<div class="form-section card" id="sec-profile">
+  <h2>Select Participant Profile</h2>
+  <p class="section-desc">Choose the profile that best matches this participant. Questions adapt accordingly.</p>
+  <div class="profile-grid">
+    <label class="profile-option" onclick="selP(this,'junior')"><input type="radio" name="pr" value="junior"><div class="pot"><strong>Junior Architect</strong><span>0&ndash;5 yrs &middot; personally involved in site analysis</span></div></label>
+    <label class="profile-option" onclick="selP(this,'senior-a')"><input type="radio" name="pr" value="senior-a"><div class="pot"><strong>Senior Architect &mdash; Studio Lead</strong><span>5&ndash;12 yrs &middot; project lead &middot; regulatory compliance &middot; client presentations</span></div></label>
+    <label class="profile-option" onclick="selP(this,'senior-b')"><input type="radio" name="pr" value="senior-b"><div class="pot"><strong>Senior Architect &mdash; Principal / Director</strong><span>12+ yrs &middot; oversees team site analysis &middot; firm-wide adoption</span></div></label>
+    <label class="profile-option" onclick="selP(this,'planner')"><input type="radio" name="pr" value="planner"><div class="pot"><strong>Urban Planner</strong><span>Any experience &middot; government, consultancy, NGO &middot; land-use, zoning, EIA</span></div></label>
+    <label class="profile-option" onclick="selP(this,'student')"><input type="radio" name="pr" value="student"><div class="pot"><strong>Architecture Student</strong><span>B.Arch 4th&ndash;5th yr or M.Arch &middot; &ge;1 studio project with site analysis</span></div></label>
+  </div>
+  <div class="err-msg" id="err-p">Please select a profile.</div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="bk('profile')">&larr; Back</button><button class="btn btn-primary" onclick="nxt('profile')">Next: Questions &rarr;</button></div>
+</div>
+
+<!-- S3: Questions -->
+<div class="form-section card" id="sec-questions">
+  <h2 id="q-title">Interview Questions</h2>
+  <p class="section-desc" id="q-desc">Yellow = SAT research priority &mdash; get the complete answer before moving on.</p>
+  <div id="q-content"></div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="bk('questions')">&larr; Back</button><button class="btn btn-primary" onclick="nxt('questions')">Next: Wrap-up &rarr;</button></div>
+</div>
+
+<!-- S4: Close -->
+<div class="form-section card" id="sec-close">
+  <h2>Close &mdash; Wrap-up</h2>
+  <p class="section-desc">Final 5 minutes. Same for all profiles.</p>
+  <div class="qsh"><span>Close</span> &middot; ~5 min</div>
+  <div class="q-block">
+    <div class="q-label">Additional context</div>
+    <div class="q-text">Is there anything about your site analysis workflow we haven't covered that you think is important?</div>
+    <textarea id="c-1" placeholder="Open-ended&hellip;"></textarea>
+  </div>
+  <div class="q-block priority">
+    <div class="q-label">Prototype <span class="sat-badge">SAT-PRIORITY</span></div>
+    <div class="q-text">Would you be willing to test an early prototype of the Site Analysis Tool and give feedback?</div>
+    <select id="c-2" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:6px;font-size:.9rem;font-family:inherit;background:var(--bg);">
+      <option value="">Select&hellip;</option>
+      <option>Yes &mdash; happy to test prototype</option>
+      <option>Maybe &mdash; depends on timing</option>
+      <option>No</option>
+    </select>
+  </div>
+  <div class="q-block">
+    <div class="q-label">Referrals</div>
+    <div class="q-text">Do you know any other architects, planners, or students who might be good research participants?</div>
+    <textarea id="c-3" placeholder="Name, role, contact (only if they have agreed to referral)&hellip;" style="min-height:70px;"></textarea>
+  </div>
+  <div class="q-block">
+    <div class="q-label">Observer notes &middot; private</div>
+    <div class="q-text">Interviewer's private observations &mdash; tone, hesitations, screen-share moments, notable reactions.</div>
+    <textarea id="c-obs" placeholder="[Private] Strong emotions, body language, technical terms used&hellip;"></textarea>
+  </div>
+  <div class="err-msg" id="err-c">Please confirm prototype testing preference.</div>
+  <div class="nav-row"><button class="btn btn-secondary" onclick="bk('close')">&larr; Back</button><button class="btn btn-success" onclick="finish()">Finish Interview &rarr;</button></div>
+</div>
+
+<!-- Done -->
+<div class="form-section card done-card" id="sec-done">
+  <div class="done-icon" id="d-icon">&#9203;</div>
+  <h2 id="d-title">Saving&hellip;</h2>
+  <p class="done-sub" id="d-sub">Sending to database. Please wait.</p>
+  <div class="status-banner" id="d-banner"></div>
+  <div class="done-actions" id="d-actions" style="display:none">
+    <button class="btn-dl" onclick="dlCSV()">&#11015; Download CSV backup</button>
+    <button class="btn-new" onclick="reset()">Start New Interview</button>
+  </div>
+</div>
+</div><!-- /shell -->
+
+<script>
+// ── Supabase config ─────────────────────────────────────────────────────────
+const SB_URL = 'https://jaqlvsilsrdjeehqrump.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphcWx2c2lsc3JkamVlaHFydW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzAxNTcsImV4cCI6MjA5NTkwNjE1N30.-zO3K_-509T_NTKETFxnmEZGazaA2DflY0zCuCTePZg';
+
+// ── Progress ─────────────────────────────────────────────────────────────────
+const STEPS = ['details','profile','questions','close'];
+const updProg = s => {
+  const i = STEPS.indexOf(s), pct = i < 0 ? 100 : Math.round(i / STEPS.length * 100);
+  document.getElementById('pfill').style.width = pct + '%';
+  document.getElementById('ppct').textContent = pct + '%';
+  document.getElementById('ptxt').textContent = s === 'done' ? 'Complete' : 'Step ' + (i+1) + ' of ' + STEPS.length;
+  document.getElementById('sdots').innerHTML = STEPS.map((x,j) =>
+    '<div class="dot ' + (j < i ? 'done' : j === i ? 'active' : '') + '"></div>'
+  ).join('');
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const show = id => {
+  document.querySelectorAll('.form-section').forEach(e => e.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  updProg(id);
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+const bk = f => { const a = ['details','profile','questions','close','done'], i = a.indexOf(f); if (i > 0) show(a[i-1]); };
+const clrErr = () => document.querySelectorAll('.err-msg').forEach(e => e.style.display = 'none');
+const valD = () => {
+  const ok = document.getElementById('consent').checked
+    && document.getElementById('p-name').value.trim()
+    && document.getElementById('p-city').value.trim()
+    && document.getElementById('p-firm').value.trim()
+    && document.getElementById('p-iview').value.trim();
+  if (!ok) document.getElementById('err-d').style.display = 'block';
+  return ok;
+};
+const nxt = f => {
+  clrErr();
+  if (f === 'details') { if (!valD()) return; show('profile'); }
+  else if (f === 'profile') { if (!sP) { document.getElementById('err-p').style.display = 'block'; return; } buildQ(sP); show('questions'); }
+  else if (f === 'questions') { show('close'); }
+};
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+let sP = null;
+const selP = (el, v) => { document.querySelectorAll('.profile-option').forEach(o => o.classList.remove('selected')); el.classList.add('selected'); sP = v; };
+
+// ── Question bank ─────────────────────────────────────────────────────────────
+const WF = [
+  {id:'wf1',p:true, l:'Workflow · SAT',  t:'Walk me through your typical site analysis process from start to finish — from first receiving a project brief to considering site analysis complete.'},
+  {id:'wf2',p:true, l:'Tools · SAT',     t:'Which software tools or apps do you currently use for site modelling or analysis? (e.g. AutoCAD, SketchUp, QGIS, Revit, Google Maps, anything else)'},
+  {id:'wf3',p:false,l:'Data sources',          t:'Where do you get site data — sun angles, wind, flooding, climate, zoning? Walk me through your data-gathering process.'},
+  {id:'wf4',p:true, l:'Gap · SAT',        t:'What is the biggest manual task or data gap that your software does NOT handle? Where do you end up doing things by hand or guessing?'},
+  {id:'wf5',p:false,l:'Frustrations',           t:'What frustrates you most about site analysis today? What costs you the most time?'}
+];
+const ID = [
+  {id:'i1',p:true,l:'Dashboard · SAT', t:'If you could see one live-updated dashboard of site data while doing a site analysis, what information would be on it?'},
+  {id:'i2',p:true,l:'Dream tool · SAT',t:'Imagine the most ideal version of a site analysis tool built specifically for Indian practice. What does it do? What problem does it solve that nothing else does today?'}
+];
+const PR = {
+  'junior':{ti:'Junior Architect (0–5 yrs)',de:'Focus on learning curve, data scarcity, navigation with limited experience.',sc:[
+    {l:'Warm-up',t:'~5 min',qs:[{id:'ju1',p:false,l:'Role',t:'Tell me about your current role and the type of projects you have been working on in the last 12 months.'},{id:'ju2',p:false,l:'Experience',t:'How long have you been personally responsible for site analysis tasks — even partially?'}]},
+    {l:'Workflow',t:'~10 min',qs:WF},
+    {l:'Specifics',t:'~15 min',qs:[{id:'jus1',p:false,l:'Pain point',t:'Which part of site analysis do you find most confusing, uncertain, or time-consuming at this stage of your career?'},{id:'jus2',p:false,l:'Guidance',t:'Do you have access to senior guidance during site analysis, or do you typically figure it out independently?'},{id:'jus3',p:false,l:'Regulatory',t:'How do you handle Indian regulatory requirements — NBC 2016, local DCR, setbacks, FSI? Where do you look things up?'},{id:'jus4',p:false,l:'Past mistake',t:'Have you ever been told your site analysis was wrong or missing something important? What happened?'}]},
+    {l:'Ideal tool',t:'~10 min',qs:ID}
+  ]},
+  'senior-a':{ti:'Senior Architect — Studio Lead (5–12 yrs)',de:'Focus on project ownership, client presentation, regulatory sign-off, multi-project coordination.',sc:[
+    {l:'Warm-up',t:'~5 min',qs:[{id:'sa1',p:false,l:'Role',t:'Tell me about your current role and the type of projects you are leading right now.'},{id:'sa2',p:false,l:'Volume',t:'How many site analyses would you personally lead or review in a typical month?'}]},
+    {l:'Workflow',t:'~10 min',qs:WF},
+    {l:'Specifics',t:'~15 min',qs:[{id:'sas1',p:false,l:'Evolution',t:'How has your site analysis approach changed from when you started your career?'},{id:'sas2',p:false,l:'Multi-project',t:'How do you manage site analysis across multiple projects running at the same time?'},{id:'sas3',p:false,l:'Regulatory',t:'Which Indian regulatory requirements — NBC 2016, BBMP, BDA, RERA, local DCRs — most directly shape your site analysis outputs?'},{id:'sas4',p:false,l:'Client',t:'How do you present site analysis findings to clients? What do clients most often question or push back on?'}]},
+    {l:'Ideal tool',t:'~10 min',qs:ID}
+  ]},
+  'senior-b':{ti:'Senior Architect — Principal / Director (12+ yrs)',de:'Focus on team oversight, quality control, strategic design decisions, firm-wide tool adoption.',sc:[
+    {l:'Warm-up',t:'~5 min',qs:[{id:'sb1',p:false,l:'Role',t:'Tell me about your current role — how many projects is your firm running, and how involved are you personally in site analysis?'},{id:'sb2',p:false,l:'Review stage',t:'At what stage do you typically get involved in or review a site analysis done by your team?'}]},
+    {l:'Workflow',t:'~10 min',qs:WF},
+    {l:'Oversight',t:'~15 min',qs:[{id:'sbs1',p:false,l:'QC issues',t:'What is the most common quality control issue you see in site analysis deliverables from junior team members?'},{id:'sbs2',p:false,l:'Consistency',t:'How do you ensure consistency in site analysis outputs across your firm or team?'},{id:'sbs3',p:false,l:'Design link',t:'How does site analysis feed into strategic design decisions — massing, orientation, phasing? Give me a recent example.'},{id:'sbs4',p:false,l:'Adoption',t:'What would it take for you to adopt a new site analysis tool firm-wide? What are the blockers?'}]},
+    {l:'Ideal tool',t:'~10 min',qs:ID}
+  ]},
+  'planner':{ti:'Urban Planner',de:'Focus on geospatial data sources, zoning, land-use, environmental factors in planning.',sc:[
+    {l:'Warm-up',t:'~5 min',qs:[{id:'pl1',p:false,l:'Role',t:'Tell me about your current role — what type of planning work do you do and for whom?'},{id:'pl2',p:false,l:'Frequency',t:'How often does site analysis come up in your work, and in what form?'}]},
+    {l:'Workflow',t:'~10 min',qs:WF},
+    {l:'Planning specifics',t:'~15 min',qs:[{id:'pls1',p:false,l:'Data sources',t:'What geospatial data sources do you rely on most — Survey of India, OpenStreetMap, ISRO Bhuvan, CGWB, state portals? What is missing or unreliable?'},{id:'pls2',p:false,l:'Zoning',t:'How do you handle zoning overlays, FSI calculations, and land-use compatibility checks in your workflow?'},{id:'pls3',p:false,l:'Environmental',t:'How do environmental factors — flood zones, heat islands, wind corridors — enter your planning or EIA work? What tools do you use?'},{id:'pls4',p:false,l:'Gap',t:'What is the biggest gap between what planning software gives you and what you actually need?'}]},
+    {l:'Ideal tool',t:'~10 min',qs:ID}
+  ]},
+  'student':{ti:'Architecture Student (B.Arch / M.Arch)',de:'Focus on learning context, studio workflow, tool discovery, data-gathering friction.',sc:[
+    {l:'Warm-up',t:'~5 min',qs:[{id:'st1',p:false,l:'Current year',t:'Tell me about where you are in your degree and the most recent studio project you have done that involved site analysis.'},{id:'st2',p:false,l:'Taught vs self',t:'Does your institution teach site analysis formally, or do you mostly figure it out on your own?'}]},
+    {l:'Workflow',t:'~10 min',qs:WF},
+    {l:'Student specifics',t:'~15 min',qs:[{id:'sts1',p:false,l:'School vs reality',t:'What tools are you taught in school versus what you actually end up using? Why the difference?'},{id:'sts2',p:false,l:'Data hunt',t:'How do you currently get data on solar angles, wind, flooding, or climate for your site? Walk me through the last time you needed it.'},{id:'sts3',p:false,l:'Frustration',t:'What is the most frustrating or time-consuming part of site analysis in your studio projects?'},{id:'sts4',p:false,l:'What to fix',t:'What would make site analysis feel less intimidating — what would you want a tool to just do for you?'}]},
+    {l:'Ideal tool',t:'~10 min',qs:ID}
+  ]}
+};
+const SM = {ju1:'warmup_1',ju2:'warmup_2',sa1:'warmup_1',sa2:'warmup_2',sb1:'warmup_1',sb2:'warmup_2',pl1:'warmup_1',pl2:'warmup_2',st1:'warmup_1',st2:'warmup_2',wf1:'wf_process',wf2:'wf_tools',wf3:'wf_data_sources',wf4:'wf_gap',wf5:'wf_frustrations',jus1:'spec_1',jus2:'spec_2',jus3:'spec_3',jus4:'spec_4',sas1:'spec_1',sas2:'spec_2',sas3:'spec_3',sas4:'spec_4',sbs1:'spec_1',sbs2:'spec_2',sbs3:'spec_3',sbs4:'spec_4',pls1:'spec_1',pls2:'spec_2',pls3:'spec_3',pls4:'spec_4',sts1:'spec_1',sts2:'spec_2',sts3:'spec_3',sts4:'spec_4',i1:'ideal_dashboard',i2:'ideal_dream_tool'};
+
+const buildQ = k => {
+  const p = PR[k];
+  document.getElementById('q-title').textContent = p.ti;
+  document.getElementById('q-desc').textContent = p.de + ' Yellow = SAT priority — get the full answer.';
+  let h = '';
+  p.sc.forEach(s => {
+    h += '<div class="qsh"><span>' + s.l + '</span> · ' + s.t + '</div>';
+    s.qs.forEach(q => {
+      const c = q.p ? 'q-block priority' : 'q-block', b = q.p ? '<span class="sat-badge">SAT-PRIORITY</span>' : '';
+      h += '<div class="' + c + '"><div class="q-label">' + q.l + ' ' + b + '</div><div class="q-text">' + q.t + '</div><textarea id="a-' + q.id + '" placeholder="Record verbatim…"></textarea></div>';
+    });
+  });
+  document.getElementById('q-content').innerHTML = h;
+};
+
+// ── Collect answers ───────────────────────────────────────────────────────────
+const colA = () => {
+  const s = {warmup_1:'',warmup_2:'',wf_process:'',wf_tools:'',wf_data_sources:'',wf_gap:'',wf_frustrations:'',spec_1:'',spec_2:'',spec_3:'',spec_4:'',ideal_dashboard:'',ideal_dream_tool:''};
+  PR[sP].sc.forEach(sec => sec.qs.forEach(q => { const el = document.getElementById('a-' + q.id); if (el && SM[q.id]) s[SM[q.id]] = el.value.trim(); }));
+  return s;
+};
+
+// ── Build payload ─────────────────────────────────────────────────────────────
+const mkPayload = () => {
+  const a = colA(), g = id => document.getElementById(id).value.trim();
+  return {
+    timestamp:        new Date().toISOString(),
+    date:             g('p-date') || new Date().toLocaleDateString('en-IN'),
+    interviewer:      g('p-iview'),
+    p_name:           g('p-name'),
+    p_email:          g('p-email'),
+    p_phone:          g('p-phone'),
+    p_city:           g('p-city'),
+    p_firm:           g('p-firm'),
+    p_firm_size:      document.getElementById('p-fsize').value,
+    profile_key:      sP,
+    profile_title:    PR[sP].ti,
+    warmup_1:         a.warmup_1,
+    warmup_2:         a.warmup_2,
+    wf_process:       a.wf_process,
+    wf_tools:         a.wf_tools,
+    wf_data_sources:  a.wf_data_sources,
+    wf_gap:           a.wf_gap,
+    wf_frustrations:  a.wf_frustrations,
+    spec_1:           a.spec_1,
+    spec_2:           a.spec_2,
+    spec_3:           a.spec_3,
+    spec_4:           a.spec_4,
+    ideal_dashboard:  a.ideal_dashboard,
+    ideal_dream_tool: a.ideal_dream_tool,
+    close_additional: g('c-1'),
+    prototype_testing:document.getElementById('c-2').value,
+    referrals:        g('c-3'),
+    observer_notes:   g('c-obs')
+  };
+};
+
+// ── Supabase insert ───────────────────────────────────────────────────────────
+async function sbInsert(payload) {
+  const res = await fetch(SB_URL + '/rest/v1/ux_interviews', {
+    method: 'POST',
+    headers: {
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type':  'application/json',
+      'Prefer':        'return=minimal'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.hint || 'HTTP ' + res.status);
+  }
+  return true;
+}
+
+// ── CSV helpers (download fallback) ──────────────────────────────────────────
+const HDR = 'timestamp,date,interviewer,p_name,p_email,p_phone,p_city,p_firm,p_firm_size,profile_key,profile_title,warmup_1,warmup_2,wf_process,wf_tools,wf_data_sources,wf_gap,wf_frustrations,spec_1,spec_2,spec_3,spec_4,ideal_dashboard,ideal_dream_tool,close_additional,prototype_testing,referrals,observer_notes';
+const esc = v => { const s = String(v||''); if (s.includes(',')||s.includes('"')||s.includes('\n')||s.includes('\r')) return '"'+s.replace(/"/g,'""')+'"'; return s; };
+let _payload = null;
+const dlCSV = () => {
+  if (!_payload) return;
+  const row = [_payload.timestamp,_payload.date,_payload.interviewer,_payload.p_name,_payload.p_email,_payload.p_phone,_payload.p_city,_payload.p_firm,_payload.p_firm_size,_payload.profile_key,_payload.profile_title,_payload.warmup_1,_payload.warmup_2,_payload.wf_process,_payload.wf_tools,_payload.wf_data_sources,_payload.wf_gap,_payload.wf_frustrations,_payload.spec_1,_payload.spec_2,_payload.spec_3,_payload.spec_4,_payload.ideal_dashboard,_payload.ideal_dream_tool,_payload.close_additional,_payload.prototype_testing,_payload.referrals,_payload.observer_notes].map(esc).join(',');
+  const blob = new Blob([HDR+'\n'+row+'\n'], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  const nm = (_payload.p_name||'response').replace(/\s+/g,'-').toLowerCase();
+  a.href = url; a.download = 'sat-interview-' + nm + '-' + Date.now() + '.csv'; a.click(); URL.revokeObjectURL(url);
+};
+
+// ── Finish ────────────────────────────────────────────────────────────────────
+async function finish() {
+  clrErr();
+  if (!document.getElementById('c-2').value) { document.getElementById('err-c').style.display = 'block'; return; }
+  _payload = mkPayload();
+  show('done');
+  const ic = document.getElementById('d-icon'), ti = document.getElementById('d-title'),
+        su = document.getElementById('d-sub'), bn = document.getElementById('d-banner'),
+        ac = document.getElementById('d-actions');
+  ic.textContent = '⏳'; ti.textContent = 'Saving…'; su.textContent = 'Sending to database. Please wait.';
+  ac.style.display = 'none'; bn.style.display = 'none';
+  try {
+    await sbInsert(_payload);
+    ic.textContent = '✓'; ti.textContent = 'Response saved';
+    su.textContent = 'Logged to SAT research database successfully.';
+    bn.className = 'status-banner ok'; bn.textContent = '✓ Saved to Supabase — visible in SAT dashboard.'; bn.style.display = 'block';
+  } catch(e) {
+    ic.textContent = '⚠'; ti.textContent = 'Save failed';
+    su.textContent = 'Database write failed. Download CSV backup and share manually.';
+    bn.className = 'status-banner fail'; bn.textContent = 'Error: ' + e.message; bn.style.display = 'block';
+  }
+  ac.style.display = 'flex';
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+const reset = () => {
+  document.querySelectorAll('input[type=text],input[type=email],input[type=tel],textarea,select').forEach(e => e.value = '');
+  document.getElementById('consent').checked = false;
+  document.querySelectorAll('.profile-option').forEach(o => o.classList.remove('selected'));
+  sP = null; clrErr(); show('details');
+};
+
+updProg('details');
+</script>
+</body>
+</html>

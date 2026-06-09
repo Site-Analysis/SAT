@@ -194,12 +194,15 @@ This repo is fully wired for Claude Code. Most context lives in this file (`CLAU
 ### Committed (team-shared)
 - `.claude/agents/feature-migrator.md` — migrates one feature end-to-end from review workspace → SAT
 - `.claude/agents/contract-validator.md` — validates OpenAPI YAML against FastAPI route signatures
+- `.claude/agents/sat-ux-designer.md` — UX/UI component design + heuristic review (model: sonnet)
+- `.claude/agents/sat-ux-workflow.md` — 10-phase gated UX research → production code pipeline (model: sonnet)
+- `.claude/ux-workflow/` — phase skill files (rules, context, 10 phases) for sat-ux-workflow agent
 - `.claude/commands/security-review.md` — Anthropic's `/security-review` (run before merging any PR)
 - `.claude/skills/migrate-feature/` — `/migrate-feature <service>` skill, orchestrates the migration agents
 - `.claude/settings.json` — team plugin marketplace config
 
 ### Local-only (gitignored — copy from Site Analysis workspace)
-- `.claude/mcp.json` — GitHub + Jira MCP servers (contains tokens)
+- `.claude/mcp.json` — GitHub MCP server only (jira-mcp removed — confirmed HTTP 410; use Atlassian plugin for Jira instead)
 - `.claude/settings.local.json` — per-developer permission overrides
 
 ### Recommended plugins (install once per developer)
@@ -220,7 +223,7 @@ After install: `/reload-plugins`.
 - `graphify` (`~/.claude/skills/graphify/`) — `/graphify <path>` builds knowledge graphs
 
 ### First-time setup checklist (new clone)
-1. `cp -r /Volumes/LocalDrive/Site\ Analysis/.claude/mcp.json /Volumes/LocalDrive/SAT/.claude/mcp.json`
+1. Create `.claude/mcp.json` fresh — **do NOT copy from Site Analysis workspace** (its mcp.json has a stale jira entry that will 410). Only github server goes here; see the github block already in SAT's mcp.json as reference.
 2. `cp /Volumes/LocalDrive/Site\ Analysis/.claude/settings.local.json /Volumes/LocalDrive/SAT/.claude/settings.local.json`
 3. `cp /Volumes/LocalDrive/Site\ Analysis/Site-Analysis-Tool/gee-sa.json /Volumes/LocalDrive/SAT/gee-sa.json`
 4. `cp .env.example .env` then fill Supabase keys
