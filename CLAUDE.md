@@ -196,9 +196,18 @@ This repo is fully wired for Claude Code. Most context lives in this file (`CLAU
 - `.claude/agents/contract-validator.md` — validates OpenAPI YAML against FastAPI route signatures
 - `.claude/agents/sat-ux-designer.md` — UX/UI component design + heuristic review (model: sonnet)
 - `.claude/agents/sat-ux-workflow.md` — 10-phase gated UX research → production code pipeline (model: sonnet)
+- `.claude/agents/sat-copywriter.md` — marketing copy, brand voice, buyer personas (model: sonnet)
+- `.claude/agents/sat-tech-copywriter.md` — technical docs, API docs, Diataxis framework (model: sonnet)
 - `.claude/ux-workflow/` — phase skill files (rules, context, 10 phases) for sat-ux-workflow agent
+  - `context/phase-1-findings.md` — **Phase 1 complete (2026-06-10)**: confirmed tool landscape, pain points, verbatim quotes, dashboard desires. Load this before Phase 2.
+  - `context/sat-domain.md` — SAT modules, Indian regulatory refs, confirmed user personas (P01–P05)
+  - `context/aec-principles.md` — map-first, density-over-whitespace, colour-encodes-meaning laws
+  - `context/stack.md` — Next.js 16 / FastAPI stack constraints for design decisions
+- `.claude/copy-workflow/` — 6-phase copy pipeline (brief → audit → messaging → copy → review → handoff)
+- `.claude/tech-copy-workflow/` — 7-phase tech-copy pipeline with Diataxis, error P+C+S, SME gates
 - `.claude/commands/security-review.md` — Anthropic's `/security-review` (run before merging any PR)
 - `.claude/skills/migrate-feature/` — `/migrate-feature <service>` skill, orchestrates the migration agents
+- `.claude/skills/` — UI/UX design skills (brand-guidelines, canvas-design, frontend-design, react-patterns, responsive-design, ui-component-patterns, ui-styling, web-accessibility, etc.)
 - `.claude/settings.json` — team plugin marketplace config
 
 ### Local-only (gitignored — copy from Site Analysis workspace)
@@ -230,6 +239,28 @@ After install: `/reload-plugins`.
 5. `npm install` (root) — installs workspaces
 6. `pip install pre-commit && pre-commit install` (root)
 7. Open Claude Code in this dir, run the `/plugin install` commands above
+
+---
+
+## UX Research Status
+
+**Phase 1 — COMPLETE (2026-06-10)** | GitHub Issue: https://github.com/Site-Analysis/SAT/issues/13
+Branch: `ux/phase-1-research`
+
+| Phase | Status | Gate |
+|-------|--------|------|
+| Phase 1 — Research & Interviews (Steps 1–6) | ✅ COMPLETE | APPROVE PHASE 1 — Chirag, 2026-06-10 |
+| Phase 2 — Synthesis & Analysis (Steps 7–10) | ⏳ NEXT | Pending SA·Q3/SP·Q3 follow-up (2026-06-11) |
+| Phase 3 — Personas & JTBDs | Not started | |
+
+**Key findings summary (Phase 1):**
+- 5 pain points confirmed: no one-stop data source, stale data, manual representation, topography gap, tool-switching friction
+- Confirmed tools: SketchUp + Ventrysky + Andrew Marsh + QGIS + KSRSAC + IMD + Bhuvan
+- Product signals: Revit export non-negotiable, conversational UI wanted, RAG+live-API architecture, professional service model viable
+- Dashboard IA: Topography | Climate (Rainfall sub-tab) | Regulations
+- Full findings: `.claude/ux-workflow/context/phase-1-findings.md`
+
+**To start Phase 2:** Load `sat-ux-workflow` agent, provide Phase 1 artifacts path, say `APPROVE PHASE 1` to open Phase 2.
 
 ---
 
