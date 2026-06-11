@@ -86,7 +86,7 @@ export function MetricsPanel() {
         </div>
       )}
 
-      <div className="text-xs text-zinc-600">
+      <div className="text-xs text-zinc-600" suppressHydrationWarning>
         Updated {poiMetrics.timestamp.toLocaleTimeString()}
       </div>
     </div>

@@ -13,7 +13,7 @@ export function SearchBar() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<NominatimResult[]>([])
   const [loading, setLoading] = useState(false)
-  const { setViewState, viewState, addFavoriteLocation } = useMapStore()
+  const { setFlyTo, addFavoriteLocation } = useMapStore()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const search = async (q: string) => {
@@ -36,7 +36,7 @@ export function SearchBar() {
   }
 
   const selectResult = (r: NominatimResult) => {
-    setViewState({ ...viewState, latitude: parseFloat(r.lat), longitude: parseFloat(r.lon), zoom: 15 })
+    setFlyTo({ latitude: parseFloat(r.lat), longitude: parseFloat(r.lon), zoom: 15, pitch: 0, bearing: 0 })
     setQuery(r.display_name.split(',')[0])
     setResults([])
   }

@@ -21,6 +21,21 @@ export interface SelectionPolygon {
   area: number
 }
 
+export interface Drawing {
+  id: string
+  name: string
+  type: 'polygon'
+  geometry: GeoPolygon
+  area: number
+  visible: boolean
+  style: {
+    color: string
+    opacity: number
+    lineWidth: number
+  }
+  createdAt: number
+}
+
 export interface GeoPolygon {
   type: 'Polygon'
   coordinates: number[][][]

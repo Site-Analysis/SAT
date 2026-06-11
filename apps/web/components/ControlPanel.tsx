@@ -22,7 +22,11 @@ export function ControlPanel() {
     viewState, setViewState,
   } = useMapStore()
 
-  const [activeSection, setActiveSection] = useState<'layers' | '3d'>('layers')
+  const {
+    drawings, deleteDrawing, selectedDrawingId, selectDrawing, updateDrawing,
+  } = useMapStore()
+
+  const [activeSection, setActiveSection] = useState<'layers' | '3d' | 'drawings'>('layers')
 
   const applyPreset = (preset: typeof CAMERA_PRESETS[0]) => {
     setViewState({ ...viewState, pitch: preset.pitch, bearing: preset.bearing } as ViewState)
@@ -51,6 +55,12 @@ export function ControlPanel() {
             Layers
           </button>
           <button
+            onClick={() => setActiveSection('drawings')}
+            className={`px-2.5 py-1 text-xs rounded ${activeSection === 'drawings' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
+          >
+            Drawings {drawings.length > 0 && <span className="ml-1 bg-blue-600 text-white rounded-full px-1 text-[10px]">{drawings.length}</span>}
+          </button>
+          <button
             onClick={() => setActiveSection('3d')}
             className={`px-2.5 py-1 text-xs rounded ${activeSection === '3d' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'}`}
           >
@@ -75,6 +85,35 @@ export function ControlPanel() {
               className="w-full accent-blue-500 mb-3"
             />
             <DraggableLayerList />
+          </div>
+        )}
+
+        {activeSection === 'drawings' && (
+          <div className="space-y-1">
+            {drawings.length === 0 ? (
+              <div className="text-xs text-zinc-500 px-1 pt-1">No drawings yet. Draw a polygon on the map.</div>
+            ) : drawings.map(d => (
+              <div
+                key={d.id}
+                onClick={() => selectDrawing(d.id === selectedDrawingId ? null : d.id)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs group ${d.id === selectedDrawingId ? 'bg-blue-900/40 border border-blue-700' : 'hover:bg-zinc-800'}`}
+              >
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0 border border-white/20" style={{ background: d.style.color }} />
+                <input
+                  className="flex-1 bg-transparent text-zinc-300 outline-none truncate cursor-pointer focus:cursor-text"
+                  value={d.name}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => updateDrawing(d.id, { name: e.target.value })}
+                />
+                <span className="text-zinc-500 shrink-0">{d.area.toFixed(2)} km²</span>
+                <button
+                  onClick={e => { e.stopPropagation(); deleteDrawing(d.id) }}
+                  className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         )}
 

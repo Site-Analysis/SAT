@@ -8,6 +8,7 @@ import { ControlPanel } from '@/components/ControlPanel'
 import { RightPanel } from '@/components/RightPanel'
 import { ExportDialog } from '@/components/ExportDialog'
 import { useMapStore } from '@/store'
+import { StoreHydrator } from '@/components/StoreHydrator'
 
 // Prevent SSR for map/deck.gl components
 const MapView = dynamic(() => import('@/components/MapView').then(m => ({ default: m.MapView })), { ssr: false })
@@ -21,6 +22,7 @@ export default function MapPage() {
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-white overflow-hidden">
+      <StoreHydrator />
       {/* Top Bar */}
       <div className="flex items-center gap-3 px-3 py-1.5 bg-zinc-900 border-b border-zinc-800 shrink-0 flex-wrap">
         {/* Brand */}

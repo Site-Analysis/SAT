@@ -11,6 +11,7 @@ export function usePolygonDrawing() {
     drawingMode,
     drawingPoints, setDrawingPoints,
     setSelectionPolygon,
+    drawings, addDrawing,
   } = useMapStore()
 
   const pointerDownPos = useRef<[number, number] | null>(null)
@@ -19,8 +20,7 @@ export function usePolygonDrawing() {
   const startDrawing = useCallback(() => {
     setIsDrawing(true)
     setDrawingPoints([])
-    setSelectionPolygon(null)
-  }, [setIsDrawing, setDrawingPoints, setSelectionPolygon])
+  }, [setIsDrawing, setDrawingPoints])
 
   const addPoint = useCallback((lng: number, lat: number) => {
     setDrawingPoints([...drawingPoints, [lng, lat]])
@@ -28,19 +28,26 @@ export function usePolygonDrawing() {
 
   const completeDrawing = useCallback(() => {
     if (drawingPoints.length < 3) {
-      cancelDrawing()
+      setIsDrawing(false)
+      setDrawingPoints([])
       return
     }
     const closed = [...drawingPoints, drawingPoints[0]]
     const area = calcPolygonArea(closed)
-    setSelectionPolygon({
-      id: `area-${Date.now()}`,
-      geometry: { type: 'Polygon', coordinates: [closed] },
-      area,
+    const id = `drawing-${Date.now()}`
+    const polygon = { id, geometry: { type: 'Polygon' as const, coordinates: [closed] }, area }
+    setSelectionPolygon(polygon)
+    addDrawing({
+      ...polygon,
+      name: `Area ${drawings.length + 1}`,
+      type: 'polygon',
+      visible: true,
+      style: { color: '#3b82f6', opacity: 0.4, lineWidth: 2 },
+      createdAt: Date.now(),
     })
     setIsDrawing(false)
     setDrawingPoints([])
-  }, [drawingPoints, setSelectionPolygon, setIsDrawing, setDrawingPoints])
+  }, [drawingPoints, setSelectionPolygon, addDrawing, drawings.length, setIsDrawing, setDrawingPoints])
 
   const cancelDrawing = useCallback(() => {
     setIsDrawing(false)

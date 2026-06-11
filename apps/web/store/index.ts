@@ -9,6 +9,7 @@ import type {
   ViewState,
   ComparisonArea,
   SelectionPolygon,
+  Drawing,
   SatAnalysisResults,
   AnalysisTab,
 } from '@/types'
@@ -45,6 +46,14 @@ interface MapStore {
   drawingPoints: [number, number][]
   setDrawingPoints: (pts: [number, number][]) => void
 
+  // Saved drawings (persisted — V3 pattern)
+  drawings: Drawing[]
+  addDrawing: (d: Drawing) => void
+  updateDrawing: (id: string, updates: Partial<Drawing>) => void
+  deleteDrawing: (id: string) => void
+  selectedDrawingId: string | null
+  selectDrawing: (id: string | null) => void
+
   // Selection & areas
   selectionPolygon: SelectionPolygon | null
   setSelectionPolygon: (p: SelectionPolygon | null) => void
@@ -80,6 +89,10 @@ interface MapStore {
   customLayers: Array<{ id: string; name: string; data: GeoJSON.FeatureCollection }>
   addCustomLayer: (layer: { id: string; name: string; data: GeoJSON.FeatureCollection }) => void
   removeCustomLayer: (id: string) => void
+
+  // Programmatic navigation (consumed by MapView, not persisted)
+  flyTo: ViewState | null
+  setFlyTo: (vs: ViewState | null) => void
 
   // Favorites
   favoriteLocations: Array<{ name: string; lat: number; lon: number }>
@@ -129,6 +142,27 @@ export const useMapStore = create<MapStore>()(
       drawingPoints: [],
       setDrawingPoints: (drawingPoints) => set({ drawingPoints }),
 
+      drawings: [],
+      addDrawing: (d) => set(s => ({ drawings: [...s.drawings, d] })),
+      updateDrawing: (id, updates) => set(s => ({
+        drawings: s.drawings.map(d => d.id === id ? { ...d, ...updates } : d),
+      })),
+      deleteDrawing: (id) => set(s => ({
+        drawings: s.drawings.filter(d => d.id !== id),
+        selectedDrawingId: s.selectedDrawingId === id ? null : s.selectedDrawingId,
+        selectionPolygon: s.selectedDrawingId === id ? null : s.selectionPolygon,
+      })),
+      selectedDrawingId: null,
+      selectDrawing: (id) => set(s => {
+        const drawing = id ? s.drawings.find(d => d.id === id) ?? null : null
+        return {
+          selectedDrawingId: id,
+          selectionPolygon: drawing
+            ? { id: drawing.id, geometry: drawing.geometry, area: drawing.area }
+            : null,
+        }
+      }),
+
       selectionPolygon: null,
       setSelectionPolygon: (selectionPolygon) => set({ selectionPolygon }),
       areas: [],
@@ -164,17 +198,22 @@ export const useMapStore = create<MapStore>()(
       addCustomLayer: (layer) => set(s => ({ customLayers: [...s.customLayers, layer] })),
       removeCustomLayer: (id) => set(s => ({ customLayers: s.customLayers.filter(l => l.id !== id) })),
 
+      flyTo: null,
+      setFlyTo: (flyTo) => set({ flyTo }),
+
       favoriteLocations: [],
       addFavoriteLocation: (loc) => set(s => ({ favoriteLocations: [...s.favoriteLocations, loc] })),
     }),
     {
       name: 'sat-map-store',
+      skipHydration: true,
       partialize: (s) => ({
         mapStyle: s.mapStyle,
         layerVisibility: s.layerVisibility,
         globalOpacity: s.globalOpacity,
         favoriteLocations: s.favoriteLocations,
-        viewState: s.viewState,
+        drawings: s.drawings,
+        selectedDrawingId: s.selectedDrawingId,
       }),
     }
   )
