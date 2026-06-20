@@ -1,0 +1,206 @@
+openapi: "3.1.0"
+info:
+  title: Planning Service
+  version: "1.0.0"
+  description: >
+    Site build-capacity analysis for Indian urban plots. Computes applicable FAR,
+    ground coverage, setbacks, and height limits from NBC 2016 Table 15, BDA CDP 2031,
+    BDA TOD Notification 2020 (metro-proximity FAR bonus), and ICAO Annex 14 airport
+    height surfaces. Road width auto-detected from OSM when not supplied.
+    Deterministic ruleset over published regulations + live OSM lookups — no synthetic data.
+
+servers:
+  - url: http://localhost:8006
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "planning"
+
+  /planning/analyze:
+    post:
+      operationId: analyzePlanning
+      summary: Build-capacity (FAR, setbacks, height) for a plot
+      description: Gated by feature flag `feature.planning.site-capacity`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningRequest"
+      responses:
+        "200":
+          description: Planning result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningResult"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    ZoneClass:
+      type: string
+      enum: ["Residential", "Commercial", "Industrial", "Mixed Use", "Institutional"]
+
+    Severity:
+      type: string
+      enum: ["low", "moderate", "high", "none"]
+
+    RoadWidthSource:
+      type: string
+      enum: ["user_input", "osm_detected", "default_9m"]
+
+    PlanningRequest:
+      type: object
+      required: [latitude, longitude, plot_area_sqm]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        plot_area_sqm:
+          type: number
+          format: float
+          minimum: 1
+        zone_class:
+          $ref: "#/components/schemas/ZoneClass"
+          default: "Residential"
+        road_width_m:
+          type: number
+          format: float
+          nullable: true
+          description: Road width in metres; null → auto-detect from OSM.
+
+    AirportRestriction:
+      type: object
+      required: [nearest_airport, iata_code, distance_km, restriction_surface, dgca_noc_required]
+      properties:
+        nearest_airport:
+          type: string
+        iata_code:
+          type: string
+        distance_km:
+          type: number
+          format: float
+        max_height_m:
+          type: number
+          format: float
+          nullable: true
+        restriction_surface:
+          type: string
+        dgca_noc_required:
+          type: boolean
+        lat:
+          type: number
+          format: float
+          nullable: true
+        lon:
+          type: number
+          format: float
+          nullable: true
+
+    PlanningResult:
+      type: object
+      required:
+        [
+          far_applicable,
+          far_source,
+          ground_coverage_max,
+          setback_front_m,
+          setback_rear_m,
+          setback_side_m,
+          max_height_m,
+          height_limiting_factor,
+          buildable_area_sqm,
+          road_width_used_m,
+          road_width_source,
+          tod_applicable,
+          airport_restriction,
+          score,
+          severity,
+          data_source,
+        ]
+      properties:
+        far_applicable:
+          type: number
+          format: float
+        far_source:
+          type: string
+        ground_coverage_max:
+          type: number
+          format: float
+        setback_front_m:
+          type: number
+          format: float
+        setback_rear_m:
+          type: number
+          format: float
+        setback_side_m:
+          type: number
+          format: float
+        max_height_m:
+          type: number
+          format: float
+        height_limiting_factor:
+          type: string
+        buildable_area_sqm:
+          type: number
+          format: float
+        road_width_used_m:
+          type: number
+          format: float
+        road_width_source:
+          $ref: "#/components/schemas/RoadWidthSource"
+        tod_applicable:
+          type: boolean
+        metro_station_name:
+          type: string
+          nullable: true
+        metro_distance_m:
+          type: number
+          format: float
+          nullable: true
+        metro_lat:
+          type: number
+          format: float
+          nullable: true
+        metro_lon:
+          type: number
+          format: float
+          nullable: true
+        airport_restriction:
+          $ref: "#/components/schemas/AirportRestriction"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        severity:
+          $ref: "#/components/schemas/Severity"
+        data_source:
+          type: string
+        data_disclaimer:
+          type: string
