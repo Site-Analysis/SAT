@@ -1,0 +1,241 @@
+openapi: "3.1.0"
+info:
+  title: Geo Service
+  version: "1.0.0"
+  description: >
+    Land-use, soil, water-constraint, and amenity analysis for a point. Sources:
+    OpenStreetMap (Overpass), ISRO NRSC Bhuvan LULC, and KGIS administrative layers.
+    OSM-inferred zoning is indicative only — not official BDA/BBMP zoning. No synthetic data.
+
+servers:
+  - url: http://localhost:8005
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status: { type: string, example: "ok" }
+                  service: { type: string, example: "geo" }
+
+  /geo/zone:
+    get:
+      operationId: getZone
+      summary: Land-use / zoning classification for a point
+      description: Gated by `feature.zoning.land-use` (KGIS context opt-in via `feature.geo.kgis-context`).
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, format: float } }
+        - { name: lon, in: query, required: true, schema: { type: number, format: float } }
+        - { name: radius_m, in: query, required: false, schema: { type: number, format: float, default: 500 } }
+      responses:
+        "200":
+          description: Zone result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ZoneResult" }
+        "403": { description: Feature flag disabled }
+        "422": { description: Validation error }
+
+  /geo/soil:
+    get:
+      operationId: getSoil
+      summary: Soil texture / bearing capacity for a point
+      description: Gated by `feature.environment.soil`.
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, format: float } }
+        - { name: lon, in: query, required: true, schema: { type: number, format: float } }
+      responses:
+        "200":
+          description: Soil result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SoilResult" }
+        "403": { description: Feature flag disabled }
+        "422": { description: Validation error }
+
+  /geo/water-constraints:
+    get:
+      operationId: getWaterConstraints
+      summary: Water-body buffers / construction setbacks
+      description: Gated by `feature.environment.water-constraints`.
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, format: float } }
+        - { name: lon, in: query, required: true, schema: { type: number, format: float } }
+        - { name: radius_m, in: query, required: false, schema: { type: number, format: float, default: 500 } }
+      responses:
+        "200":
+          description: Water-constraint result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WaterConstraintResult" }
+        "403": { description: Feature flag disabled }
+        "422": { description: Validation error }
+
+  /geo/amenities:
+    get:
+      operationId: getAmenities
+      summary: Nearby amenities by category
+      description: Gated by `feature.geo.amenities`.
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, format: float } }
+        - { name: lon, in: query, required: true, schema: { type: number, format: float } }
+        - { name: radius_m, in: query, required: false, schema: { type: number, format: float, default: 5000 } }
+      responses:
+        "200":
+          description: Amenities result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AmenitiesResult" }
+        "403": { description: Feature flag disabled }
+        "422": { description: Validation error }
+
+components:
+  schemas:
+    Severity:
+      type: string
+      enum: ["low", "moderate", "high", "none"]
+    SourceConfidence:
+      type: string
+      enum: ["authoritative", "community"]
+    ZoneClass:
+      type: string
+      enum: ["Residential", "Commercial", "Industrial", "Agricultural", "Green Belt", "Water Body", "Institutional", "Mixed Use", "Restricted", "Unknown"]
+    BearingCapacityClass:
+      type: string
+      enum: ["Good (>150 kN/m²)", "Moderate (100–150 kN/m²)", "Poor (<100 kN/m²)"]
+
+    NearbyFeature:
+      type: object
+      required: [type, value, distance_m]
+      properties:
+        type: { type: string }
+        value: { type: string }
+        name: { type: string, nullable: true }
+        distance_m: { type: number, format: float }
+        lat: { type: number, format: float, nullable: true }
+        lon: { type: number, format: float, nullable: true }
+
+    KgisContext:
+      type: object
+      properties:
+        type: { type: string, nullable: true }
+        district: { type: string, nullable: true }
+        town: { type: string, nullable: true }
+        admin_zone: { type: string, nullable: true }
+        ward: { type: string, nullable: true }
+        taluk: { type: string, nullable: true }
+        hobli: { type: string, nullable: true }
+        village: { type: string, nullable: true }
+        survey_number: { type: string, nullable: true }
+
+    ZoneResult:
+      type: object
+      required: [zone_class, primary_landuse, score, severity, data_source]
+      properties:
+        zone_class: { $ref: "#/components/schemas/ZoneClass" }
+        zone_code: { type: string, nullable: true }
+        permitted_uses: { type: array, items: { type: string } }
+        base_far: { type: number, format: float, nullable: true }
+        permissible_ground_coverage: { type: number, format: float, nullable: true }
+        primary_landuse: { type: string }
+        nearby_features: { type: array, items: { $ref: "#/components/schemas/NearbyFeature" } }
+        lulc_class: { type: string, nullable: true }
+        lulc_code: { type: integer, nullable: true }
+        lulc_vintage: { type: string, nullable: true }
+        na_order_required: { type: boolean }
+        forest_clearance_required: { type: boolean }
+        source_confidence: { $ref: "#/components/schemas/SourceConfidence" }
+        kgis:
+          oneOf:
+            - $ref: "#/components/schemas/KgisContext"
+            - type: "null"
+        score: { type: number, format: float }
+        severity: { $ref: "#/components/schemas/Severity" }
+        data_source: { type: string }
+        data_disclaimer: { type: string }
+
+    SoilResult:
+      type: object
+      required: [clay_pct, sand_pct, silt_pct, bulk_density_gcm3, ph, texture_class, bearing_capacity_class, foundation_notes, score, severity, data_source]
+      properties:
+        clay_pct: { type: number, format: float }
+        sand_pct: { type: number, format: float }
+        silt_pct: { type: number, format: float }
+        bulk_density_gcm3: { type: number, format: float }
+        ph: { type: number, format: float }
+        texture_class: { type: string }
+        bearing_capacity_class: { $ref: "#/components/schemas/BearingCapacityClass" }
+        foundation_notes: { type: string }
+        score: { type: number, format: float }
+        severity: { $ref: "#/components/schemas/Severity" }
+        data_source: { type: string }
+
+    WaterBody:
+      type: object
+      required: [type, distance_m, buffer_zone_m, buffer_source, site_within_buffer]
+      properties:
+        type: { type: string }
+        name: { type: string, nullable: true }
+        distance_m: { type: number, format: float }
+        buffer_zone_m: { type: number, format: float }
+        buffer_source: { type: string }
+        site_within_buffer: { type: boolean }
+
+    WaterConstraintResult:
+      type: object
+      required: [construction_restricted, score, severity, data_source]
+      properties:
+        water_bodies: { type: array, items: { $ref: "#/components/schemas/WaterBody" } }
+        nearest_distance_m: { type: number, format: float, nullable: true }
+        construction_restricted: { type: boolean }
+        restriction_reason: { type: string, nullable: true }
+        score: { type: number, format: float }
+        severity: { $ref: "#/components/schemas/Severity" }
+        data_source: { type: string }
+        data_disclaimer: { type: string }
+
+    AmenityItem:
+      type: object
+      required: [name, type, distance_m]
+      properties:
+        name: { type: string }
+        type: { type: string }
+        distance_m: { type: number, format: float }
+        lat: { type: number, format: float, nullable: true }
+        lon: { type: number, format: float, nullable: true }
+
+    AmenityCategory:
+      type: object
+      required: [count, nearest_m]
+      properties:
+        count: { type: integer }
+        nearest_m: { type: number, format: float }
+        top_5: { type: array, items: { $ref: "#/components/schemas/AmenityItem" } }
+        points: { type: array, items: { $ref: "#/components/schemas/AmenityItem" } }
+
+    AmenitiesResult:
+      type: object
+      required: [radius_m, healthcare, education, retail, finance, recreation, religious, transport, total_count, score, severity, data_source]
+      properties:
+        radius_m: { type: number, format: float }
+        healthcare: { $ref: "#/components/schemas/AmenityCategory" }
+        education: { $ref: "#/components/schemas/AmenityCategory" }
+        retail: { $ref: "#/components/schemas/AmenityCategory" }
+        finance: { $ref: "#/components/schemas/AmenityCategory" }
+        recreation: { $ref: "#/components/schemas/AmenityCategory" }
+        religious: { $ref: "#/components/schemas/AmenityCategory" }
+        transport: { $ref: "#/components/schemas/AmenityCategory" }
+        total_count: { type: integer }
+        score: { type: number, format: float }
+        severity: { $ref: "#/components/schemas/Severity" }
+        data_source: { type: string }

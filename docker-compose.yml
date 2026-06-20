@@ -179,10 +179,21 @@ services:
       timeout: 5s
       retries: 3
 
-# Uncomment when geo service is ready:
-#  geo:
-#    build:
-#      context: ./services/geo
-#    ports:
-#      - "8004:8004"
-#    ...
+  geo:
+    build:
+      context: ./services/geo
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./services/geo:/app
+    environment:
+      - FLAGS=${FLAGS:-}
+      - CORS_ORIGINS=http://localhost:5173
+    env_file:
+      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
