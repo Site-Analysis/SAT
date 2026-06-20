@@ -1,13 +1,14 @@
 "use client";
 
 import type { ModuleResult, Severity } from "@/lib/stores/analysis";
+import { RainfallRadar } from "@/components/map/RainfallRadar";
 
 interface RainfallPanelProps {
   result?: ModuleResult;
   severity: Severity;
 }
 
-const MONTH_LABELS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONSOON = [false, false, false, false, false, true, true, true, true, false, false, false];
 
 function indNum(result: ModuleResult | undefined, label: string): number {
@@ -98,26 +99,51 @@ export function RainfallPanel({ result, severity }: RainfallPanelProps) {
         ))}
       </div>
 
-      {/* ── Monthly distribution ───────────────────────────────── */}
+      {/* ── Radar chart ────────────────────────────────────────── */}
+      {months.length === 12 && result && (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <RainfallRadar result={result} />
+        </div>
+      )}
+
+      {/* ── Monthly rainfall horizontal bars ───────────────────── */}
       {months.length === 12 && (
         <div style={{ background: "#F2EDE8", borderRadius: 9, padding: "10px 12px" }}>
           <div style={{
-            fontSize: 9, fontWeight: 700, textTransform: "uppercase",
-            letterSpacing: "0.5px", color: "#7B8F83", marginBottom: 9,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            marginBottom: 8,
           }}>
-            Monthly Distribution
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#7B8F83" }}>
+              Monthly Rainfall
+            </span>
+            <span style={{ fontSize: 9, color: "#B8C4BB", fontWeight: 500 }}>mm</span>
           </div>
-          <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 56 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {months.map((v, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-                <div style={{
-                  width: "100%", borderRadius: "2px 2px 0 0",
-                  height: `${Math.max((v / maxMo) * 46, 2)}px`,
-                  background: MONSOON[i] ? "#1D4ED8" : "#93C5FD",
-                }} />
-                <div style={{ fontSize: 7.5, fontWeight: MONSOON[i] ? 700 : 400, color: MONSOON[i] ? "#3A3F3B" : "#B8C4BB", marginTop: 3 }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{
+                  width: 26, fontSize: 9, textAlign: "right", flexShrink: 0,
+                  color: MONSOON[i] ? "#1D4ED8" : "#7B8F83",
+                  fontWeight: MONSOON[i] ? 700 : 400,
+                  fontFamily: "var(--font-space-mono, monospace)",
+                }}>
                   {MONTH_LABELS[i]}
+                </span>
+                <div style={{ flex: 1, background: "rgba(207,214,196,0.35)", borderRadius: 3, height: 8, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 3,
+                    width: `${Math.max((v / maxMo) * 100, v > 0 ? 1 : 0)}%`,
+                    background: MONSOON[i] ? "#1D4ED8" : "#93C5FD",
+                  }} />
                 </div>
+                <span style={{
+                  width: 28, fontSize: 9, textAlign: "right", flexShrink: 0,
+                  color: MONSOON[i] ? "#1D4ED8" : "#B8C4BB",
+                  fontWeight: MONSOON[i] ? 600 : 400,
+                  fontFamily: "var(--font-space-mono, monospace)",
+                }}>
+                  {v}
+                </span>
               </div>
             ))}
           </div>
