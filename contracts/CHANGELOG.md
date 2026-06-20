@@ -46,6 +46,23 @@
 - **Portal-only by design:** no automated retrieval — Karnataka portals (Bhoomi,
   KAVERI, eCourts) require CAPTCHA/session auth. Returns empty records + deep links
   for the user to verify directly. Honest `data_source` + `notes`; no scraping.
+## 2.5.0 — 2026-06-20
+
+### Added — geo.yaml (new service, SAT-14 geo / land-use / environment)
+- `services/geo` app code delivered (main only had README/AGENTS placeholders);
+  `geo.yaml` (v1.0.0) documents four endpoints:
+  - `GET /geo/zone` → `ZoneResult` (OSM land-use + ISRO Bhuvan LULC + optional KGIS admin
+    context). Gated by `feature.zoning.land-use` (+ `feature.geo.kgis-context` opt-in).
+  - `GET /geo/soil` → `SoilResult` (texture, bearing capacity, foundation notes).
+    Gated by `feature.environment.soil`.
+  - `GET /geo/water-constraints` → `WaterConstraintResult` (water-body buffers / NGT
+    setbacks). Gated by `feature.environment.water-constraints`.
+  - `GET /geo/amenities` → `AmenitiesResult` (7 amenity categories with counts/nearest).
+    Gated by `feature.geo.amenities`.
+- Schemas: `ZoneResult`, `SoilResult`, `WaterConstraintResult`, `AmenitiesResult`,
+  `KgisContext`, `NearbyFeature`, `WaterBody`, `AmenityCategory`, `AmenityItem`.
+- Sources: OpenStreetMap (Overpass), ISRO NRSC Bhuvan LULC, KGIS admin layers; honest
+  `data_disclaimer` (OSM-inferred zoning is not official BDA/BBMP zoning).
 
 ## 1.5.1 — 2026-06-09
 
