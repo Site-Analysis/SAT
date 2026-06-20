@@ -23,6 +23,17 @@
   `UtilityPresence`, `InfraSubScores`.
 - Data source: OpenStreetMap (Overpass API) — roads, transit, power. Water/telecom
   detected but not scored (OSM India coverage <20%); honest `data_disclaimer`.
+## 2.3.0 — 2026-06-20
+
+### Added — future-infra.yaml (new service, SAT-12 growth pipeline)
+- New `services/future-infra`; `future-infra.yaml` (v1.0.0):
+  - `GET /future-infra/pipeline?lat&lon&radius_km` → `PipelineResult` (planned/under-
+    construction infrastructure — metro, expressway, ring road, IT park, SEZ, etc. —
+    within radius, with status, expected completion, distance, source).
+  - Gated by `feature.context.growth-pipeline` (403 when disabled).
+- Schemas: `PipelineResult`, `PipelineItem`, `PipelineType`, `PipelineStatus`.
+- Data source: curated public announcements (BMRCL, BDA, NHAI, KIADB, MoCI, 2024-Q4)
+  bundled as JSON; honest `data_disclaimer` (approximate centroids, verify with agency).
 
 ## 1.5.1 — 2026-06-09
 
