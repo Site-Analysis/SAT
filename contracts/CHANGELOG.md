@@ -87,6 +87,17 @@
   / `HydrologyAnalysis` / `FloodHistory` / `LowLyingAreaIndex` / `FloodMetadata`).
 - `metadata.data_source` now names Open-Meteo + OSM; `gee_enabled=false`. Conservative
   fallbacks on upstream failure (no fabricated provider claims).
+## 2.8.0 — 2026-06-21
+
+### Changed — wind.yaml (live-data analysis; `wind_service.py` rewrite)
+- **Version**: 1.1.0 → 1.2.0
+- `wind_service.py` rewritten (SAT-Fallback `141ef0c`): replaces the deterministic
+  placeholder with **live data** — Open-Meteo Archive (ERA5 reanalysis, 10 m wind,
+  5-year daily): mean/max speed, gusts, 8-point prevailing direction, India seasonal
+  breakdown (summer/monsoon/winter), comfort + building-impact scoring.
+- Response schema unchanged (`WindAnalysis` and nested models).
+- `metadata.data_source` names Open-Meteo ERA5. Raises on no upstream data (no
+  fabricated values).
 
 ## 1.5.1 — 2026-06-09
 
