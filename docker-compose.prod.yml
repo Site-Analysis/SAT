@@ -1,0 +1,68 @@
+# Production compose override — apply with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Differences from dev:
+#   - No source-code volume mounts (images run their own built code)
+#   - No --reload (uvicorn runs with a fixed worker count)
+#   - restart: unless-stopped on all services
+#   - Next.js served via `next start` instead of `next dev`
+#   - overpass OVERPASS_MODE=run (not init; re-init wipes the DB)
+
+services:
+  temperature:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    restart: unless-stopped
+
+  sunpath:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 2
+    restart: unless-stopped
+
+  flood:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers 2
+    restart: unless-stopped
+
+  wind:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --workers 2
+    restart: unless-stopped
+
+  rainfall:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --workers 2
+    restart: unless-stopped
+
+  geo:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --workers 2
+    restart: unless-stopped
+
+  planning:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8006 --workers 2
+    restart: unless-stopped
+
+  infrastructure:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8007 --workers 2
+    restart: unless-stopped
+
+  future-infra:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8008 --workers 2
+    restart: unless-stopped
+
+  land-records:
+    volumes: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8009 --workers 2
+    restart: unless-stopped
+
+  overpass:
+    environment:
+      - OVERPASS_MODE=run
+    restart: unless-stopped
