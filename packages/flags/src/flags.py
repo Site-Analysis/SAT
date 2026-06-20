@@ -23,6 +23,7 @@ class FeatureFlag(StrEnum):
     RAINFALL_ANOMALY = "feature.rainfall.anomaly"
     RAINFALL_SEASONALITY = "feature.rainfall.seasonality"
     RAINFALL_SITE_ANALYSIS = "feature.rainfall.site-analysis"
+    PLANNING_SITE_CAPACITY = "feature.planning.site-capacity"
 
 
 _enabled: set[str] = {f.strip() for f in os.getenv("FLAGS", "").split(",") if f.strip()}
