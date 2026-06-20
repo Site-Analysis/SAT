@@ -34,6 +34,18 @@
 - Schemas: `PipelineResult`, `PipelineItem`, `PipelineType`, `PipelineStatus`.
 - Data source: curated public announcements (BMRCL, BDA, NHAI, KIADB, MoCI, 2024-Q4)
   bundled as JSON; honest `data_disclaimer` (approximate centroids, verify with agency).
+## 2.4.0 — 2026-06-20
+
+### Added — land-records.yaml (new service, SAT-13 land records)
+- New `services/land-records`; `land-records.yaml` (v1.0.0):
+  - `POST /land-records/lookup` → `LandRecordsResult` (Bhoomi RTC placeholder,
+    court-case list, government-portal deep links, completeness score + notes).
+  - Gated by `feature.land.records` (403 when disabled).
+- Schemas: `LandRecordsRequest`, `LandRecordsResult`, `BhoomiRecord`, `CourtCase`,
+  `DeepLink`.
+- **Portal-only by design:** no automated retrieval — Karnataka portals (Bhoomi,
+  KAVERI, eCourts) require CAPTCHA/session auth. Returns empty records + deep links
+  for the user to verify directly. Honest `data_source` + `notes`; no scraping.
 
 ## 1.5.1 — 2026-06-09
 

@@ -1,0 +1,168 @@
+openapi: "3.1.0"
+info:
+  title: Land Records Service
+  version: "1.0.0"
+  description: >
+    Land-records lookup helper for Karnataka. Portal-only by design: government portals
+    (Bhoomi RTC, KAVERI encumbrance, eCourts) require CAPTCHA/session auth and are NOT
+    scraped. Returns empty record placeholders plus deep links for the user to verify
+    directly, with a completeness score. No automated data retrieval, no synthetic data.
+
+servers:
+  - url: http://localhost:8009
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "land-records"
+
+  /land-records/lookup:
+    post:
+      operationId: lookupLandRecords
+      summary: Land-records deep links + placeholders for a survey number
+      description: Gated by feature flag `feature.land.records`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LandRecordsRequest"
+      responses:
+        "200":
+          description: Land records result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LandRecordsResult"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    Severity:
+      type: string
+      enum: ["low", "moderate", "high", "none"]
+
+    LandRecordsRequest:
+      type: object
+      required: [district, taluk, hobli, village, survey_number]
+      properties:
+        district:
+          type: string
+          example: "Bengaluru Urban"
+        taluk:
+          type: string
+          example: "Bengaluru North"
+        hobli:
+          type: string
+          example: "Jala"
+        village:
+          type: string
+          example: "Yelahanka"
+        survey_number:
+          type: string
+          example: "123/4"
+        state:
+          type: string
+          default: "Karnataka"
+
+    BhoomiRecord:
+      type: object
+      required: [encumbrance_present, raw_data_available]
+      properties:
+        owner_name:
+          type: string
+          nullable: true
+        survey_number:
+          type: string
+          nullable: true
+        area_acres:
+          type: number
+          format: float
+          nullable: true
+        land_type:
+          type: string
+          nullable: true
+        encumbrance_present:
+          type: boolean
+        mutation_number:
+          type: string
+          nullable: true
+        raw_data_available:
+          type: boolean
+
+    DeepLink:
+      type: object
+      required: [label, url, description]
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+        description:
+          type: string
+
+    CourtCase:
+      type: object
+      properties:
+        case_number:
+          type: string
+          nullable: true
+        court:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        parties:
+          type: string
+          nullable: true
+        filing_date:
+          type: string
+          nullable: true
+
+    LandRecordsResult:
+      type: object
+      required: [bhoomi, court_cases, deep_links, score, severity, data_source]
+      properties:
+        bhoomi:
+          $ref: "#/components/schemas/BhoomiRecord"
+        court_cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourtCase"
+        deep_links:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeepLink"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        severity:
+          $ref: "#/components/schemas/Severity"
+        data_source:
+          type: string
+        notes:
+          type: string
+          nullable: true

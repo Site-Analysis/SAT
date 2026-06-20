@@ -26,6 +26,7 @@ class FeatureFlag(StrEnum):
     PLANNING_SITE_CAPACITY = "feature.planning.site-capacity"
     INFRASTRUCTURE_CONNECTIVITY = "feature.infrastructure.connectivity"
     CONTEXT_GROWTH_PIPELINE = "feature.context.growth-pipeline"
+    LAND_RECORDS = "feature.land.records"
 
 
 _enabled: set[str] = {f.strip() for f in os.getenv("FLAGS", "").split(",") if f.strip()}
