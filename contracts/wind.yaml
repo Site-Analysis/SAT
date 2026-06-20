@@ -1,8 +1,11 @@
 openapi: "3.1.0"
 info:
   title: Wind Analysis Service
-  version: "1.1.0"
-  description: Wind analysis with deterministic fallback and ERA5-Land-ready placeholders.
+  version: "1.2.0"
+  description: >
+    Wind analysis from live data — Open-Meteo Archive (ERA5 reanalysis, 10 m wind,
+    5-year daily): mean/max speed, gust risk, prevailing direction (8-point), India
+    seasonal breakdown, comfort + building-impact scoring. Raises on no upstream data.
 
 servers:
   - url: http://localhost:8003

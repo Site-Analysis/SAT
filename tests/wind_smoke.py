@@ -40,6 +40,54 @@ skip_no_app = pytest.mark.skipif(
 )
 
 
+def _install_fake_httpx(monkeypatch):
+    """Stub the Open-Meteo archive call so the real parsing/scoring runs offline.
+
+    Provides ~5 daily samples per month across a year (speed/gust/direction) so the
+    seasonal means and prevailing-direction logic exercise real code paths.
+    """
+    times, speeds, gusts, dirs = [], [], [], []
+    for month in range(1, 13):
+        for day in (5, 10, 15, 20, 25):
+            times.append(f"2024-{month:02d}-{day:02d}")
+            speeds.append(4.0 + (month % 3))  # 4–6 m/s
+            gusts.append(11.0 + (month % 4))  # ~11–14 m/s
+            dirs.append(225.0)  # Southwest dominant
+
+    payload = {
+        "daily": {
+            "time": times,
+            "windspeed_10m_max": speeds,
+            "windgusts_10m_max": gusts,
+            "winddirection_10m_dominant": dirs,
+        }
+    }
+
+    class _FakeResp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return payload
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get(self, *a, **k):
+            return _FakeResp()
+
+    from app.services import wind_service
+
+    monkeypatch.setattr(wind_service.httpx, "Client", _FakeClient)
+
+
 @skip_no_app
 def test_health():
     resp = CLIENT.get("/health")
@@ -62,6 +110,7 @@ def test_analyze_flag_off(monkeypatch):
 @skip_no_app
 def test_analyze_flag_on(monkeypatch):
     monkeypatch.setenv("FLAGS", "feature.wind.analysis")
+    _install_fake_httpx(monkeypatch)
     resp = CLIENT.post(
         "/wind/analyze",
         json={"latitude": 28.6139, "longitude": 77.2090, "radius_meters": 1000},
@@ -83,6 +132,7 @@ def test_analyze_flag_on(monkeypatch):
 @skip_no_app
 def test_analyze_response_shape(monkeypatch):
     monkeypatch.setenv("FLAGS", "feature.wind.analysis")
+    _install_fake_httpx(monkeypatch)
     resp = CLIENT.post(
         "/wind/analyze",
         json={"latitude": 19.07, "longitude": 72.87, "radius_meters": 1500},
