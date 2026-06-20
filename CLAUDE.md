@@ -245,6 +245,15 @@ After install: `/reload-plugins`.
 - **Stubs must be honest.** Synthetic/deterministic services set `data_source`/`source` to `"synthetic"` or `"deterministic-fallback"`, never a real provider name like `"open-meteo"`. Mislabeling fake data is a review blocker.
 - **Local run without Docker:** per-service `.venv` uvicorn; `rainfall` has no venv (reuse `flood`'s — same deps). Must export `FLAGS` or every gated endpoint 403s. GEE absent → services log `GEEServiceError` but degrade gracefully.
 
+### Frontend (`apps/web`) — map / draw (from SAT-Fallback `1d0c0d0`)
+
+- **zsh glob with bracket paths in git.** `git add apps/web/app/project/[id]/page.tsx` fails — zsh treats `[id]` as a glob. Single-quote: `git add 'apps/web/app/project/[id]/page.tsx'`.
+- **Leaflet labels outside `.leaflet-map-pane` — zoom animation.** Labels appended to `map.getContainer()` (siblings of `.leaflet-map-pane`) freeze at stale pixel positions during Leaflet's CSS scale-zoom and appear to jump/teleport. Hide on `zoomstart`, redraw on `zoomend`; use `move` only for pan (see `DrawTools.tsx`).
+- **Leaflet event timing.** `move` fires continuously during pan; `zoom` fires once at the end of an animated zoom (not per-frame); `zoomstart`/`zoomend` bracket the animation. Split listeners when pan vs zoom need different handling — don't pass `"move zoom"`.
+- **DOM-mutation overlays for mousemove-rate updates.** Tooltips updating every `mousemove` (drawing measurements) must write to a `div` ref via `el.innerHTML`/`appendChild`, never React state — state re-renders at mousemove rate lag visibly (`DrawTools.tsx → renderMeasure()`).
+- **Geographic polygon scaling needs cosLat.** Scaling a polygon from its centroid in raw lat/lng distorts E–W (lng degrees are shorter). Apply `dLng*cos(cLat·π/180)`, scale, divide back. Matters at Indian latitudes (~12°N, cosLat≈0.978) — `FloodZoneRings.tsx → scalePoly()`.
+- **Three.js + MapLibre shared canvas — never `setPixelRatio()`.** MapLibre already sets `canvas.width = cssWidth × devicePixelRatio`; calling `renderer.setPixelRatio(dpr)` on the shared canvas doubles the buffer (tiles render only in the bottom-left quarter). `Scene3D.tsx` relies on `render()`'s `setViewport(gl.drawingBufferWidth, …)` instead.
+
 ---
 
 ## Related Docs
