@@ -1,0 +1,208 @@
+openapi: "3.1.0"
+info:
+  title: Infrastructure Service
+  version: "1.0.0"
+  description: >
+    Site connectivity analysis from OpenStreetMap. Scores road access, public transit
+    proximity, and power infrastructure within a radius. Water/sewage/telecom are
+    detected but not scored (OSM India coverage <20%). Live Overpass lookups, no synthetic data.
+
+servers:
+  - url: http://localhost:8007
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "infrastructure"
+
+  /infrastructure/analyze:
+    post:
+      operationId: analyzeInfrastructure
+      summary: Connectivity (road / transit / power) for a location
+      description: Gated by feature flag `feature.infrastructure.connectivity`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InfraRequest"
+      responses:
+        "200":
+          description: Infrastructure result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfraResult"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    Severity:
+      type: string
+      enum: ["low", "moderate", "high", "none"]
+
+    TransitType:
+      type: string
+      enum: ["metro", "railway", "bus"]
+
+    InfraRequest:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        radius_m:
+          type: number
+          format: float
+          minimum: 0
+          default: 2000
+
+    RoadAccess:
+      type: object
+      required: [nearest_road_m, frontage_present]
+      properties:
+        nearest_road_m:
+          type: number
+          format: float
+        road_type:
+          type: string
+          nullable: true
+        road_name:
+          type: string
+          nullable: true
+        road_ref:
+          type: string
+          nullable: true
+        road_surface:
+          type: string
+          nullable: true
+        road_lanes:
+          type: integer
+          nullable: true
+        road_width_m:
+          type: number
+          format: float
+          nullable: true
+        road_maxspeed_kmh:
+          type: integer
+          nullable: true
+        frontage_present:
+          type: boolean
+
+    TransitStop:
+      type: object
+      required: [type, distance_m]
+      properties:
+        type:
+          $ref: "#/components/schemas/TransitType"
+        name:
+          type: string
+          nullable: true
+        distance_m:
+          type: number
+          format: float
+        line:
+          type: string
+          nullable: true
+
+    UtilityPresence:
+      type: object
+      required:
+        [water_supply_nearby, power_substation_nearby, storm_drainage_nearby, sewage_works_nearby]
+      properties:
+        water_supply_nearby:
+          type: boolean
+        power_substation_nearby:
+          type: boolean
+        power_line_nearby:
+          type: boolean
+        power_line_voltage_kv:
+          type: number
+          format: float
+          nullable: true
+        power_line_distance_m:
+          type: number
+          format: float
+          nullable: true
+        storm_drainage_nearby:
+          type: boolean
+        sewage_works_nearby:
+          type: boolean
+        telecom_tower_nearby:
+          type: boolean
+        telecom_tower_distance_m:
+          type: number
+          format: float
+          nullable: true
+
+    InfraSubScores:
+      type: object
+      required: [road, transit, power, water, telecom]
+      properties:
+        road:
+          type: number
+          format: float
+        transit:
+          type: number
+          format: float
+        power:
+          type: number
+          format: float
+        water:
+          type: number
+          format: float
+        telecom:
+          type: number
+          format: float
+
+    InfraResult:
+      type: object
+      required: [utilities, sub_scores, score, severity, data_source]
+      properties:
+        road_access:
+          oneOf:
+            - $ref: "#/components/schemas/RoadAccess"
+            - type: "null"
+        transit:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransitStop"
+        utilities:
+          $ref: "#/components/schemas/UtilityPresence"
+        sub_scores:
+          $ref: "#/components/schemas/InfraSubScores"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        severity:
+          $ref: "#/components/schemas/Severity"
+        data_source:
+          type: string
+        data_disclaimer:
+          type: string

@@ -12,6 +12,17 @@
 - Data sources: NBC 2016 Table 15, BDA CDP 2031, BDA TOD Notification 2020, ICAO
   Annex 14, AAI airport coordinates, live OSM road-width/metro lookups. Deterministic
   ruleset — no synthetic data.
+## 2.2.0 — 2026-06-20
+
+### Added — infrastructure.yaml (new service, SAT-11 connectivity)
+- New `services/infrastructure`; `infrastructure.yaml` (v1.0.0):
+  - `POST /infrastructure/analyze` → `InfraResult` (road access, transit stops,
+    utility presence, road/transit/power sub-scores, overall connectivity score).
+  - Gated by `feature.infrastructure.connectivity` (403 when disabled).
+- Schemas: `InfraRequest`, `InfraResult`, `RoadAccess`, `TransitStop`,
+  `UtilityPresence`, `InfraSubScores`.
+- Data source: OpenStreetMap (Overpass API) — roads, transit, power. Water/telecom
+  detected but not scored (OSM India coverage <20%); honest `data_disclaimer`.
 
 ## 1.5.1 — 2026-06-09
 
