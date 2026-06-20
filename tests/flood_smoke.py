@@ -61,7 +61,19 @@ def test_analyze_flag_off(monkeypatch):
 
 @skip_no_app
 def test_analyze_flag_on(monkeypatch):
+    # The service fetches live Open-Meteo + Overpass data; stub the fetchers so the
+    # real risk scoring runs deterministically without network access.
+    from app.routers import flood as flood_router
+
     monkeypatch.setenv("FLAGS", "feature.flood.risk-analysis")
+    monkeypatch.setattr(flood_router.service, "_fetch_elevation", lambda *a, **k: 8.0)
+    monkeypatch.setattr(
+        flood_router.service,
+        "_fetch_rain",
+        lambda *a, **k: {"annual_mean_mm": 2400.0, "max_daily_mm": 180.0, "high_rain_days": 22},
+    )
+    monkeypatch.setattr(flood_router.service, "_fetch_water_distance", lambda *a, **k: 150.0)
+
     resp = CLIENT.post(
         "/flood/analyze",
         json={"latitude": 19.07, "longitude": 72.87, "radius_meters": 1000},
@@ -73,3 +85,7 @@ def test_analyze_flag_on(monkeypatch):
     assert components is not None
     for key in ("elevation_risk", "hydrology_risk", "historical_risk", "llai_risk"):
         assert key in components
+    # Coastal (8 m) + near water (150 m) + heavy rain → elevated risk.
+    assert body["overall_score"] > 40
+    assert body["metadata"]["gee_enabled"] is False
+    assert "Open-Meteo" in body["metadata"]["data_source"]
