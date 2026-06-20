@@ -1,8 +1,12 @@
 openapi: "3.1.0"
 info:
   title: Flood Risk Service
-  version: "1.6.0"
-  description: Flood risk scoring with deterministic fallback and GEE-ready placeholders.
+  version: "1.7.0"
+  description: >
+    Flood risk scoring from live data — Open-Meteo SRTM elevation + 5-year ERA5 daily
+    precipitation, and OSM Overpass water-body proximity. Composite 0–100 score across
+    elevation, hydrology, historical (rainfall), and low-lying-area components.
+    Conservative fallbacks on upstream failure; no GEE dependency (gee_enabled=false).
 
 servers:
   - url: http://localhost:8002

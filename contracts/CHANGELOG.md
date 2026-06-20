@@ -75,6 +75,18 @@
 - **Not ported:** the Fallback `osm_extractor.py` hunk that drops the Overpass
   `User-Agent` header — `main` (CHANGELOG 1.5.1) added it to fix Overpass 406, so it
   is intentionally retained. Only the additive flag + endpoint are migrated.
+## 2.7.0 — 2026-06-21
+
+### Changed — flood.yaml (live-data scoring; `flood_service.py` rewrite)
+- **Version**: 1.6.0 → 1.7.0
+- `flood_service.py` rewritten (SAT-Fallback `141ef0c`): replaces the deterministic
+  `math.sin(seed)` placeholder with **live data** — Open-Meteo SRTM elevation +
+  5-year ERA5 daily precipitation, and OSM Overpass water-body proximity (haversine
+  to nearest river/water within the search radius).
+- Response schema unchanged (`FloodReport` / `FloodComponentScores` / `ElevationAnalysis`
+  / `HydrologyAnalysis` / `FloodHistory` / `LowLyingAreaIndex` / `FloodMetadata`).
+- `metadata.data_source` now names Open-Meteo + OSM; `gee_enabled=false`. Conservative
+  fallbacks on upstream failure (no fabricated provider claims).
 
 ## 1.5.1 — 2026-06-09
 
