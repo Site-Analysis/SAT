@@ -1,0 +1,134 @@
+openapi: "3.1.0"
+info:
+  title: Future Infrastructure (Growth Pipeline) Service
+  version: "1.0.0"
+  description: >
+    Planned and under-construction infrastructure near a site — metro, expressways,
+    ring roads, IT parks, SEZs, townships, etc. Curated from public agency announcements
+    (BMRCL, BDA, NHAI, KIADB, MoCI) bundled as JSON. No live data; verify with agency.
+
+servers:
+  - url: http://localhost:8008
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "future-infra"
+
+  /future-infra/pipeline:
+    get:
+      operationId: getGrowthPipeline
+      summary: Planned/under-construction infrastructure near a point
+      description: Gated by feature flag `feature.context.growth-pipeline`.
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+        - name: radius_km
+          in: query
+          required: false
+          schema:
+            type: number
+            format: float
+            default: 10.0
+      responses:
+        "200":
+          description: Pipeline result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineResult"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    PipelineType:
+      type: string
+      enum:
+        [metro, expressway, ring_road, it_park, sez, township, bus_terminal, railway, airport, industrial_area]
+
+    PipelineStatus:
+      type: string
+      enum: ["Operational", "Under Construction", "Approved", "Planned", "Proposed"]
+
+    Severity:
+      type: string
+      enum: ["low", "moderate", "high", "none"]
+
+    PipelineItem:
+      type: object
+      required: [type, name, status, distance_km, source, source_date]
+      properties:
+        type:
+          $ref: "#/components/schemas/PipelineType"
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/PipelineStatus"
+        expected_completion:
+          type: string
+          nullable: true
+        distance_km:
+          type: number
+          format: float
+        source:
+          type: string
+        source_date:
+          type: string
+
+    PipelineResult:
+      type: object
+      required: [within_radius_km, pipeline_items, score, severity, data_source, data_as_of]
+      properties:
+        within_radius_km:
+          type: number
+          format: float
+        pipeline_items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineItem"
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        severity:
+          $ref: "#/components/schemas/Severity"
+        data_source:
+          type: string
+        data_as_of:
+          type: string
+        data_disclaimer:
+          type: string
