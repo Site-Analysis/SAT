@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: SunPath Service
-  version: "1.5.1"
+  version: "1.6.0"
   description: Solar position, sun path diagrams (pvlib NREL SPA), shadow analysis, orientation & sunlight-hours.
 
 servers:
@@ -53,6 +53,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SunPathResponse"
+
+  /sunpath/solar-day:
+    get:
+      operationId: getSolarDay
+      summary: Accurate hourly sun path + events for a specific date (3D study)
+      description: >
+        Per-date hourly azimuth/elevation + sunrise/solar-noon/sunset via pvlib SPA,
+        computed for the exact selected date and site (not interpolated from reference
+        days). Drives the 3D sun-path study. Behind the router-wide
+        `feature.sunpath.diagram` gate plus its own `feature.sunpath.solar-day` flag.
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - name: date
+          in: query
+          required: true
+          description: ISO date (YYYY-MM-DD) to compute the sun path for
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Per-date sun path
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [latitude, longitude, date, timezone, hourly_data, events, day_length_hours]
+                properties:
+                  latitude: { type: number, format: float }
+                  longitude: { type: number, format: float }
+                  date: { type: string, format: date }
+                  timezone: { type: string }
+                  hourly_data:
+                    type: array
+                    items:
+                      type: object
+                      required: [hour, azimuth, elevation]
+                      properties:
+                        hour: { type: integer }
+                        azimuth: { type: number, format: float }
+                        elevation: { type: number, format: float }
+                  events:
+                    type: object
+                    properties:
+                      sunrise: { type: string, nullable: true }
+                      solar_noon: { type: string, nullable: true }
+                      sunset: { type: string, nullable: true }
+                  day_length_hours: { type: number, format: float }
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error (date not ISO YYYY-MM-DD)
+        "502":
+          description: Solar engine returned no data
 
   /sunpath/events:
     get:

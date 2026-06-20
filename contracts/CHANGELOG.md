@@ -63,6 +63,18 @@
   `KgisContext`, `NearbyFeature`, `WaterBody`, `AmenityCategory`, `AmenityItem`.
 - Sources: OpenStreetMap (Overpass), ISRO NRSC Bhuvan LULC, KGIS admin layers; honest
   `data_disclaimer` (OSM-inferred zoning is not official BDA/BBMP zoning).
+## 2.6.0 — 2026-06-20
+
+### Added — sunpath.yaml (SAT-04 3D study; `core/flags.py`, `routers/sunpath.py`)
+- **Version**: 1.5.1 → 1.6.0
+- New `GET /sunpath/solar-day?lat&lon&date` → per-date hourly azimuth/elevation +
+  sunrise/solar-noon/sunset via pvlib SPA (exact selected date, not interpolated).
+  Drives the 3D sun-path study (sun light, marker, shadow direction, day arc).
+- Gated by new flag `feature.sunpath.solar-day` (403 when disabled);
+  `FeatureFlag.SUNPATH_SOLAR_DAY` registered. Existing endpoints unchanged.
+- **Not ported:** the Fallback `osm_extractor.py` hunk that drops the Overpass
+  `User-Agent` header — `main` (CHANGELOG 1.5.1) added it to fix Overpass 406, so it
+  is intentionally retained. Only the additive flag + endpoint are migrated.
 
 ## 1.5.1 — 2026-06-09
 

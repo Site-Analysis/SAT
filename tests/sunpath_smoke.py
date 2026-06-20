@@ -165,3 +165,54 @@ def test_flag_off_returns_403(monkeypatch):
         ).status_code
         == 403
     )
+
+
+@skip_no_app
+def test_solar_day_flag_off(monkeypatch):
+    # Only the diagram flag on — solar-day must 403.
+    monkeypatch.setenv("FLAGS", "feature.sunpath.diagram")
+    r = CLIENT.get("/sunpath/solar-day", params={**BLR, "date": "2025-06-21"})
+    assert r.status_code == 403
+
+
+@skip_no_app
+def test_solar_day_flag_on(monkeypatch):
+    import datetime as _dt
+    from types import SimpleNamespace
+
+    from app.routers import sunpath as sunpath_router
+
+    # solar-day sits behind the router-wide diagram gate AND its own gate.
+    monkeypatch.setenv("FLAGS", "feature.sunpath.diagram,feature.sunpath.solar-day")
+
+    def _fake_positions(_lat, _lon, _start, _end):
+        ts = _dt.datetime(2025, 6, 21, 6, 30, tzinfo=_dt.timezone.utc)
+        return [
+            SimpleNamespace(
+                timezone="Asia/Kolkata",
+                timestamp=ts,
+                azimuth=90.0,
+                elevation=12.0,
+                sunrise="05:50",
+                solar_noon="12:15",
+                sunset="18:40",
+                day_length=12.8,
+            )
+        ]
+
+    monkeypatch.setattr(sunpath_router.solar_engine, "calculate_solar_position", _fake_positions)
+
+    r = CLIENT.get("/sunpath/solar-day", params={**BLR, "date": "2025-06-21"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["date"] == "2025-06-21"
+    assert body["day_length_hours"] == 12.8
+    assert body["events"]["sunrise"] == "05:50"
+    assert len(body["hourly_data"]) == 1
+
+
+@skip_no_app
+def test_solar_day_bad_date_422(monkeypatch):
+    monkeypatch.setenv("FLAGS", "feature.sunpath.diagram,feature.sunpath.solar-day")
+    r = CLIENT.get("/sunpath/solar-day", params={**BLR, "date": "21-06-2025"})
+    assert r.status_code == 422
