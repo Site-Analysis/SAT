@@ -157,3 +157,37 @@ attached with verified A-record DNS (GoDaddy apex → `76.76.21.21`). Live-verif
 production deploy READY, host-routing 307/308/200 correct on both domains, TLS HTTP/2 with
 no warnings, proxy deployed as `/_middleware`. Email + Google login confirmed working →
 `/dashboard`.
+
+### Phase 6 — Integration test & go-live verification — 2026-06-21
+Full live verification of the two-domain deployment. **Autonomously verified (CLI/curl):**
+- **Redirects (6.2):** `qnit.in/`→200 landing; `qnit.in/dashboard`→`308` `qnit.site/dashboard`;
+  `qnit.site/`→`307 /login`; `qnit.site/login`→200; `qnit.site/dashboard` (logged out)→200
+  (client-side gated by design — auth is localStorage/PKCE, not server middleware, so no server
+  `302`; expected per the locked client-side-auth decision).
+- **Backend (6.3):** all 10 services `/status/<svc>` → 200 through Caddy + api root 200;
+  20-concurrent probe on `api.qnit.site` 20/20 → 200, p50 ~0.27 s / p99 0.90 s / 0.97 s wall
+  (matches Phase 4 baseline). `restart: unless-stopped` already in compose.
+- **TLS (6.4):** all 3 domains valid Let's Encrypt, TLS 1.3 negotiated, **TLS 1.0 rejected**
+  (no weak protocols); HSTS present on `qnit.in` + `qnit.site` (max-age 2 yr). CORS exact-origin
+  — echoes `https://qnit.site`, rejects unknown origin.
+- **Security group (6.4):** 80/443 public, **port 22 restricted to admin IP `/32`** ✓.
+- **Secret scan (6.4):** `git grep` for PAT/`service_role`/key literals across tracked files →
+  clean (only env-var *names* + an embedded PNG-base64 logo; no secret values).
+- **`/security-review`:** host-routing code (PR #79) reviewed clean this session; no
+  high-confidence findings. Phase 6 doc branch is docs-only.
+- **Rollback runbook (6.5):** wrote `docs/deployment/ROLLBACK.md` (Vercel promote-previous /
+  EC2 compose checkout / per-service restart / DNS-last-resort; DB rollback N/A — auth-only,
+  empty schema, no migrations).
+
+**Remaining for the user (not autonomously doable) — go-live blockers to clear:**
+- **6.1 real-login E2E** — log in on `qnit.site` with real credentials and run **each** analysis
+  through the UI, confirming requests hit `api.qnit.site` over HTTPS with 200s and no
+  CORS/mixed-content (needs browser + real session).
+- **AWS hardening** — caller identity is still the **root access key** (`...:root`); replace with
+  a scoped IAM user and rotate/disable the root key.
+- **Supabase advisors** — enable leaked-password protection; lock down / revoke
+  `public.rls_auto_enable()` (SECURITY DEFINER exposed to `anon`). (Dashboard/SQL — outward,
+  surfaced not applied.)
+- **Optional:** add HSTS on `api.qnit.site` (Caddy header) — currently absent (6.4 "if desired").
+
+Go-live not announced by the executor — pending the user E2E pass + the AWS/Supabase carry-forwards.
