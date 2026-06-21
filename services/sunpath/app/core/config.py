@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Application configuration and settings."""
 
 from functools import lru_cache

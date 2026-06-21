@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export class ApiError extends Error {

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Pydantic models for solar analysis endpoints."""
 
 from datetime import datetime

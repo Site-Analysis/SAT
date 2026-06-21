@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import { cn } from "@/lib/utils";
 
 type Severity = "high" | "moderate" | "low" | "none";

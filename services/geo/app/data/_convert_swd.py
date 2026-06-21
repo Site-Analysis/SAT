@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 One-off prep: convert the OpenCity primary storm-water-drain (rajakaluve) KML
 into a compact GeoJSON bundled with the geo service.

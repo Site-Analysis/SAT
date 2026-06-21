@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Building extraction API endpoints.
 Provides four methods to query buildings: bounding box, radius, polygon, and address.

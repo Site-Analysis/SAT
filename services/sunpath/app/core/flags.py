@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Feature-flag gating.
 
 Reads the FLAGS env var directly (comma-separated) — `packages/flags` is

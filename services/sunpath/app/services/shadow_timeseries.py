@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Time-series shadow analysis service (Phase 3).
 Calculates shadows over time periods and cumulative shadow coverage.

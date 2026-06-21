@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Sunlight-hours grid — ground sunshine duration.
 
 Method adapted from **pybdshadow** (BSD-3-Clause, © ni1o1): per-cell accumulation

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Provenance + confidence model for the zoning module.
 //
 // Every datum the zoning analysis surfaces is mapped to: where it came from,

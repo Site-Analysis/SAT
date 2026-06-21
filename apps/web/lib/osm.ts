@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Client-side OpenStreetMap helpers — building footprints (Overpass) + reverse
 // geocoding (Nominatim). Both fail gracefully (empty result) on network errors.
 

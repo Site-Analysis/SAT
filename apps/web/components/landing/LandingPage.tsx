@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import styles from "./landing.module.css";
 
 const $ = styles as Record<string, string>;
@@ -501,6 +504,7 @@ export function LandingPage() {
           <li><a href="#">Terms</a></li>
           <li><a href="mailto:chiragds0117@gmail.com">Contact</a></li>
         </ul>
+        <div className={$["footer-copyright"]}>© 2026 Qnit · All rights reserved</div>
       </footer>
 
     </div>

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Shared palette + SVG geometry helpers for the zoning HUD visuals.
 // Inline-style hex values mirror the @theme tokens in globals.css so the map
 // overlays stay self-contained (the Leaflet overlay pane sits outside Tailwind).
