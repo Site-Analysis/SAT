@@ -95,6 +95,20 @@ Verified: preflight returns exact origin (not `*`).
 
 The ~210ms floor is geographic RTT to Mumbai; server compute is tens of ms.
 
+## Security hardening (post-deploy review)
+
+- **Service ports bound to loopback.** Base `docker-compose.yml` publishes the 10
+  services on the host; they were on `0.0.0.0:8000-8009`, leaving the AWS security
+  group as the *only* control (it allows just 22/80/443, so they were not externally
+  reachable — but single-control). Now bound to `127.0.0.1:<port>` in the base compose.
+  Caddy reaches services over the compose network by name, so prod is unaffected; dev
+  still works via `localhost`. Note: an empty `ports: []` in the prod override does NOT
+  work — Compose concatenates `ports` lists, so the bind must be at the source.
+- **Secret file perms.** `gee-sa.json` (GCP SA private key) and `.env` set to `600` on
+  the box (were `644`).
+- **Known follow-ups (LOW):** no Caddy rate limiting on public endpoints that proxy to
+  quota'd/paid upstreams (Overpass mirror, GEE) — add before scale.
+
 ## Verification summary
 
 - 10/10 services healthy (Docker healthchecks + external `/status/<svc>` = 200).

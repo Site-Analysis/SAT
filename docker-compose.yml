@@ -8,7 +8,7 @@ services:
     build:
       context: ./services/temperature
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./services/temperature:/app
     environment:
@@ -28,7 +28,7 @@ services:
     build:
       context: ./services/sunpath
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     volumes:
       - ./services/sunpath:/app
       - ./gee-sa.json:/app/gee-sa.json:ro
@@ -48,7 +48,7 @@ services:
     build:
       context: ./services/flood
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
     volumes:
       - ./services/flood:/app
       - ./gee-sa.json:/app/gee-sa.json:ro
@@ -68,7 +68,7 @@ services:
     build:
       context: ./services/wind
     ports:
-      - "8003:8003"
+      - "127.0.0.1:8003:8003"
     volumes:
       - ./services/wind:/app
       - ./gee-sa.json:/app/gee-sa.json:ro
@@ -88,7 +88,7 @@ services:
     build:
       context: ./services/rainfall
     ports:
-      - "8004:8004"
+      - "127.0.0.1:8004:8004"
     volumes:
       - ./services/rainfall:/app
     environment:
@@ -107,7 +107,7 @@ services:
     build:
       context: ./services/planning
     ports:
-      - "8006:8006"
+      - "127.0.0.1:8006:8006"
     volumes:
       - ./services/planning:/app
     environment:
@@ -126,7 +126,7 @@ services:
     build:
       context: ./services/infrastructure
     ports:
-      - "8007:8007"
+      - "127.0.0.1:8007:8007"
     volumes:
       - ./services/infrastructure:/app
     environment:
@@ -145,7 +145,7 @@ services:
     build:
       context: ./services/future-infra
     ports:
-      - "8008:8008"
+      - "127.0.0.1:8008:8008"
     volumes:
       - ./services/future-infra:/app
     environment:
@@ -164,7 +164,7 @@ services:
     build:
       context: ./services/land-records
     ports:
-      - "8009:8009"
+      - "127.0.0.1:8009:8009"
     volumes:
       - ./services/land-records:/app
     environment:
@@ -183,7 +183,7 @@ services:
     build:
       context: ./services/geo
     ports:
-      - "8005:8005"
+      - "127.0.0.1:8005:8005"
     volumes:
       - ./services/geo:/app
     environment:
