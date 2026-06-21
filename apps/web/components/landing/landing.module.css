@@ -94,6 +94,12 @@
 .nav-links a:hover {
   color: var(--text);
 }
+/* Try-free CTA — keep bold white, beating the muted .nav-links a rule above */
+.nav-links a.btn-nav,
+.nav-links a.btn-nav:hover {
+  color: #fff;
+  font-weight: 700;
+}
 .btn-nav {
   font-family: var(--font-ui);
   font-size: 14px;
