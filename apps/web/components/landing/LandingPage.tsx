@@ -13,7 +13,7 @@ export function LandingPage() {
       {/* ── NAV ── */}
       <nav>
         <a className={$["nav-logo"]} href="#">
-          <img src="/qnit-logo.svg" alt="Qnit by GeoKnit" />
+          <img src="/qnit-logo.svg" alt="Qnit" />
         </a>
         <ul className={$["nav-links"]}>
           <li><a href="#problem">The problem</a></li>
@@ -494,7 +494,7 @@ export function LandingPage() {
       {/* ── FOOTER ── */}
       <footer>
         <a className={$["footer-logo"]} href="#">
-          <img src="/qnit-logo.svg" alt="Qnit by GeoKnit" />
+          <img src="/qnit-logo.svg" alt="Qnit" />
         </a>
         <ul className={$["footer-links"]}>
           <li><a href="#">Privacy</a></li>

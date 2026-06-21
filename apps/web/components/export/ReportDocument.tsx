@@ -88,7 +88,7 @@ export const ReportDocument = forwardRef<HTMLDivElement, ReportDocumentProps>(
         <div data-export-page style={{ ...pageStyle, paddingTop: 0 }}>
           <div style={{ background: C.primary, padding: "26px 32px", margin: "0 -36px 24px", color: "#fff" }}>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6 }}>
-              Qnit by GeoKnit
+              Qnit
             </div>
             <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.2 }}>
               {project?.name || "Untitled Project"}

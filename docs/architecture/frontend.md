@@ -1,7 +1,7 @@
 # Frontend Map — `apps/web`
 
 Next.js 16 (App Router) + React 19 + Tailwind v4 + react-leaflet 5 + zustand 5 + recharts 3.
-Rebranded **Qnit by GeoKnit**. Dev server on `:3000` (`npm run dev`). Design tokens live in
+Rebranded **Qnit**. Dev server on `:3000` (`npm run dev`). Design tokens live in
 `app/globals.css` (warm architectural palette; forest-green accent `--color-brand-primary:
 #306223` — the older sage `#657166` and any Deep-Navy/Teal references are stale).
 
