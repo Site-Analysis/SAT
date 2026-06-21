@@ -1,0 +1,123 @@
+# Caddy reverse proxy for the Qnit backend (single AWS t3.medium box).
+# Terminates TLS for api.qnit.site (auto Let's Encrypt) and routes by path prefix
+# to the 10 FastAPI services on the compose network (reachable by service name).
+#
+# IMPORTANT: prefixes are NOT stripped — each service serves its own prefix
+# (e.g. temperature serves /weather/*, sunpath serves /sunpath/*). CORS is handled
+# by each FastAPI service (CORSMiddleware, origin https://qnit.site), NOT here, to
+# avoid duplicate Access-Control-Allow-Origin headers.
+
+api.qnit.site {
+	encode gzip
+
+	# --- Temperature service (8000). Native prefix is /weather/*; the FE calls
+	#     /weather/*. /temperature/* kept as an alias per the deployment port map.
+	handle /weather/* {
+		reverse_proxy temperature:8000
+	}
+	# /temperature/* alias (deployment port-map label): strip the prefix so
+	#   /temperature/weather/climate-archive -> /weather/climate-archive
+	#   /temperature/health                  -> /health
+	# The FE itself calls /weather/* directly (handled above, no strip).
+	handle_path /temperature/* {
+		reverse_proxy temperature:8000
+	}
+
+	# --- Sunpath service (8001): /sunpath, /buildings, /shadow are all sunpath-only.
+	handle /sunpath/* {
+		reverse_proxy sunpath:8001
+	}
+	handle /buildings/* {
+		reverse_proxy sunpath:8001
+	}
+	handle /shadow/* {
+		reverse_proxy sunpath:8001
+	}
+
+	handle /flood/* {
+		reverse_proxy flood:8002
+	}
+	handle /wind/* {
+		reverse_proxy wind:8003
+	}
+	handle /rainfall/* {
+		reverse_proxy rainfall:8004
+	}
+	handle /geo/* {
+		reverse_proxy geo:8005
+	}
+	handle /planning/* {
+		reverse_proxy planning:8006
+	}
+	handle /infrastructure/* {
+		reverse_proxy infrastructure:8007
+	}
+	handle /future-infra/* {
+		reverse_proxy future-infra:8008
+	}
+	handle /land-records/* {
+		reverse_proxy land-records:8009
+	}
+
+	# --- Per-service health aliases for external monitoring. Each service serves
+	#     /health at its root; expose them at /status/<svc> so they don't collide.
+	@status_temperature path /status/temperature
+	handle @status_temperature {
+		rewrite * /health
+		reverse_proxy temperature:8000
+	}
+	@status_sunpath path /status/sunpath
+	handle @status_sunpath {
+		rewrite * /health
+		reverse_proxy sunpath:8001
+	}
+	@status_flood path /status/flood
+	handle @status_flood {
+		rewrite * /health
+		reverse_proxy flood:8002
+	}
+	@status_wind path /status/wind
+	handle @status_wind {
+		rewrite * /health
+		reverse_proxy wind:8003
+	}
+	@status_rainfall path /status/rainfall
+	handle @status_rainfall {
+		rewrite * /health
+		reverse_proxy rainfall:8004
+	}
+	@status_geo path /status/geo
+	handle @status_geo {
+		rewrite * /health
+		reverse_proxy geo:8005
+	}
+	@status_planning path /status/planning
+	handle @status_planning {
+		rewrite * /health
+		reverse_proxy planning:8006
+	}
+	@status_infrastructure path /status/infrastructure
+	handle @status_infrastructure {
+		rewrite * /health
+		reverse_proxy infrastructure:8007
+	}
+	@status_future_infra path /status/future-infra
+	handle @status_future_infra {
+		rewrite * /health
+		reverse_proxy future-infra:8008
+	}
+	@status_land_records path /status/land-records
+	handle @status_land_records {
+		rewrite * /health
+		reverse_proxy land-records:8009
+	}
+
+	# Root: simple liveness for the proxy itself.
+	handle / {
+		respond "qnit api ok" 200
+	}
+
+	handle {
+		respond "not found" 404
+	}
+}

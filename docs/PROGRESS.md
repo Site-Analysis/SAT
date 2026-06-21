@@ -126,3 +126,17 @@ first.
 ---
 
 _Phase log appended by the executor as each phase completes._
+
+### Phase 4 complete — 2026-06-21 — backend live at https://api.qnit.site
+Backend stack deployed to the single AWS t3.medium (Mumbai), multi-container
+docker-compose + Caddy reverse proxy (TLS auto via Let's Encrypt). New committed
+artifacts: `docker-compose.aws.yml` (4 GB right-size: workers=1, per-service
+`mem_limit`, `restart: unless-stopped`, Caddy service), `infra/Caddyfile` (path-prefix
+routing incl. `/weather/*` for the FE + `/status/<svc>` health aliases),
+`docs/deployment/phase4-baseline.md`. Fixed stale `infra/DEPLOY.md` FLAGS string
+(20-flag authoritative set; dropped 2 phantom flags, added 4 rainfall flags).
+**Overpass off-box** — public mirror (`overpass-api.de` + 2 fallbacks); self-host
+disabled (inactive `selfhost` profile) as it doesn't fit 4 GB. CORS per-service
+(`["https://qnit.site"]` JSON-array form — required by sunpath's pydantic `list[str]`).
+Verified: 10/10 healthy, valid TLS, flag gating 200/403, exact-origin CORS, all 18
+`apps/web` paths route, RAM ~1.37 GB used / 3.83 GB (2.46 GB free), health p50 219ms.

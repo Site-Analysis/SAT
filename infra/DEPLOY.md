@@ -10,7 +10,7 @@ Stack: 10 FastAPI services + Next.js 16 frontend + self-hosted Overpass (wiktorn
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `apps/web/.env.local` + CI | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `apps/web/.env.local` + CI | Supabase anon/publishable key |
-| `FLAGS` | root `.env` | Comma-separated feature flags (all 18, see below) |
+| `FLAGS` | root `.env` | Comma-separated feature flags (all 20, see below) |
 | `GEE_SA_KEY_PATH` | root `.env` | Path to GEE service-account JSON inside container |
 | `GEE_SERVICE_ACCOUNT_KEY_PATH` | root `.env` | Same as above (`/app/gee-sa.json`) |
 | `OVERPASS_URL` | root `.env` | `http://overpass:80/api/interpreter` (local) or public mirror |
@@ -19,8 +19,12 @@ Stack: 10 FastAPI services + Next.js 16 frontend + self-hosted Overpass (wiktorn
 Ship `gee-sa.json` out-of-band (scp / secrets manager). Do NOT commit.
 
 ### Full FLAGS value
+
+Authoritative source: the 20-member `FeatureFlag` enum in `packages/flags/src/flags.py`.
+Do NOT hand-edit — earlier versions of this string carried two phantom flags
+(`feature.terrain.analysis`, `feature.simulation.3d`) and dropped four rainfall flags.
 ```
-FLAGS=feature.temperature.thermal-profile,feature.flood.risk-analysis,feature.sunpath.diagram,feature.sunpath.solar-day,feature.wind.analysis,feature.rainfall.archive,feature.rainfall.summary,feature.terrain.analysis,feature.simulation.3d,feature.zoning.land-use,feature.planning.site-capacity,feature.infrastructure.connectivity,feature.environment.soil,feature.environment.water-constraints,feature.context.growth-pipeline,feature.land.records,feature.geo.amenities,feature.geo.kgis-context
+FLAGS=feature.temperature.thermal-profile,feature.flood.risk-analysis,feature.sunpath.diagram,feature.sunpath.solar-day,feature.wind.analysis,feature.rainfall.archive,feature.rainfall.summary,feature.rainfall.climate-profile,feature.rainfall.anomaly,feature.rainfall.seasonality,feature.rainfall.site-analysis,feature.planning.site-capacity,feature.infrastructure.connectivity,feature.context.growth-pipeline,feature.land.records,feature.zoning.land-use,feature.environment.soil,feature.environment.water-constraints,feature.geo.amenities,feature.geo.kgis-context
 ```
 
 ---
