@@ -10,6 +10,9 @@
 api.qnit.site {
 	encode gzip
 
+	# HSTS — force HTTPS for a year incl. subdomains (matches qnit.site/qnit.in).
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 	# --- Temperature service (8000). Native prefix is /weather/*; the FE calls
 	#     /weather/*. /temperature/* kept as an alias per the deployment port map.
 	handle /weather/* {
