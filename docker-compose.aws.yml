@@ -1,0 +1,131 @@
+# Production override for the single AWS t3.medium (4 GB) box — Qnit.
+# Apply with:
+#   docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d
+#
+# Differences from dev (docker-compose.yml) and from docker-compose.prod.yml:
+#   - No source-code bind mounts (images run their built code)
+#   - --workers 1 on every service (4 GB box; bump the 1-2 hottest only if measured)
+#   - restart: unless-stopped on all services
+#   - mem_limit per service so a single OOM can't take the whole box down
+#   - CORS locked to the production frontend origin (https://qnit.site)
+#   - overpass DISABLED (profile "selfhost"); OSM services use a public mirror via
+#     OVERPASS_URL in .env. Self-hosting Overpass does not fit 4 GB alongside 10 services.
+#   - Caddy added: terminates TLS for api.qnit.site and reverse-proxies by path prefix.
+
+services:
+  temperature:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    restart: unless-stopped
+    mem_limit: 350m
+
+  sunpath:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 1
+    restart: unless-stopped
+    mem_limit: 600m
+
+  flood:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers 1
+    restart: unless-stopped
+    mem_limit: 500m
+
+  wind:
+    volumes:
+      - ./gee-sa.json:/app/gee-sa.json:ro
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --workers 1
+    restart: unless-stopped
+    mem_limit: 450m
+
+  rainfall:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --workers 1
+    restart: unless-stopped
+    mem_limit: 350m
+
+  geo:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8005 --workers 1
+    restart: unless-stopped
+    mem_limit: 400m
+
+  planning:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8006 --workers 1
+    restart: unless-stopped
+    mem_limit: 300m
+
+  infrastructure:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8007 --workers 1
+    restart: unless-stopped
+    mem_limit: 300m
+
+  future-infra:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8008 --workers 1
+    restart: unless-stopped
+    mem_limit: 300m
+
+  land-records:
+    volumes: []
+    environment:
+      - CORS_ORIGINS=["https://qnit.site"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8009 --workers 1
+    restart: unless-stopped
+    mem_limit: 300m
+
+  # Disabled on the 4 GB box. Assigning a profile that is never activated keeps
+  # `docker compose up` from starting it. OSM services point at a public mirror
+  # (OVERPASS_URL in .env). To self-host, move to a bigger instance and enable the
+  # "selfhost" profile after a one-time OVERPASS_MODE=init run.
+  overpass:
+    profiles: ["selfhost"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - temperature
+      - sunpath
+      - flood
+      - wind
+      - rainfall
+      - geo
+      - planning
+      - infrastructure
+      - future-infra
+      - land-records
+    mem_limit: 96m
+
+volumes:
+  caddy-data:
+  caddy-config:
