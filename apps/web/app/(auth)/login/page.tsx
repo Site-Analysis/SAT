@@ -164,7 +164,7 @@ export default function LoginPage() {
         }}>
           {/* Logo */}
           <div>
-            <img src="/qnit-logo.svg" alt="Qnit by GeoKnit" style={{ height: 40, width: "auto" }} />
+            <img src="/qnit-logo.svg" alt="Qnit" style={{ height: 40, width: "auto" }} />
           </div>
 
           {/* Hero copy */}
@@ -195,7 +195,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div style={{ fontSize: 10, color: "#B8C4BB" }}>© 2026 Qnit by GeoKnit · All data sources cited</div>
+          <div style={{ fontSize: 10, color: "#B8C4BB" }}>© 2026 Qnit · All data sources cited</div>
         </div>
 
         {/* Floating project score card */}

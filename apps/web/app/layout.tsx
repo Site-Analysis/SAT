@@ -24,7 +24,7 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   title: "Qnit — Site Intelligence",
-  description: "Cited, India-specific site intelligence — flood, sun, wind, rainfall, temperature — on one map. By GeoKnit.",
+  description: "Cited, India-specific site intelligence — flood, sun, wind, rainfall, temperature — on one map.",
 };
 
 requirePublicEnv();

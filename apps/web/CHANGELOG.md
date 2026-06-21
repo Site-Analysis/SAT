@@ -26,7 +26,7 @@ All notable changes to the Qnit web application are documented here.
 - **`apps/web/CLAUDE.md`** — CSS Modules bracket-notation pattern, monthly rainfall data path.
 
 ### Added
-- **Rebrand: Qnit by GeoKnit** — full product rename from "SAT / Site Analysis Tool" to "Qnit by GeoKnit". All user-facing strings updated across TopNav, login, dashboard, settings, export report, land records panel, and module detail card. Code identifiers, layer names (e.g. `sat-buildings`), and internal comments unchanged.
+- **Rebrand: Qnit** — full product rename from "SAT / Site Analysis Tool" to "Qnit". All user-facing strings updated across TopNav, login, dashboard, settings, export report, land records panel, and module detail card. Code identifiers, layer names (e.g. `sat-buildings`), and internal comments unchanged.
 - **Public landing page** — `/` now renders a full marketing page (`LandingPage.tsx` + `landing.module.css`) for logged-out visitors. Sections: nav → hero → anchor quote → problem-architect → problem-builder → modules → how-it-works → data-trust → PLG → pricing → final CTA → footer. Logged-in users are redirected to `/dashboard` via client-side `useEffect`.
 - **`qnit-logo.svg`** — logo asset added to `public/`; replaces the old "SAT" diamond icon in TopNav and the login page.
 - **Fonts: Inter + Space Grotesk + Space Mono** — Geist fonts replaced. `layout.tsx` loads three `next/font/google` fonts as CSS vars (`--font-inter`, `--font-space-grotesk`, `--font-space-mono`). Backward-compat aliases `--font-geist-sans` and `--font-geist-mono` kept in `:root` so existing inline styles resolve without touching every file.

@@ -72,9 +72,9 @@ export function TopNav({
         <Link
           href="/dashboard"
           className="flex items-center gap-2"
-          aria-label="Qnit by GeoKnit"
+          aria-label="Qnit"
         >
-          <img src="/qnit-logo.svg" alt="Qnit by GeoKnit" className="h-7 w-auto" />
+          <img src="/qnit-logo.svg" alt="Qnit" className="h-7 w-auto" />
         </Link>
 
         {/* Settings nav links — reversed active state */}

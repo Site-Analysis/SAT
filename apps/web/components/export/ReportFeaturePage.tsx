@@ -109,7 +109,7 @@ export function ReportFeaturePage({ moduleId, name, color, result, settings, wid
           {sev.label}
         </span>
         <span style={{ marginLeft: "auto", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "1px" }}>
-          Qnit by GeoKnit
+          Qnit
         </span>
         <span style={{ fontSize: 26, fontWeight: 700, color, fontFamily: "var(--font-space-mono), monospace" }}>
           {result.score ?? "—"}<span style={{ fontSize: 12, color: C.faint }}>/100</span>
