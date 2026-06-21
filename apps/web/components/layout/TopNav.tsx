@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Settings, Upload, Plus, LogOut } from "lucide-react";
+import { Settings, Upload, Plus, LogOut, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface Breadcrumb {
@@ -23,6 +23,8 @@ export interface TopNavProps {
   onSignOut?: () => void;
   onExportClick?: () => void;
   onNewAnalysisClick?: () => void;
+  onCurrentLocationClick?: () => void;
+  showCurrentLocation?: boolean;
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export function TopNav({
   onSignOut,
   onExportClick,
   onNewAnalysisClick,
+  onCurrentLocationClick,
+  showCurrentLocation,
   className,
 }: TopNavProps) {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -137,6 +141,20 @@ export function TopNav({
           >
             <Plus size={14} aria-hidden />
             New Analysis
+          </button>
+        )}
+
+        {/* New analysis: Use current location button */}
+        {context === "new-analysis" && showCurrentLocation && onCurrentLocationClick && (
+          <button
+            onClick={onCurrentLocationClick}
+            className="flex items-center gap-1.5 h-[34px] px-[14px] text-[13px] font-semibold rounded-lg border-[1.5px] transition-colors"
+            style={{ borderColor: "#306223", color: "#306223" }}
+            onMouseEnter={(e) => { (e.currentTarget).style.background = "#DAEBE3"; }}
+            onMouseLeave={(e) => { (e.currentTarget).style.background = "transparent"; }}
+          >
+            <MapPin size={14} aria-hidden />
+            Use current location
           </button>
         )}
 

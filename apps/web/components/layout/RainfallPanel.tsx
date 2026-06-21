@@ -48,20 +48,20 @@ export function RainfallPanel({ result, severity }: RainfallPanelProps) {
 
       {/* ── Annual banner ──────────────────────────────────────── */}
       <div style={{
-        background: "rgba(124,58,237,0.07)", border: "1.5px solid rgba(124,58,237,0.22)",
+        background: "rgba(29,78,216,0.07)", border: "1.5px solid rgba(29,78,216,0.22)",
         borderRadius: 9, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10,
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-          background: "rgba(124,58,237,0.08)", border: "2px solid rgba(124,58,237,0.22)",
+          background: "rgba(29,78,216,0.08)", border: "2px solid rgba(29,78,216,0.22)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z" fill="#7C3AED" />
+            <path d="M12 2.5C12 2.5 5 10 5 15a7 7 0 0 0 14 0c0-5-7-12.5-7-12.5z" fill="#1D4ED8" />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#5B21B6", lineHeight: 1.3 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1E3A8A", lineHeight: 1.3 }}>
             {annual} annual
           </div>
           <div style={{ fontSize: 10, color: "#7B8F83", marginTop: 2, lineHeight: 1.4 }}>
@@ -152,12 +152,12 @@ export function RainfallPanel({ result, severity }: RainfallPanelProps) {
 
       {/* ── Drainage / NBC note ────────────────────────────────── */}
       <div style={{
-        background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.22)",
+        background: "rgba(29,78,216,0.06)", border: "1px solid rgba(29,78,216,0.22)",
         borderRadius: 8, padding: "9px 11px", display: "flex", alignItems: "flex-start", gap: 8,
       }}>
-        <span style={{ fontSize: 13, marginTop: 1, flexShrink: 0, color: "#7C3AED" }}>☔</span>
+        <span style={{ fontSize: 13, marginTop: 1, flexShrink: 0, color: "#1D4ED8" }}>☔</span>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#5B21B6", marginBottom: 2 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#1E3A8A", marginBottom: 2 }}>
             NBC 2016 · Part 9 — Stormwater
           </div>
           <div style={{ fontSize: 10, color: "#7B8F83", lineHeight: 1.5 }}>
