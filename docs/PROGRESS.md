@@ -140,3 +140,20 @@ disabled (inactive `selfhost` profile) as it doesn't fit 4 GB. CORS per-service
 (`["https://qnit.site"]` JSON-array form — required by sunpath's pydantic `list[str]`).
 Verified: 10/10 healthy, valid TLS, flag gating 200/403, exact-origin CORS, all 18
 `apps/web` paths route, RAM ~1.37 GB used / 3.83 GB (2.46 GB free), health p50 219ms.
+
+### Phase 5 complete — 2026-06-21 — frontend live at https://qnit.site (+ https://qnit.in)
+One Vercel deployment, two domains, host-routing in `apps/web/proxy.ts` (Next 16 renamed
+the `middleware` convention to `proxy`). `qnit.in` serves the marketing landing only;
+`qnit.site` serves the tool and owns all auth (`.in` and `.site` are different registrable
+domains, so no shared session cookie). Routing: `qnit.in/` → landing, `qnit.in/<deep>` →
+`308` to `qnit.site`; `qnit.site/` → `307 /login` (the login page client-redirects to
+`/dashboard` when a session already exists). Auth stays client-side (Supabase
+localStorage/PKCE) — no SSR cookie refactor. Landing CTAs point at absolute
+`NEXT_PUBLIC_LOGIN_URL` (default `https://qnit.site/login`) so `qnit.in` visitors
+authenticate on the correct domain. Shipped in **PR #79** (`feat/host-routing`). Vercel
+project `qnit-web`: Root Directory `apps/web`, Next.js, 15 Production env vars (Supabase +
+MapTiler + all API URLs → `https://api.qnit.site`, Caddy path-multiplexes). Both domains
+attached with verified A-record DNS (GoDaddy apex → `76.76.21.21`). Live-verified:
+production deploy READY, host-routing 307/308/200 correct on both domains, TLS HTTP/2 with
+no warnings, proxy deployed as `/_middleware`. Email + Google login confirmed working →
+`/dashboard`.
