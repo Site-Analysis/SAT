@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -106,6 +106,14 @@ export default function LoginPage() {
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const [mode,     setMode]     = useState<"signin" | "signup">("signin");
+
+  // Already signed in (localStorage session) → skip the form. Covers the
+  // qnit.site/ → /login middleware redirect for authenticated users.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/dashboard");
+    });
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
