@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Sunpath diagram renderer for SVG and JSON formats."""
 
 import matplotlib

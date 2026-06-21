@@ -1316,6 +1316,12 @@
 .footer-links a:hover {
   color: var(--text-muted);
 }
+.footer-copyright {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {

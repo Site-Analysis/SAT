@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 "use client";
 
 // Client-side export generators. Heavy libs (jsPDF, html2canvas) are imported

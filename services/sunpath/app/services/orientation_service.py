@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Building orientation & shading recommendation from annual solar geometry.
 
 Derives the equator-facing optimal facade and a window-overhang projection factor

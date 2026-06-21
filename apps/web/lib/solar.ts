@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import type { SolarPoint } from "./stores/analysis";
 
 export function daytime(pts: SolarPoint[]): SolarPoint[] {

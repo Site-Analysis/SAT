@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 "use client";
 
 // One landscape report page per "visual" feature (sunpath / flood / rainfall /

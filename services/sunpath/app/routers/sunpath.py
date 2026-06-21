@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """Sun path API — clean GET endpoints over the pvlib SolarEngine.
 
 Contract: contracts/sunpath.yaml (SunPathResponse / SolarEventsResponse).

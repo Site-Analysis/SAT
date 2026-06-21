@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -195,7 +198,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div style={{ fontSize: 10, color: "#B8C4BB" }}>© 2026 Qnit · All data sources cited</div>
+          <div style={{ fontSize: 10, color: "#B8C4BB" }}>© 2026 Qnit · All rights reserved · Data sources cited</div>
         </div>
 
         {/* Floating project score card */}

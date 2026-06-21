@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Face-based shadow calculation engine for building shadow analysis.
 Each exterior edge (face) of a building casts a separate shadow polygon.

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Shadow calculation engine for building shadow analysis.
 Implements Phase 1 (geometry calculation) and Phase 2 (batch processing).

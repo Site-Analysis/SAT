@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Overpass API service for querying OpenStreetMap building data.
 Implements tiling for large areas and parallel fetching for performance.

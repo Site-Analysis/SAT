@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Pure geo helpers for map overlays (lat/lng degrees, metres).
 
 export type LatLng = [number, number];

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Frontend ↔ analysis service wiring.
 // Endpoints + response shapes verified against the real FastAPI routers and
 // Pydantic models in services/<svc>/app/ (not the contracts, which can drift).

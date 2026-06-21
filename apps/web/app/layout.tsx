@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";

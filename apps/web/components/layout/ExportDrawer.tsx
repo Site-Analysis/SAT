@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 "use client";
 
 import { Download, FileText, Table, Image as ImageIcon, Braces } from "lucide-react";

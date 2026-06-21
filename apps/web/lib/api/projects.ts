@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Project persistence.
 //
 // There is no projects backend service yet (GH#53/#55). To let real site

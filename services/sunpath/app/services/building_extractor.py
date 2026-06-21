@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """
 Building extraction service that orchestrates data from Overpass API and Google Earth Engine.
 Merges datasets, detects overlaps, enriches with heights, and handles pagination.

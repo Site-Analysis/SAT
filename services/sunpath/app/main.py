@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Qnit. All rights reserved.
+# SPDX-License-Identifier: LicenseRef-Proprietary
+
 """SunPath service — FastAPI app.
 
 Solar position & sun path diagrams (pvlib NREL SPA), shadow analysis,
