@@ -139,7 +139,7 @@ const MODULE_META: {
   { id: "flood",            name: "Flood",             color: "#2563EB", icon: <Waves size={14} />        },
   { id: "temperature",      name: "Temperature",       color: "#EF4444", icon: <Thermometer size={14} />  },
   { id: "wind",             name: "Wind",              color: "#06B6D4", icon: <Wind size={14} />         },
-  { id: "rainfall",         name: "Rainfall",          color: "#7C3AED", icon: <CloudRain size={14} />    },
+  { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={14} />    },
   { id: "zoning",           name: "Zoning",            color: "#B45309", icon: <Scale size={14} />        },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981", icon: <MapPin size={14} />       },
   { id: "planning",         name: "Site Capacity",     color: "#F97316", icon: <Building2 size={14} />    },

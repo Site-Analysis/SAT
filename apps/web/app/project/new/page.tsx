@@ -44,7 +44,7 @@ const ANALYSIS_MODULES: { id: ModuleId; name: string; color: string; icon: React
   { id: "flood",       name: "Risks",             color: "#2563EB", icon: <Waves size={15} />,       desc: "Risk, terrain, hydrology" },
   { id: "temperature", name: "Temperature",       color: "#EF4444", icon: <Thermometer size={15} />, desc: "Thermal profile, comfort" },
   { id: "wind",        name: "Wind",              color: "#06B6D4", icon: <Wind size={15} />,         desc: "Speed, ventilation, gusts" },
-  { id: "rainfall",    name: "Rainfall",          color: "#7C3AED", icon: <CloudRain size={15} />,    desc: "Annual totals, wet days" },
+  { id: "rainfall",    name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={15} />,    desc: "Annual totals, wet days" },
   { id: "zoning",      name: "Zoning",            color: "#B45309", icon: <Scale size={15} />,        desc: "Zone, LULC, FAR, NA order, DGCA" },
 ];
 
@@ -295,6 +295,8 @@ export default function NewAnalysisPage() {
         userAvatarUrl={user.user_metadata?.avatar_url}
         userName={user.user_metadata?.full_name || user.email}
         userEmail={user.email}
+        showCurrentLocation={!pinDropped}
+        onCurrentLocationClick={handleCurrentLocation}
         onSettingsClick={() => router.push("/settings")}
         onSignOut={async () => { await supabase.auth.signOut(); clearAuth(); router.replace("/login"); }}
       />
@@ -312,27 +314,6 @@ export default function NewAnalysisPage() {
           <DrawTools onShapeCommitted={handleShapeCommitted} />
           <MapSearch />
         </MapContainer>
-
-        {/* Use current location button — shown before pin is placed */}
-        {!pinDropped && (
-          <button
-            type="button"
-            onClick={handleCurrentLocation}
-            style={{
-              position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
-              zIndex: 500, height: 36, padding: "0 16px", borderRadius: 8,
-              border: "1.5px solid #306223", background: "rgba(253,252,251,0.85)",
-              backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-              color: "#306223", fontSize: 13, fontWeight: 600,
-              cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
-              boxShadow: "0 2px 10px rgba(58,63,59,0.14)",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget).style.background = "#DAEBE3"; }}
-            onMouseLeave={(e) => { (e.currentTarget).style.background = "rgba(253,252,251,0.85)"; }}
-          >
-            Use current location
-          </button>
-        )}
 
         {/* Config cards — stacked flex column, appear once a pin is placed */}
         {pinDropped && (

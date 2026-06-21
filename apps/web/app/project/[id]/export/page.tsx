@@ -33,7 +33,7 @@ const MODULE_META: { id: ModuleId; name: string; color: string }[] = [
   { id: "flood",            name: "Flood",             color: "#2563EB" },
   { id: "temperature",      name: "Temperature",       color: "#EF4444" },
   { id: "wind",             name: "Wind",              color: "#06B6D4" },
-  { id: "rainfall",         name: "Rainfall",          color: "#7C3AED" },
+  { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8" },
   { id: "zoning",           name: "Zoning Compliance", color: "#B45309" },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981" },
   { id: "planning",         name: "Site Capacity",     color: "#F97316" },
@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS: ExportSettings = {
   regulatoryCrossRefs: true,
   charts:              true,
   language:            "English",
-  paperSize:           "A4 Portrait",
+  paperSize:           "A4 Landscape",
   template:            "overview",
   formats:             { pdf: true, csv: false, png: false, json: false },
 };

@@ -17,7 +17,7 @@ import type {
 // Per-module accent colours (match the rest of the UI).
 const COLOR = {
   flood: "#2563EB", sunpath: "#F59E0B", temperature: "#EF4444",
-  wind: "#06B6D4", rainfall: "#7C3AED",
+  wind: "#06B6D4", rainfall: "#1D4ED8",
 } as const;
 
 function comfortTone(v: string): QualitativeTone {
@@ -546,7 +546,7 @@ export async function getRainfallAnalysis(coords: AnalysisCoords): Promise<Modul
   }
   charts.push({
     title: "Wet vs dry days", kind: "bar", unit: "days",
-    series: [{ key: "value", label: "Days", color: "#7C3AED" }],
+    series: [{ key: "value", label: "Days", color: "#1D4ED8" }],
     points: [
       { label: "Rainy", value: num(raw.rainy_days) },
       { label: "Dry",   value: num(raw.dry_days)   },

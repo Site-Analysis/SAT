@@ -23,7 +23,7 @@ const MOD_ROWS: ModRow[] = [
   { name: "Flood",       color: "#2563EB", bgRgba: "rgba(37,99,235,0.08)",  state: "done",   statusText: "Complete · MERIT-Hydro · GEE" },
   { name: "Temperature", color: "#EF4444", bgRgba: "rgba(239,68,68,0.08)",  state: "active", statusText: "Fetching Open-Meteo data…"    },
   { name: "Wind",        color: "#06B6D4", bgRgba: "rgba(6,182,212,0.08)",  state: "queued", statusText: "Queued"                       },
-  { name: "Rainfall",    color: "#7C3AED", bgRgba: "rgba(124,58,237,0.08)", state: "queued", statusText: "Queued"                       },
+  { name: "Rainfall",    color: "#1D4ED8", bgRgba: "rgba(29,78,216,0.08)", state: "queued", statusText: "Queued"                       },
 ];
 
 function getInitials(user: { email?: string; user_metadata?: { full_name?: string } }) {

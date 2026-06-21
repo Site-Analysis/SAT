@@ -38,7 +38,7 @@ export function RainfallOverlay({ result }: RainfallOverlayProps) {
           Annual Rainfall
         </div>
         <div style={{
-          fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#5B21B6",
+          fontSize: 26, fontWeight: 700, lineHeight: 1, color: "#1E3A8A",
           fontFamily: "var(--font-geist-mono), monospace",
         }}>
           {annual}

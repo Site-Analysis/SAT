@@ -7,7 +7,7 @@ const MODULE_PROGRESS_COLORS = [
   "#2563EB", // flood
   "#EF4444", // temperature
   "#06B6D4", // wind
-  "#7C3AED", // rainfall
+  "#1D4ED8", // rainfall
 ];
 
 export interface ActiveModuleInfo {

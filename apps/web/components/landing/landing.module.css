@@ -26,7 +26,7 @@
   --flood:  #2563EB;
   --sun:    #F59E0B;
   --wind:   #06B6D4;
-  --rain:   #7C3AED;
+  --rain:   #1D4ED8;
   --temp:   #EF4444;
   --r:    10px;
   --r-lg: 16px;
@@ -93,6 +93,12 @@
 }
 .nav-links a:hover {
   color: var(--text);
+}
+/* Try-free CTA — keep bold white, beating the muted .nav-links a rule above */
+.nav-links a.btn-nav,
+.nav-links a.btn-nav:hover {
+  color: #fff;
+  font-weight: 700;
 }
 .btn-nav {
   font-family: var(--font-ui);

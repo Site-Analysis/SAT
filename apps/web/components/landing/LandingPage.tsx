@@ -328,7 +328,7 @@ export function LandingPage() {
             <div className={$["mod-source"]}>Open-Meteo · IMD · 2025</div>
           </div>
           <div className={$["mod-card"]}>
-            <div className={$["mod-icon"]} style={{ background: "rgba(124,58,237,0.07)" }}>🌧</div>
+            <div className={$["mod-icon"]} style={{ background: "rgba(29,78,216,0.07)" }}>🌧</div>
             <div className={$["mod-name"]}>Rainfall</div>
             <div className={$["mod-score"]} style={{ color: "var(--rain)" }}>72<span>/100</span></div>
             <p className={$["mod-desc"]}>Annual total, monsoon peak intensity, NBC 2016 drainage brief, waterproofing grade, construction schedule risk.</p>
