@@ -91,7 +91,7 @@ first.
   citations removed (→ "Bengaluru practice"); PLG section trimmed.
 
 ### 2026-06-20 — Qnit rebrand + public landing page
-- **Rebrand: Qnit by GeoKnit** — product rename across all user-facing strings (TopNav, login,
+- **Rebrand: Qnit** — product rename across all user-facing strings (TopNav, login,
   dashboard, settings, export, land-records panel). Code identifiers/layer names unchanged.
 - **Public landing** (`/`) — full marketing page (`LandingPage.tsx` + `landing.module.css`) for
   logged-out visitors; logged-in → `/dashboard` (client-side `useEffect`). `qnit-logo.svg` replaces
