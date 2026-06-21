@@ -1,7 +1,10 @@
-import Link from "next/link";
 import styles from "./landing.module.css";
 
 const $ = styles as Record<string, string>;
+
+// Landing renders on qnit.in only; auth lives on qnit.site (different registrable
+// domain → no shared session cookie). CTAs must point at the absolute tool URL.
+const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL ?? "https://qnit.site/login";
 
 export function LandingPage() {
   return (
@@ -16,7 +19,7 @@ export function LandingPage() {
           <li><a href="#problem">The problem</a></li>
           <li><a href="#modules">Modules</a></li>
           <li><a href="#pricing">Pricing</a></li>
-          <li><Link href="/login" className={$["btn-nav"]}>Try free →</Link></li>
+          <li><a href={LOGIN_URL} className={$["btn-nav"]}>Try free →</a></li>
         </ul>
       </nav>
 
@@ -38,7 +41,7 @@ export function LandingPage() {
             Cited, India-specific site intelligence — flood risk, sun path, wind, rainfall, temperature — on one map, in one session.
           </p>
           <div className={$["hero-actions"]}>
-            <Link href="/login" className={$["btn-primary"]}>Try your first site free →</Link>
+            <a href={LOGIN_URL} className={$["btn-primary"]}>Try your first site free →</a>
             <a href="#problem" className={$["btn-ghost"]}>See the problem it solves</a>
           </div>
           <p className={$["hero-fine"]}>No install · NBC 2016 · BBMP / BDA · Bengaluru</p>
@@ -455,7 +458,7 @@ export function LandingPage() {
               <li>Per-parameter source + last-updated date</li>
               <li>No firm procurement needed</li>
             </ul>
-            <Link href="/login" className={`${$["price-cta"]} ${$["fill"]}`}>Start free trial →</Link>
+            <a href={LOGIN_URL} className={`${$["price-cta"]} ${$["fill"]}`}>Start free trial →</a>
             <div className={$["price-compare"]}>
               <strong>vs. one consultant flood report:</strong> ₹20,000–₹50,000 per site.<br />
               Qnit covers the aggregation layer for all twelve months.
@@ -484,7 +487,7 @@ export function LandingPage() {
       <section className={$["cta-sec"]}>
         <h2 className={$["cta-title"]}>Your site is already telling you<br />what to build. Start listening.</h2>
         <p className={$["cta-sub"]}>Drop a pin. Get flood risk, sun path, wind, rainfall, and temperature — cited, India-specific, ready to use. One session. No hunting.</p>
-        <Link href="/login" className={$["btn-primary"]} style={{ display: "inline-flex", margin: "0 auto" }}>Try your first site free →</Link>
+        <a href={LOGIN_URL} className={$["btn-primary"]} style={{ display: "inline-flex", margin: "0 auto" }}>Try your first site free →</a>
         <p className={$["cta-fine"]}>No install · No GIS expertise · NBC 2016 · BBMP / BDA · Bengaluru</p>
       </section>
 
