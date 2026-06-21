@@ -51,6 +51,28 @@ clean. FVDs SAT-10..18 + 04b/07b/09b. Deferred → Phase 6: landing CTA cross-do
 - `contracts/CHANGELOG.md` verified complete through v2.8.0 (every service version) — no change.
 - Docs-only PR `docs/consolidation`.
 
+### 2026-06-21 — Phase 3 complete (Pre-Deployment Setup)
+- **Path:** Chrome-extension MCP unavailable this session → ran via CLIs (`aws`, `vercel`,
+  `supabase`) instead of autonomous browser. Secrets → `.env.production` (gitignored; added the
+  pattern to `.gitignore`), index → `deployment/secrets-manifest.md`.
+- **AWS EC2 (Mumbai `ap-south-1`)** — `i-0e709db0b743075ee` t3.medium, Ubuntu 24.04
+  (`ami-006f82a1d5a27da54`), 30 GB gp3. SG `sg-00c0f45009ce9cc37` (22←admin IP /32, 80, 443).
+  **Elastic IP `65.1.245.213`** associated. Key `~/.ssh/qnit-ec2.pem`. No stack installed (Phase 4).
+- **Vercel** — project `qnit-web`. 14 Production env vars staged: 11 API URLs all =
+  `https://api.qnit.site` (Caddy multiplexes by path prefix), `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_MAPTILER_KEY`. Domains `qnit.site` +
+  `qnit.in` reserved (verify in Phase 5). Git→repo connect deferred (needs GitHub Login Connection).
+- **Supabase** — reused existing **SAT** project (Tokyo `ap-northeast-1`). URL + publishable key
+  collected. `public` schema empty (0 tables, 0 migrations; no repo `.sql` — nothing to apply).
+  Service-role key not used by the frontend, not retrieved. Auth URL config = dashboard step.
+- **GoDaddy DNS (live + verified)** — `qnit.site` A @→`76.76.21.21`, `api`→`65.1.245.213`;
+  `qnit.in` A @→`76.76.21.21` (overwrote parked / WebsiteBuilder apex with user approval).
+- **Phase 4/5 carry-forward:** (1) Vercel→GitHub Login Connection + repo link (Phase 5);
+  (2) Supabase Auth URL config (Site URL `https://qnit.site` + redirect allow-list) — dashboard;
+  (3) Caddy must route **both** `/temperature/*` and `/weather/*` → temp svc (FE calls `/weather/*`);
+  (4) SG port 22 pinned to a dynamic admin IP — re-add before SSH; (5) Supabase advisors:
+  leaked-password protection off, `public.rls_auto_enable()` SECURITY DEFINER exposed to anon.
+
 ---
 
 ## Feature build timeline
