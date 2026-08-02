@@ -11,8 +11,8 @@ import httpx
 from app.models.wind import (
     BuildingImpact,
     ComfortAnalysis,
-    SeasonData,
     SeasonalAnalysis,
+    SeasonData,
     WindAnalysis,
     WindMetadata,
     WindRequest,
@@ -82,13 +82,12 @@ class WindAnalysisService:
         dir_counts = Counter(_bearing_to_compass(d) for d in dirs)
         total_dirs_count = len(dirs) or 1
         overall_dist = {
-            comp: round((dir_counts[comp] / total_dirs_count) * 100, 2)
-            for comp in _COMPASS
+            comp: round((dir_counts[comp] / total_dirs_count) * 100, 2) for comp in _COMPASS
         }
         prevailing = dir_counts.most_common(1)[0][0] if dir_counts else "North"
 
         # Seasonal breakdown — India meteorological seasons
-# Seasonal breakdown — India meteorological seasons
+        # Seasonal breakdown — India meteorological seasons
         def _season_stats(months: set[int]) -> SeasonData:
             indices = [i for i, t in enumerate(times) if _month_of(t) in months]
             season_speeds = [speeds[i] for i in indices if i < len(speeds)]
@@ -98,15 +97,17 @@ class WindAnalysisService:
 
             s_avg = round(statistics.mean(season_speeds), 2) if season_speeds else avg_speed
             # NEW: Calculate max speed for the season
-            s_max = round(max(season_gusts) if season_gusts else (max(season_speeds) * 1.5 if season_speeds else max_speed), 2)
+            s_max = round(
+                max(season_gusts)
+                if season_gusts
+                else (max(season_speeds) * 1.5 if season_speeds else max_speed),
+                2,
+            )
 
             s_counts = Counter(_bearing_to_compass(d) for d in season_dirs)
             s_total = len(season_dirs) or 1
 
-            s_dist = {
-                comp: round((s_counts[comp] / s_total) * 100, 2)
-                for comp in _COMPASS
-            }
+            s_dist = {comp: round((s_counts[comp] / s_total) * 100, 2) for comp in _COMPASS}
             s_prevailing = s_counts.most_common(1)[0][0] if s_counts else prevailing
 
             # NEW: Run the architectural math on the seasonal averages

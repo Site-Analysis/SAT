@@ -21,6 +21,17 @@ sys.path.insert(0, _WIND_PATH)
 sys.modules.pop("app", None)
 sys.modules.pop("app.main", None)
 
+_COMPASS = [
+    "North",
+    "Northeast",
+    "East",
+    "Southeast",
+    "South",
+    "Southwest",
+    "West",
+    "Northwest",
+]
+
 APP_AVAILABLE = False
 CLIENT = None  # type: ignore[assignment]
 _APP_IMPORT_ERROR: str = ""
@@ -141,21 +152,21 @@ def test_analyze_response_shape(monkeypatch):
     body = resp.json()
     assert 0 < body["average_wind_speed"] < 25
     assert body["max_wind_speed"] > body["average_wind_speed"]
-    assert body["prevailing_direction"] in [
-        "North",
-        "Northeast",
-        "East",
-        "Southeast",
-        "South",
-        "Southwest",
-        "West",
-        "Northwest",
-    ]
+    assert body["prevailing_direction"] in _COMPASS
+    assert sorted(body["direction_distribution"]) == sorted(_COMPASS)
+    assert round(sum(body["direction_distribution"].values())) == 100
     assert "comfort_analysis" in body
     comfort = body["comfort_analysis"]
     assert comfort["pedestrian_comfort"] in ["Poor", "Fair", "Good", "Excellent"]
     assert comfort["natural_ventilation_potential"] in ["Poor", "Fair", "Good", "Excellent"]
     assert comfort["outdoor_usability"] in ["Poor", "Fair", "Good", "Excellent"]
     building = body["building_impact"]
-    assert 0 <= building["cross_ventilation_score"] <= 100
+    assert building["recommended_orientation"] in _COMPASS
     assert building["wind_load_risk"] in ["Low", "Moderate", "High", "Very High"]
+
+    for season in ("summer", "monsoon", "winter"):
+        s = body["seasonal_analysis"][season]
+        assert 0 < s["average_wind_speed"] < 25
+        assert s["prevailing_direction"] in _COMPASS
+        assert s["recommended_orientation"] in _COMPASS
+        assert round(sum(s["direction_distribution"].values())) == 100
