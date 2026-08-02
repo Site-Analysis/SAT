@@ -45,8 +45,11 @@ class WindAnalysisService:
         self.settings = settings or WindSettings()
 
     def analyze(self, request: WindRequest) -> WindAnalysis:
+        # ERA5 reanalysis lags real time by ~5 days; back off a week so the tail of
+        # the window is never empty. Five years so each season below is averaged over
+        # five realisations rather than one — a single monsoon is noise, not climate.
         end = date.today() - timedelta(days=7)
-        start = end - timedelta(days=365)
+        start = end - timedelta(days=5 * 365)
 
         with httpx.Client(timeout=30) as client:
             resp = client.get(
@@ -78,7 +81,7 @@ class WindAnalysisService:
         avg_speed = round(statistics.mean(speeds), 2)
         max_speed = round(max(gusts) if gusts else max(speeds) * 1.5, 2)
 
-        # Calculate overall direction distribution (% frequency)
+        # Overall direction distribution — % frequency per compass point
         dir_counts = Counter(_bearing_to_compass(d) for d in dirs)
         total_dirs_count = len(dirs) or 1
         overall_dist = {
@@ -86,17 +89,16 @@ class WindAnalysisService:
         }
         prevailing = dir_counts.most_common(1)[0][0] if dir_counts else "North"
 
-        # Seasonal breakdown — India meteorological seasons
-        # Seasonal breakdown — India meteorological seasons
+        # Seasonal breakdown — India meteorological seasons. Filtering by month pools
+        # every occurrence of that season across the whole window, so a 5-year fetch
+        # gives each season five monsoons/summers/winters to average over.
         def _season_stats(months: set[int]) -> SeasonData:
             indices = [i for i, t in enumerate(times) if _month_of(t) in months]
             season_speeds = [speeds[i] for i in indices if i < len(speeds)]
             season_dirs = [dirs[i] for i in indices if i < len(dirs)]
-            # NEW: Grab the gusts for this specific season
             season_gusts = [gusts[i] for i in indices if i < len(gusts)]
 
             s_avg = round(statistics.mean(season_speeds), 2) if season_speeds else avg_speed
-            # NEW: Calculate max speed for the season
             s_max = round(
                 max(season_gusts)
                 if season_gusts
@@ -106,22 +108,18 @@ class WindAnalysisService:
 
             s_counts = Counter(_bearing_to_compass(d) for d in season_dirs)
             s_total = len(season_dirs) or 1
-
             s_dist = {comp: round((s_counts[comp] / s_total) * 100, 2) for comp in _COMPASS}
             s_prevailing = s_counts.most_common(1)[0][0] if s_counts else prevailing
 
-            # NEW: Run the architectural math on the seasonal averages
-            s_building = self._building_impact(s_avg, s_prevailing)
-            s_gust_risk = self._gust_risk(s_max)
-
             return SeasonData(
                 average_wind_speed=s_avg,
+                max_wind_speed=s_max,
                 prevailing_direction=s_prevailing,  # type: ignore[arg-type]
                 direction_distribution=s_dist,
-                # NEW: Add the missing fields to the payload
-                max_wind_speed=s_max,
-                gust_risk=s_gust_risk,
-                recommended_orientation=s_building.recommended_orientation,
+                gust_risk=self._gust_risk(s_max),
+                recommended_orientation=self._building_impact(
+                    s_avg, s_prevailing
+                ).recommended_orientation,
             )
 
         seasonal = SeasonalAnalysis(
@@ -140,7 +138,7 @@ class WindAnalysisService:
             latitude=request.latitude,
             longitude=request.longitude,
             radius_meters=request.radius_meters,
-            data_source="Open-Meteo Archive API · ERA5 reanalysis · 10 m wind speed · 1-year daily",
+            data_source="Open-Meteo Archive API · ERA5 reanalysis · 10 m wind speed · 5-year daily",
         )
 
         return WindAnalysis(
@@ -222,7 +220,7 @@ class WindAnalysisService:
     def _recommendations(self, speed: float, category: str, direction: str) -> list[str]:
         recs = [
             f"Prevailing winds from {direction} — orient habitable rooms toward the prevailing wind path.",
-            f"1-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
+            f"5-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
         ]
         if speed > 10.0:
             recs.extend(

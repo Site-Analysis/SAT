@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Wind Analysis Service
-  version: "1.2.0"
+  version: "2.0.0"
   description: >
     Wind analysis from live data — Open-Meteo Archive (ERA5 reanalysis, 10 m wind,
     5-year daily): mean/max speed, gust risk, prevailing direction (8-point), India
@@ -83,19 +83,57 @@ components:
       type: string
       enum: [Low, Moderate, High, "Very High"]
 
+    DirectionDistribution:
+      type: object
+      description: >-
+        Percentage frequency of the dominant daily wind direction, binned to the
+        8-point compass. Keys are the Orientation enum; values sum to ~100.
+      additionalProperties:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 100
+
+    SeasonData:
+      type: object
+      description: >-
+        One India-meteorological season, pooled across every year in the analysis
+        window (5 years), not a single occurrence of that season.
+      required:
+        [
+          average_wind_speed,
+          max_wind_speed,
+          prevailing_direction,
+          direction_distribution,
+          gust_risk,
+          recommended_orientation,
+        ]
+      properties:
+        average_wind_speed:
+          type: number
+          format: float
+        max_wind_speed:
+          type: number
+          format: float
+        prevailing_direction:
+          $ref: "#/components/schemas/Orientation"
+        direction_distribution:
+          $ref: "#/components/schemas/DirectionDistribution"
+        gust_risk:
+          type: string
+        recommended_orientation:
+          $ref: "#/components/schemas/Orientation"
+
     SeasonalAnalysis:
       type: object
       required: [summer, monsoon, winter]
       properties:
         summer:
-          type: number
-          format: float
+          $ref: "#/components/schemas/SeasonData"
         monsoon:
-          type: number
-          format: float
+          $ref: "#/components/schemas/SeasonData"
         winter:
-          type: number
-          format: float
+          $ref: "#/components/schemas/SeasonData"
 
     ComfortAnalysis:
       type: object
@@ -110,13 +148,8 @@ components:
 
     BuildingImpact:
       type: object
-      required: [cross_ventilation_score, wind_load_risk, recommended_orientation]
+      required: [wind_load_risk, recommended_orientation]
       properties:
-        cross_ventilation_score:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 100
         wind_load_risk:
           $ref: "#/components/schemas/WindLoadRisk"
         recommended_orientation:
@@ -145,6 +178,7 @@ components:
           average_wind_speed,
           max_wind_speed,
           prevailing_direction,
+          direction_distribution,
           wind_category,
           gust_risk,
           seasonal_analysis,
@@ -162,6 +196,8 @@ components:
           format: float
         prevailing_direction:
           $ref: "#/components/schemas/Orientation"
+        direction_distribution:
+          $ref: "#/components/schemas/DirectionDistribution"
         wind_category:
           type: string
         gust_risk:
@@ -178,26 +214,3 @@ components:
             type: string
         metadata:
           $ref: "#/components/schemas/WindMetadata"
-          properties:
-            lat:
-              type: number
-            lon:
-              type: number
-        annual_prevailing_direction:
-          type: string
-        annual_architectural_advice:
-          type: object
-          additionalProperties:
-            type: string
-        annual_wind_rose:
-          type: array
-          items:
-            $ref: "#/components/schemas/WindFrequencyBin"
-          minItems: 16
-          maxItems: 16
-        seasonal_data:
-          type: array
-          items:
-            $ref: "#/components/schemas/SeasonalWindData"
-          minItems: 4
-          maxItems: 4

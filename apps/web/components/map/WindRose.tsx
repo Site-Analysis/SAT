@@ -5,11 +5,13 @@
 
 import { Circle, Polygon } from "react-leaflet";
 
-// We now expect the raw distribution object from the backend (e.g., { "North": 12.5, "East": 30.0 })
+// Measured direction histogram from the wind service, e.g. { North: 12.5, East: 30 }.
+// Defaults to empty so a backend that predates contract 2.0.0 draws a bare dial
+// instead of throwing — this component used to synthesise the distribution itself.
 interface WindRoseProps {
   center: [number, number];
-  distribution: Record<string, number>; 
-  meanSpeed: number;
+  distribution?: Record<string, number>;
+  meanSpeed?: number;
 }
 
 // 8-point compass matching backend 'Orientation' Literal
@@ -55,21 +57,20 @@ function wedge(
   return pts;
 }
 
-export function WindRose({ center, distribution, meanSpeed }: WindRoseProps) {
-  const R_MIN = 40;   
-  const R_SPAN = 240; 
-  const HALF_WIDTH = 22.5; // Wider petals for 8-point compass
+export function WindRose({ center, distribution = {}, meanSpeed = 0 }: WindRoseProps) {
+  const R_MIN = 40;   // metres — minimum petal length
+  const R_SPAN = 240; // metres — added at max frequency
+  const HALF_WIDTH = 22.5; // degrees — petal half-angle, 8-point compass
 
-  // Find the maximum frequency to scale the petals properly
-  const frequencies = DIRS.map(dir => distribution[dir.name] || 0);
+  // Normalise against the busiest direction so the rose fills the dial.
+  const frequencies = DIRS.map((dir) => distribution[dir.name] || 0);
   const maxFreq = Math.max(...frequencies, 0.0001);
 
   const petals = DIRS.map((dir, i) => {
-    const rawFreq = frequencies[i];
-    const normalizedFreq = rawFreq / maxFreq; 
-    const ro = R_MIN + (normalizedFreq * R_SPAN);
-    
-    // Scale color bands based on frequency and mean speed
+    const normalizedFreq = frequencies[i] / maxFreq;
+    const ro = R_MIN + normalizedFreq * R_SPAN;
+
+    // Colour bands scale with this direction's share and the mean speed.
     const dirSpeed = meanSpeed * (0.55 + 0.7 * normalizedFreq);
     const bands = [
       { ri: 0,         ro: ro * 0.5, color: speedColor(dirSpeed * 0.45) },

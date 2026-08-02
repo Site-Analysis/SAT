@@ -163,10 +163,18 @@ def test_analyze_response_shape(monkeypatch):
     building = body["building_impact"]
     assert building["recommended_orientation"] in _COMPASS
     assert building["wind_load_risk"] in ["Low", "Moderate", "High", "Very High"]
+    # Dropped in contract 2.0.0 — it was min(100, speed*6), a score with no source.
+    assert "cross_ventilation_score" not in building
 
+    # Every SeasonData field is required by contract 2.0.0; apps/web reads all of
+    # them for the season toggle, so a missing one is a frontend break.
+    _RISK = ["Low", "Moderate", "High"]
     for season in ("summer", "monsoon", "winter"):
         s = body["seasonal_analysis"][season]
         assert 0 < s["average_wind_speed"] < 25
+        assert s["max_wind_speed"] >= s["average_wind_speed"]
         assert s["prevailing_direction"] in _COMPASS
         assert s["recommended_orientation"] in _COMPASS
+        assert s["gust_risk"] in _RISK
+        assert sorted(s["direction_distribution"]) == sorted(_COMPASS)
         assert round(sum(s["direction_distribution"].values())) == 100

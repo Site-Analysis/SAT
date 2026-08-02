@@ -3,19 +3,22 @@
 
 "use client";
 
-import type { ModuleResult, Severity } from "@/lib/stores/analysis";
+import type { ModuleResult, Severity, WindSeasonId } from "@/lib/stores/analysis";
 
 interface WindPanelProps {
   result?: ModuleResult;
   severity: Severity;
-  // NEW: Add the season props passed from page.tsx
-  activeSeason: "annual" | "summer" | "monsoon" | "winter";
-  onSeasonChange: (season: "annual" | "summer" | "monsoon" | "winter") => void;
+  activeSeason: WindSeasonId;
+  onSeasonChange: (season: WindSeasonId) => void;
 }
 
+// The wind service emits full 8-point names ("Southwest"); the abbreviations are
+// kept because older cached results and the report export still use them.
 const DIR_BEARING: Record<string, number> = {
   N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5,
   S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5,
+  NORTH: 0, NORTHEAST: 45, EAST: 90, SOUTHEAST: 135,
+  SOUTH: 180, SOUTHWEST: 225, WEST: 270, NORTHWEST: 315,
 };
 
 function indVal(result: ModuleResult | undefined, label: string, unit = ""): string {
@@ -33,32 +36,19 @@ function qualVal(result: ModuleResult | undefined, label: string): string {
 }
 
 export default function WindPanel({ result, severity, activeSeason, onSeasonChange }: WindPanelProps) {
-// 2. Isolate the seasonal data if a season is selected
-  const seasonalAnalysis = result as typeof result & {
-    seasonal_analysis?: Partial<Record<"summer" | "monsoon" | "winter", {
-      prevailing_direction?: string;      // Fixed key
-      average_wind_speed?: string | number;
-      max_wind_speed?: string | number;   // Fixed key
-      cross_ventilation_score?: string | number;
-      recommended_orientation?: string;   // Fixed key
-      gust_risk?: string;
-    }>>;
-  } | undefined;
+  // Undefined for "annual", and also whenever the wind service predates contract
+  // 2.0.0 — either way the annual indicators below are the fallback.
+  const season = activeSeason === "annual" ? undefined : result?.wind?.seasonal_analysis?.[activeSeason];
 
-  const currentData = activeSeason === "annual"
-    ? null
-    : seasonalAnalysis?.seasonal_analysis?.[activeSeason];
-
-  // 3. Dynamically set the variables using the EXACT JSON keys
-  const prevailing  = currentData?.prevailing_direction ?? metVal(result, "Wind profile", "Prevailing direction");
+  const prevailing  = season?.prevailing_direction ?? metVal(result, "Wind profile", "Prevailing direction");
   const bearing     = DIR_BEARING[String(prevailing).trim().toUpperCase()] ?? null;
-  
-  const meanSpeed   = currentData?.average_wind_speed ?? indVal(result, "Mean wind speed", "m/s");
-  const gust        = currentData?.max_wind_speed ?? indVal(result, "Peak gust", "m/s");
+  const meanSpeed   = season ? `${season.average_wind_speed} m/s` : indVal(result, "Mean wind speed", "m/s");
+  const gust        = season ? `${season.max_wind_speed} m/s` : indVal(result, "Peak gust", "m/s");
+  const gustRisk    = season?.gust_risk ?? qualVal(result, "Gust risk");
+  // Recommended axis stays annual on purpose — a building can't be reoriented per
+  // season, so the year-round prevailing wind is the one that should drive it.
   const orientation = indVal(result, "Recommended orientation");
-  const gustRisk    = currentData?.gust_risk ?? qualVal(result, "Gust risk");
 
-  // ... keep the rest of your component exactly the same from here down
   const seasonal = result?.charts?.find((c) => c.title === "Seasonal wind speed")?.points ?? [];
   const seasMax  = Math.max(1, ...seasonal.map((p) => Number(p.value) || 0));
 
@@ -128,7 +118,7 @@ export default function WindPanel({ result, severity, activeSeason, onSeasonChan
           { label: "Peak gust",         value: gust,         icon: "↟" },
           { label: "Recommended axis",  value: orientation,  icon: "∠" },
           { label: "Wind category",     value: qualVal(result, "Wind category"), icon: "≋" },
-          { label: "Gust risk",         value: qualVal(result, "Gust risk"),     icon: "!" },
+          { label: "Gust risk",         value: gustRisk,     icon: "!" },
         ].map(({ label, value, icon }) => (
           <div key={label} style={{ background: "#F2EDE8", borderRadius: 7, padding: "8px 10px" }}>
             <div style={{

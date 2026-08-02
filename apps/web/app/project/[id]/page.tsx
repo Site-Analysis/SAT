@@ -49,7 +49,7 @@ import {
   type AnalysisCoords,
   type SolarDay,
 } from "@/lib/api/analysis";
-import type { ModuleId, ModuleResult } from "@/lib/stores/analysis";
+import type { ModuleId, ModuleResult, WindSeasonId } from "@/lib/stores/analysis";
 import { dayRange, fmtHour } from "@/lib/solar";
 
 // 3D scene — client-only (MapLibre GL + Three.js)
@@ -201,7 +201,19 @@ export default function ProjectPage() {
   // 3D map orientation → compass widget (Scene3D default bearing is -20).
   const [bearing,      setBearing]      = useState(-20);
   const [northNonce,   setNorthNonce]   = useState(0);
-  const [windSeason, setWindSeason] = useState<"annual" | "summer" | "monsoon" | "winter">("annual");
+  const [windSeason, setWindSeason] = useState<WindSeasonId>("annual");
+
+  // Wind rose inputs for the selected season. A wind service older than contract
+  // 2.0.0 sends no `wind` block at all, so every field here has to tolerate its
+  // absence — the rose renders an empty dial rather than throwing.
+  const windRoseProps = (m: ModuleResult | undefined) => {
+    const w = m?.wind;
+    const s = windSeason === "annual" ? undefined : w?.seasonal_analysis?.[windSeason];
+    return windSeason === "annual" || !s
+      ? { distribution: w?.direction_distribution ?? {}, meanSpeed: w?.average_wind_speed ?? 0 }
+      : { distribution: s.direction_distribution, meanSpeed: s.average_wind_speed };
+  };
+
   const solar     = modules.sunpath?.solar ?? null;
   const dayPoints = solarDay?.points ?? null;
   // Slider window: prefer the selected date's daylight hours, else the equinox arc.
@@ -220,7 +232,7 @@ export default function ProjectPage() {
 
   useEffect(() => { setShowSiteCircle(true); }, [bufferM]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!id || !user) return;
     resetAnalysis();
     getProject(id).then((p) => {
@@ -357,7 +369,7 @@ useEffect(() => {
       label:   MODULE_ABBREV[activeModuleId],
       color:   meta.color,
       score:   result.score ?? 0,
-      verdict: activeModuleId === "wind" ? "Wind Analysis" : (result.summary ?? SEVERITY_VERDICT[result.severity ?? "none"] ?? "Analysing…"),
+      verdict: result.summary ?? SEVERITY_VERDICT[result.severity ?? "none"] ?? "Analysing…",
       desc:    result.summary,
     };
   })();
@@ -490,15 +502,7 @@ useEffect(() => {
                     <FloodZoneRings center={center} result={result} boundaryPolygon={boundaryPolygon} />
                   )}
                   {detailModule === "wind" && result && !result.loading && !result.error && (
-                    <WindRose 
-                      center={center} 
-                      distribution={windSeason === "annual" 
-                        ? (result as any).direction_distribution 
-                        : (result as any).seasonal_analysis[windSeason].direction_distribution}
-                      meanSpeed={windSeason === "annual" 
-                        ? (result as any).average_wind_speed 
-                        : (result as any).seasonal_analysis[windSeason].average_wind_speed} 
-                    />
+                    <WindRose center={center} {...windRoseProps(result)} />
                   )}
                   {detailModule === "rainfall" && result && !result.loading && !result.error && (
                     <RainfallOverlay result={result} />
@@ -513,15 +517,7 @@ useEffect(() => {
                     <ZoningContextOverlay center={center} zoningResult={result} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                   )}
                   {detailModule === "zoning" && showClimate && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                  <WindRose 
-                    center={center} 
-                    distribution={windSeason === "annual" 
-                    ? (modules.wind as any).direction_distribution 
-                    : (modules.wind as any).seasonal_analysis[windSeason].direction_distribution}
-                    meanSpeed={windSeason === "annual" 
-                    ? (modules.wind as any).average_wind_speed 
-                    : (modules.wind as any).seasonal_analysis[windSeason].average_wind_speed} 
-                   />
+                  <WindRose center={center} {...windRoseProps(modules.wind)} />
                   )}
                   {detailModule === "zoning" && showClimate && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                     <SunPathArc center={center} result={modules.sunpath} />
@@ -809,15 +805,7 @@ useEffect(() => {
                       <FloodZoneRings center={center} result={modules.flood} boundaryPolygon={boundaryPolygon} />
                     )}
                     {expanded.wind && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                      <WindRose 
-                        center={center} 
-                        distribution={windSeason === "annual" 
-                          ? (modules.wind as any).direction_distribution 
-                          : (modules.wind as any).seasonal_analysis[windSeason].direction_distribution}
-                        meanSpeed={windSeason === "annual" 
-                          ? (modules.wind as any).average_wind_speed 
-                          : (modules.wind as any).seasonal_analysis[windSeason].average_wind_speed} 
-                      />
+                      <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
                     {expanded.rainfall && modules.rainfall && !modules.rainfall.loading && !modules.rainfall.error && (
                       <RainfallOverlay result={modules.rainfall} />
@@ -832,15 +820,7 @@ useEffect(() => {
                       <ZoningContextOverlay center={center} zoningResult={modules.zoning} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                     )}
                     {expanded.zoning && showClimate && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                      <WindRose 
-                        center={center} 
-                        distribution={windSeason === "annual" 
-                        ? (modules.wind as any).direction_distribution 
-                        : (modules.wind as any).seasonal_analysis[windSeason].direction_distribution}
-                        meanSpeed={windSeason === "annual" 
-                        ? (modules.wind as any).average_wind_speed 
-                        : (modules.wind as any).seasonal_analysis[windSeason].average_wind_speed} 
-                      />
+                      <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
                     {expanded.zoning && showClimate && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                       <SunPathArc center={center} result={modules.sunpath} />
@@ -918,15 +898,7 @@ useEffect(() => {
                     moduleSpecificContent={
                       moduleId === "sunpath" ? <SunPanel result={result} /> :
                       moduleId === "flood"   ? <FloodRiskPanel result={result} severity={result?.severity ?? "none"} /> :
-                      moduleId === "wind" ? (
-          
-                       <WindPanel 
-                          result={result} 
-                          severity={result?.severity ?? "none"}
-                          activeSeason={windSeason}
-                          onSeasonChange={setWindSeason} 
-                        />
-                     ) :
+                      moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} activeSeason={windSeason} onSeasonChange={setWindSeason} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {

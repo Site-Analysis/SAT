@@ -21,13 +21,16 @@ class WindRequest(BaseModel):
 
 
 class SeasonData(BaseModel):
+    """One India-meteorological season, aggregated across every year in the window."""
+
     average_wind_speed: float
-    prevailing_direction: str
-    direction_distribution: dict[str, float]
-    # Add these 4 new fields:
-    max_wind_speed: float | None = None
-    gust_risk: str | None = None
-    recommended_orientation: str | None = None
+    max_wind_speed: float
+    prevailing_direction: Orientation
+    direction_distribution: dict[str, float] = Field(
+        ..., description="Percentage frequency for each 8-point compass direction"
+    )
+    gust_risk: str
+    recommended_orientation: Orientation
 
 
 class SeasonalAnalysis(BaseModel):

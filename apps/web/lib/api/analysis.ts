@@ -14,7 +14,7 @@
 //   rainfall    (8004): feature.rainfall.summary
 
 import type {
-  ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone,
+  ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone, WindSeason,
 } from "../stores/analysis";
 
 // Per-module accent colours (match the rest of the UI).
@@ -248,32 +248,36 @@ export async function getFloodAnalysis(coords: AnalysisCoords): Promise<ModuleRe
 
 // ─── Wind — POST /wind/analyze → WindAnalysis ─────────────────────────────────
 
-// Replace the WindAnalysis interface and getWindAnalysis function in analysis.ts:
-
+// Mirrors contracts/wind.yaml 2.0.0. `direction_distribution` and the nested
+// `SeasonData` seasons only exist on wind service >= 2.0.0, so both are optional
+// here — a stale backend must degrade, not throw.
 interface WindAnalysis {
   average_wind_speed: number;
   max_wind_speed: number;
   prevailing_direction: string;
-  direction_distribution: Record<string, number>; // NEW: Backend distribution data
+  direction_distribution?: Record<string, number>;
   wind_category: string;
   gust_risk: string;
-  seasonal_analysis: {
-    summer: { average_wind_speed: number; direction_distribution: Record<string, number> };
-    monsoon: { average_wind_speed: number; direction_distribution: Record<string, number> };
-    winter: { average_wind_speed: number; direction_distribution: Record<string, number> };
-  }; // UPDATED: Backend now returns nested objects
+  seasonal_analysis?: Partial<Record<"summer" | "monsoon" | "winter", WindSeason>>;
   comfort_analysis: {
     pedestrian_comfort: string;
     natural_ventilation_potential: string;
     outdoor_usability: string;
   };
   building_impact: {
-    cross_ventilation_score: number;
     wind_load_risk: string;
     recommended_orientation: string;
   };
   recommendations: string[];
   metadata: { data_source: string };
+}
+
+// Seasons are objects on >= 2.0.0 and bare mean-speed numbers before it. Anything
+// that isn't the new object shape yields undefined rather than a partial season.
+function windSeason(v: unknown): WindSeason | undefined {
+  return v !== null && typeof v === "object" && "direction_distribution" in v
+    ? (v as WindSeason)
+    : undefined;
 }
 
 export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleResult> {
@@ -284,23 +288,28 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
   const speed = num(raw.average_wind_speed);
   const comfort = raw.comfort_analysis ?? {} as WindAnalysis["comfort_analysis"];
   const impact = raw.building_impact ?? {} as WindAnalysis["building_impact"];
+  // Comfort-oriented goodness score — lower sustained wind reads as more buildable.
   const score = clampScore(100 - (speed / 15) * 100);
-  
+  const seasons = raw.seasonal_analysis ?? {};
+
   return {
-    // --- PASS THE NEW DATA DIRECTLY TO THE FRONTEND UI ---
-    direction_distribution: raw.direction_distribution,
-    seasonal_analysis: raw.seasonal_analysis,
-    average_wind_speed: raw.average_wind_speed,
-    // -----------------------------------------------------
+    wind: {
+      average_wind_speed: speed,
+      direction_distribution: raw.direction_distribution ?? {},
+      seasonal_analysis: {
+        summer: windSeason(seasons.summer),
+        monsoon: windSeason(seasons.monsoon),
+        winter: windSeason(seasons.winter),
+      },
+    },
     score,
     severity: severityFromScore(score),
     summary: raw.recommendations?.[0] ?? `Prevailing wind ${speed.toFixed(1)} m/s from the ${raw.prevailing_direction}.`,
-    data_source: raw.metadata?.data_source ?? "Open-Meteo Archive · ERA5 reanalysis · 10m wind · 1-year daily",
+    data_source: raw.metadata?.data_source ?? "Open-Meteo Archive · ERA5 reanalysis · 10m wind · 5-year daily",
     indicators: [
       { label: "Mean wind speed",       value: speed.toFixed(1),                       unit: "m/s", barFraction: clamp01(speed / 15),              citation: "Open-Meteo ERA5" },
       { label: "Peak gust",             value: num(raw.max_wind_speed).toFixed(1),     unit: "m/s", barFraction: clamp01(num(raw.max_wind_speed) / 25), citation: "IS 875 Part 3: 2015" },
-      { label: "Cross-ventilation",     value: num(impact.cross_ventilation_score).toFixed(0), unit: "/100", barFraction: clamp01(num(impact.cross_ventilation_score) / 100), citation: "Ventilation model" },
-      { label: "Recommended orientation", value: String(impact.recommended_orientation ?? "—"), unit: "", barFraction: 0.7, citation: "Cross-ventilation model" },
+      { label: "Recommended orientation", value: String(impact.recommended_orientation ?? "—"), unit: "", barFraction: 0.7, citation: "Prevailing-wind geometry" },
     ],
     chart_data: [],
     charts: [
@@ -308,10 +317,9 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
         title: "Seasonal wind speed", kind: "bar", unit: "m/s",
         series: [{ key: "value", label: "Wind speed", color: COLOR.wind }],
         points: [
-          // UPDATED to read from the new nested object structure
-          { label: "Summer",  value: num(raw.seasonal_analysis?.summer?.average_wind_speed)  },
-          { label: "Monsoon", value: num(raw.seasonal_analysis?.monsoon?.average_wind_speed) },
-          { label: "Winter",  value: num(raw.seasonal_analysis?.winter?.average_wind_speed)  },
+          { label: "Summer",  value: num(seasons.summer?.average_wind_speed)  },
+          { label: "Monsoon", value: num(seasons.monsoon?.average_wind_speed) },
+          { label: "Winter",  value: num(seasons.winter?.average_wind_speed)  },
         ],
       },
     ],
@@ -330,14 +338,14 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
           { label: "Prevailing direction",  value: String(raw.prevailing_direction ?? "—") },
           { label: "Mean speed",            value: speed.toFixed(1),                   unit: "m/s" },
           { label: "Max gust",              value: num(raw.max_wind_speed).toFixed(1), unit: "m/s" },
-          { label: "Cross-ventilation",     value: num(impact.cross_ventilation_score).toFixed(0), unit: "/100" },
+          { label: "Recommended orientation", value: String(impact.recommended_orientation ?? "—") },
         ],
       },
     ],
     recommendations: raw.recommendations ?? [],
     loading: false,
     error: null,
-  } as any; 
+  };
 }
 
 // ─── Temperature — GET /weather/thermal-profile → ClimateReport ───────────────

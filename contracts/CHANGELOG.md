@@ -99,6 +99,34 @@
 - `metadata.data_source` names Open-Meteo ERA5. Raises on no upstream data (no
   fabricated values).
 
+## 3.0.0 — 2026-08-02
+
+### Changed (BREAKING) — wind.yaml (seasonal detail + real direction histograms)
+- **Version**: 1.2.0 → 2.0.0
+- **Removed `BuildingImpact.cross_ventilation_score`** (was `min(100, speed * 6)` —
+  a fabricated score with no source). No longer in `required` or `properties`.
+- **`SeasonalAnalysis` members change type**: `summer`/`monsoon`/`winter` go from
+  bare `number` (mean speed) to the new `SeasonData` object carrying
+  `average_wind_speed`, `max_wind_speed`, `prevailing_direction`,
+  `direction_distribution`, `gust_risk`, `recommended_orientation`.
+- **Added required `WindAnalysis.direction_distribution`** (new `DirectionDistribution`
+  schema): percentage frequency of the dominant daily wind direction per 8-point
+  compass bin. `WindRose.tsx` previously synthesised this client-side from a gaussian
+  plus a `Math.sin` jitter; it now renders measured data.
+- Analysis window stays **5 years** of ERA5 daily, ending 7 days back to clear the
+  reanalysis lag. Seasons are pooled by month across the window, so each season
+  averages five occurrences rather than one.
+
+### Fixed — wind.yaml (pre-existing spec defects, unrelated to the above)
+- Dropped four `WindAnalysis` properties that the service has never returned:
+  `annual_prevailing_direction`, `annual_architectural_advice`, `annual_wind_rose`,
+  `seasonal_data`. The last two `$ref`'d `WindFrequencyBin` and `SeasonalWindData`,
+  neither of which is defined in `components/schemas` — the document did not resolve.
+- Dropped the meaningless `properties: {lat, lon}` sitting beside `metadata`'s `$ref`.
+
+Consumers must redeploy the wind service before `apps/web`: the frontend reads
+`direction_distribution` and the nested `SeasonData` shape.
+
 ## 1.5.1 — 2026-06-09
 
 ### Fixed — sunpath service (`osm_extractor.py`)
