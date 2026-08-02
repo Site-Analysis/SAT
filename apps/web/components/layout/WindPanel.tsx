@@ -3,16 +3,22 @@
 
 "use client";
 
-import type { ModuleResult, Severity } from "@/lib/stores/analysis";
+import type { ModuleResult, Severity, WindSeasonId } from "@/lib/stores/analysis";
 
 interface WindPanelProps {
   result?: ModuleResult;
   severity: Severity;
+  activeSeason: WindSeasonId;
+  onSeasonChange: (season: WindSeasonId) => void;
 }
 
+// The wind service emits full 8-point names ("Southwest"); the abbreviations are
+// kept because older cached results and the report export still use them.
 const DIR_BEARING: Record<string, number> = {
   N: 0, NNE: 22.5, NE: 45, ENE: 67.5, E: 90, ESE: 112.5, SE: 135, SSE: 157.5,
   S: 180, SSW: 202.5, SW: 225, WSW: 247.5, W: 270, WNW: 292.5, NW: 315, NNW: 337.5,
+  NORTH: 0, NORTHEAST: 45, EAST: 90, SOUTHEAST: 135,
+  SOUTH: 180, SOUTHWEST: 225, WEST: 270, NORTHWEST: 315,
 };
 
 function indVal(result: ModuleResult | undefined, label: string, unit = ""): string {
@@ -29,15 +35,20 @@ function qualVal(result: ModuleResult | undefined, label: string): string {
   return result?.qualitative?.find((q) => q.label === label)?.value ?? "—";
 }
 
-export function WindPanel({ result, severity }: WindPanelProps) {
-  const prevailing = metVal(result, "Wind profile", "Prevailing direction");
-  const bearing    = DIR_BEARING[String(prevailing).trim().toUpperCase()] ?? null;
-  const meanSpeed  = indVal(result, "Mean wind speed", "m/s");
-  const gust       = indVal(result, "Peak gust", "m/s");
-  const crossVent  = indVal(result, "Cross-ventilation");
+export default function WindPanel({ result, severity, activeSeason, onSeasonChange }: WindPanelProps) {
+  // Undefined for "annual", and also whenever the wind service predates contract
+  // 2.0.0 — either way the annual indicators below are the fallback.
+  const season = activeSeason === "annual" ? undefined : result?.wind?.seasonal_analysis?.[activeSeason];
+
+  const prevailing  = season?.prevailing_direction ?? metVal(result, "Wind profile", "Prevailing direction");
+  const bearing     = DIR_BEARING[String(prevailing).trim().toUpperCase()] ?? null;
+  const meanSpeed   = season ? `${season.average_wind_speed} m/s` : indVal(result, "Mean wind speed", "m/s");
+  const gust        = season ? `${season.max_wind_speed} m/s` : indVal(result, "Peak gust", "m/s");
+  const gustRisk    = season?.gust_risk ?? qualVal(result, "Gust risk");
+  // Recommended axis stays annual on purpose — a building can't be reoriented per
+  // season, so the year-round prevailing wind is the one that should drive it.
   const orientation = indVal(result, "Recommended orientation");
 
-  // Seasonal wind speeds from the module chart
   const seasonal = result?.charts?.find((c) => c.title === "Seasonal wind speed")?.points ?? [];
   const seasMax  = Math.max(1, ...seasonal.map((p) => Number(p.value) || 0));
 
@@ -51,7 +62,25 @@ export function WindPanel({ result, severity }: WindPanelProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 2 }}>
-
+      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+        {(["annual", "summer", "monsoon", "winter"] as const).map((season) => (
+          <button
+            key={season}
+            onClick={() => onSeasonChange(season)}
+            style={{
+              flex: 1, padding: "6px 0", fontSize: 10, fontWeight: 600,
+              borderRadius: 6, border: "1px solid", cursor: "pointer",
+              textTransform: "capitalize", fontFamily: "inherit",
+              background: activeSeason === season ? "#0E7490" : "transparent",
+              color: activeSeason === season ? "#FDFCFB" : "#7B8F83",
+              borderColor: activeSeason === season ? "#0E7490" : "rgba(207,214,196,0.6)",
+              transition: "all 0.15s ease"
+            }}
+          >
+            {season}
+          </button>
+        ))}
+      </div>
       {/* ── Prevailing direction banner with compass arrow ─────── */}
       <div style={{
         background: "rgba(6,182,212,0.07)", border: "1.5px solid rgba(6,182,212,0.22)",
@@ -87,10 +116,9 @@ export function WindPanel({ result, severity }: WindPanelProps) {
         {[
           { label: "Mean speed",        value: meanSpeed,    icon: "≈" },
           { label: "Peak gust",         value: gust,         icon: "↟" },
-          { label: "Cross-ventilation", value: crossVent,    icon: "⇄" },
           { label: "Recommended axis",  value: orientation,  icon: "∠" },
           { label: "Wind category",     value: qualVal(result, "Wind category"), icon: "≋" },
-          { label: "Gust risk",         value: qualVal(result, "Gust risk"),     icon: "!" },
+          { label: "Gust risk",         value: gustRisk,     icon: "!" },
         ].map(({ label, value, icon }) => (
           <div key={label} style={{ background: "#F2EDE8", borderRadius: 7, padding: "8px 10px" }}>
             <div style={{

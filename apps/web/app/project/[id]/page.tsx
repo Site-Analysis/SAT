@@ -15,7 +15,7 @@ import { ModuleDetailCard } from "@/components/layout/ModuleDetailCard";
 import { SunPanel } from "@/components/layout/SunPanel";
 import { FloodRiskPanel } from "@/components/layout/FloodRiskPanel";
 import { FloodZoneOverlay } from "@/components/map/FloodZoneOverlay";
-import { WindPanel } from "@/components/layout/WindPanel";
+import WindPanel from "@/components/layout/WindPanel";
 import { WindOverlay } from "@/components/map/WindOverlay";
 import { RainfallPanel } from "@/components/layout/RainfallPanel";
 import { TemperaturePanel } from "@/components/layout/TemperaturePanel";
@@ -49,7 +49,7 @@ import {
   type AnalysisCoords,
   type SolarDay,
 } from "@/lib/api/analysis";
-import type { ModuleId, ModuleResult } from "@/lib/stores/analysis";
+import type { ModuleId, ModuleResult, WindSeasonId } from "@/lib/stores/analysis";
 import { dayRange, fmtHour } from "@/lib/solar";
 
 // 3D scene — client-only (MapLibre GL + Three.js)
@@ -161,9 +161,11 @@ function getInitials(user: { email?: string; user_metadata?: { full_name?: strin
     return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
   }
   return user.email?.[0]?.toUpperCase() ?? "U";
+
 }
 
 export default function ProjectPage() {
+                    
   const router      = useRouter();
   const { id }      = useParams<{ id: string }>();
 
@@ -199,6 +201,18 @@ export default function ProjectPage() {
   // 3D map orientation → compass widget (Scene3D default bearing is -20).
   const [bearing,      setBearing]      = useState(-20);
   const [northNonce,   setNorthNonce]   = useState(0);
+  const [windSeason, setWindSeason] = useState<WindSeasonId>("annual");
+
+  // Wind rose inputs for the selected season. A wind service older than contract
+  // 2.0.0 sends no `wind` block at all, so every field here has to tolerate its
+  // absence — the rose renders an empty dial rather than throwing.
+  const windRoseProps = (m: ModuleResult | undefined) => {
+    const w = m?.wind;
+    const s = windSeason === "annual" ? undefined : w?.seasonal_analysis?.[windSeason];
+    return windSeason === "annual" || !s
+      ? { distribution: w?.direction_distribution ?? {}, meanSpeed: w?.average_wind_speed ?? 0 }
+      : { distribution: s.direction_distribution, meanSpeed: s.average_wind_speed };
+  };
 
   const solar     = modules.sunpath?.solar ?? null;
   const dayPoints = solarDay?.points ?? null;
@@ -380,7 +394,7 @@ export default function ProjectPage() {
           { label: project?.name ?? "…",   href: `/project/${id}` },
         ]}
         userInitials={initials}
-        userAvatarUrl={user.user_metadata?.avatar_url}
+        userAvatarUrl={(user.user_metadata as { avatar_url?: string } | undefined)?.avatar_url}
         userName={user.user_metadata?.full_name || user.email}
         userEmail={user.email}
         onSettingsClick={() => router.push("/settings")}
@@ -488,7 +502,7 @@ export default function ProjectPage() {
                     <FloodZoneRings center={center} result={result} boundaryPolygon={boundaryPolygon} />
                   )}
                   {detailModule === "wind" && result && !result.loading && !result.error && (
-                    <WindRose center={center} result={result} />
+                    <WindRose center={center} {...windRoseProps(result)} />
                   )}
                   {detailModule === "rainfall" && result && !result.loading && !result.error && (
                     <RainfallOverlay result={result} />
@@ -503,7 +517,7 @@ export default function ProjectPage() {
                     <ZoningContextOverlay center={center} zoningResult={result} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                   )}
                   {detailModule === "zoning" && showClimate && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                    <WindRose center={center} result={modules.wind} />
+                  <WindRose center={center} {...windRoseProps(modules.wind)} />
                   )}
                   {detailModule === "zoning" && showClimate && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                     <SunPathArc center={center} result={modules.sunpath} />
@@ -791,7 +805,7 @@ export default function ProjectPage() {
                       <FloodZoneRings center={center} result={modules.flood} boundaryPolygon={boundaryPolygon} />
                     )}
                     {expanded.wind && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                      <WindRose center={center} result={modules.wind} />
+                      <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
                     {expanded.rainfall && modules.rainfall && !modules.rainfall.loading && !modules.rainfall.error && (
                       <RainfallOverlay result={modules.rainfall} />
@@ -806,7 +820,7 @@ export default function ProjectPage() {
                       <ZoningContextOverlay center={center} zoningResult={modules.zoning} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                     )}
                     {expanded.zoning && showClimate && modules.wind && !modules.wind.loading && !modules.wind.error && (
-                      <WindRose center={center} result={modules.wind} />
+                      <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
                     {expanded.zoning && showClimate && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                       <SunPathArc center={center} result={modules.sunpath} />
@@ -884,7 +898,7 @@ export default function ProjectPage() {
                     moduleSpecificContent={
                       moduleId === "sunpath" ? <SunPanel result={result} /> :
                       moduleId === "flood"   ? <FloodRiskPanel result={result} severity={result?.severity ?? "none"} /> :
-                      moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} /> :
+                      moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} activeSeason={windSeason} onSeasonChange={setWindSeason} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {

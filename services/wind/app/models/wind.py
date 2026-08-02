@@ -20,10 +20,23 @@ class WindRequest(BaseModel):
     radius_meters: float = Field(1000.0, gt=0, description="Analysis radius in meters")
 
 
+class SeasonData(BaseModel):
+    """One India-meteorological season, aggregated across every year in the window."""
+
+    average_wind_speed: float
+    max_wind_speed: float
+    prevailing_direction: Orientation
+    direction_distribution: dict[str, float] = Field(
+        ..., description="Percentage frequency for each 8-point compass direction"
+    )
+    gust_risk: str
+    recommended_orientation: Orientation
+
+
 class SeasonalAnalysis(BaseModel):
-    summer: float
-    monsoon: float
-    winter: float
+    summer: SeasonData
+    monsoon: SeasonData
+    winter: SeasonData
 
 
 class ComfortAnalysis(BaseModel):
@@ -33,7 +46,6 @@ class ComfortAnalysis(BaseModel):
 
 
 class BuildingImpact(BaseModel):
-    cross_ventilation_score: float
     wind_load_risk: WindLoadRisk
     recommended_orientation: Orientation
 
@@ -49,6 +61,9 @@ class WindAnalysis(BaseModel):
     average_wind_speed: float
     max_wind_speed: float
     prevailing_direction: Orientation
+    direction_distribution: dict[str, float] = Field(
+        ..., description="Overall percentage frequency for each 8-point compass direction"
+    )
     wind_category: str
     gust_risk: str
     seasonal_analysis: SeasonalAnalysis

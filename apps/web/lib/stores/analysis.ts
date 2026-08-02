@@ -61,6 +61,25 @@ export interface SolarData {
   lng: number;
 }
 
+// Raw wind climatology for the wind rose + seasonal toggle. Every field is
+// measured by the wind service; the rose renders nothing without a distribution.
+// Optional as a whole so a wind service still on the pre-2.0.0 contract (no
+// `direction_distribution`, seasons as bare numbers) degrades instead of throwing.
+export interface WindSeason {
+  average_wind_speed: number;
+  max_wind_speed: number;
+  prevailing_direction: string;
+  direction_distribution: Record<string, number>;
+  gust_risk: string;
+  recommended_orientation: string;
+}
+export type WindSeasonId = "annual" | "summer" | "monsoon" | "winter";
+export interface WindData {
+  average_wind_speed: number;
+  direction_distribution: Record<string, number>;
+  seasonal_analysis: Partial<Record<Exclude<WindSeasonId, "annual">, WindSeason>>;
+}
+
 // One nearby contextual item (feature / amenity / transit) used by the zoning
 // site-context radar. `distanceM` is always present; `lat`/`lon` arrive in
 // Phase 2 (backend coords) and stay optional until then.
@@ -162,6 +181,7 @@ export interface ModuleResult {
   recommendations?: string[];
   data_source?: string;
   solar?: SolarData;
+  wind?: WindData;
   zoning?: ZoningData;
   amenityPoints?: AmenityPoint[];
   loading: boolean;

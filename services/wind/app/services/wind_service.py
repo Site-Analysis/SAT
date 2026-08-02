@@ -12,6 +12,7 @@ from app.models.wind import (
     BuildingImpact,
     ComfortAnalysis,
     SeasonalAnalysis,
+    SeasonData,
     WindAnalysis,
     WindMetadata,
     WindRequest,
@@ -44,7 +45,10 @@ class WindAnalysisService:
         self.settings = settings or WindSettings()
 
     def analyze(self, request: WindRequest) -> WindAnalysis:
-        end = date.today()
+        # ERA5 reanalysis lags real time by ~5 days; back off a week so the tail of
+        # the window is never empty. Five years so each season below is averaged over
+        # five realisations rather than one — a single monsoon is noise, not climate.
+        end = date.today() - timedelta(days=7)
         start = end - timedelta(days=5 * 365)
 
         with httpx.Client(timeout=30) as client:
@@ -77,19 +81,51 @@ class WindAnalysisService:
         avg_speed = round(statistics.mean(speeds), 2)
         max_speed = round(max(gusts) if gusts else max(speeds) * 1.5, 2)
 
-        # Prevailing direction: most common daily dominant direction binned to 8 points
+        # Overall direction distribution — % frequency per compass point
         dir_counts = Counter(_bearing_to_compass(d) for d in dirs)
+        total_dirs_count = len(dirs) or 1
+        overall_dist = {
+            comp: round((dir_counts[comp] / total_dirs_count) * 100, 2) for comp in _COMPASS
+        }
         prevailing = dir_counts.most_common(1)[0][0] if dir_counts else "North"
 
-        # Seasonal breakdown — India meteorological seasons
-        def _season_mean(months: set[int]) -> float:
-            vals = [speeds[i] for i, t in enumerate(times) if _month_of(t) in months]
-            return round(statistics.mean(vals) if vals else avg_speed, 2)
+        # Seasonal breakdown — India meteorological seasons. Filtering by month pools
+        # every occurrence of that season across the whole window, so a 5-year fetch
+        # gives each season five monsoons/summers/winters to average over.
+        def _season_stats(months: set[int]) -> SeasonData:
+            indices = [i for i, t in enumerate(times) if _month_of(t) in months]
+            season_speeds = [speeds[i] for i in indices if i < len(speeds)]
+            season_dirs = [dirs[i] for i in indices if i < len(dirs)]
+            season_gusts = [gusts[i] for i in indices if i < len(gusts)]
+
+            s_avg = round(statistics.mean(season_speeds), 2) if season_speeds else avg_speed
+            s_max = round(
+                max(season_gusts)
+                if season_gusts
+                else (max(season_speeds) * 1.5 if season_speeds else max_speed),
+                2,
+            )
+
+            s_counts = Counter(_bearing_to_compass(d) for d in season_dirs)
+            s_total = len(season_dirs) or 1
+            s_dist = {comp: round((s_counts[comp] / s_total) * 100, 2) for comp in _COMPASS}
+            s_prevailing = s_counts.most_common(1)[0][0] if s_counts else prevailing
+
+            return SeasonData(
+                average_wind_speed=s_avg,
+                max_wind_speed=s_max,
+                prevailing_direction=s_prevailing,  # type: ignore[arg-type]
+                direction_distribution=s_dist,
+                gust_risk=self._gust_risk(s_max),
+                recommended_orientation=self._building_impact(
+                    s_avg, s_prevailing
+                ).recommended_orientation,
+            )
 
         seasonal = SeasonalAnalysis(
-            summer=_season_mean({3, 4, 5}),
-            monsoon=_season_mean({6, 7, 8, 9}),
-            winter=_season_mean({10, 11, 12, 1, 2}),
+            summer=_season_stats({3, 4, 5}),
+            monsoon=_season_stats({6, 7, 8, 9}),
+            winter=_season_stats({10, 11, 12, 1, 2}),
         )
 
         category = self._wind_category(avg_speed)
@@ -109,6 +145,7 @@ class WindAnalysisService:
             average_wind_speed=avg_speed,
             max_wind_speed=max_speed,
             prevailing_direction=prevailing,  # type: ignore[arg-type]
+            direction_distribution=overall_dist,
             wind_category=category,
             gust_risk=gust_risk,
             seasonal_analysis=seasonal,
@@ -164,7 +201,6 @@ class WindAnalysisService:
         )
 
     def _building_impact(self, speed: float, direction: str) -> BuildingImpact:
-        cross_vent = round(min(100.0, speed * 6.0), 2)
         load_risk = (
             "Low"
             if speed < 5.0
@@ -174,18 +210,16 @@ class WindAnalysisService:
             if speed < 15.0
             else "Very High"
         )
-        # Orientation perpendicular to prevailing wind maximises cross-ventilation
         dir_idx = _COMPASS.index(direction) if direction in _COMPASS else 0
         recommended = _COMPASS[(dir_idx + 2) % 8]
         return BuildingImpact(
-            cross_ventilation_score=cross_vent,
             wind_load_risk=load_risk,  # type: ignore[arg-type]
             recommended_orientation=recommended,  # type: ignore[arg-type]
         )
 
     def _recommendations(self, speed: float, category: str, direction: str) -> list[str]:
         recs = [
-            f"Prevailing winds from {direction} — orient habitable rooms for cross-ventilation.",
+            f"Prevailing winds from {direction} — orient habitable rooms toward the prevailing wind path.",
             f"5-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
         ]
         if speed > 10.0:
