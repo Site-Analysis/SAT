@@ -248,13 +248,20 @@ export async function getFloodAnalysis(coords: AnalysisCoords): Promise<ModuleRe
 
 // ─── Wind — POST /wind/analyze → WindAnalysis ─────────────────────────────────
 
+// Replace the WindAnalysis interface and getWindAnalysis function in analysis.ts:
+
 interface WindAnalysis {
   average_wind_speed: number;
   max_wind_speed: number;
   prevailing_direction: string;
+  direction_distribution: Record<string, number>; // NEW: Backend distribution data
   wind_category: string;
   gust_risk: string;
-  seasonal_analysis: { summer: number; monsoon: number; winter: number };
+  seasonal_analysis: {
+    summer: { average_wind_speed: number; direction_distribution: Record<string, number> };
+    monsoon: { average_wind_speed: number; direction_distribution: Record<string, number> };
+    winter: { average_wind_speed: number; direction_distribution: Record<string, number> };
+  }; // UPDATED: Backend now returns nested objects
   comfort_analysis: {
     pedestrian_comfort: string;
     natural_ventilation_potential: string;
@@ -277,13 +284,18 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
   const speed = num(raw.average_wind_speed);
   const comfort = raw.comfort_analysis ?? {} as WindAnalysis["comfort_analysis"];
   const impact = raw.building_impact ?? {} as WindAnalysis["building_impact"];
-  // Comfort-oriented goodness score — lower sustained wind reads as more buildable.
   const score = clampScore(100 - (speed / 15) * 100);
+  
   return {
+    // --- PASS THE NEW DATA DIRECTLY TO THE FRONTEND UI ---
+    direction_distribution: raw.direction_distribution,
+    seasonal_analysis: raw.seasonal_analysis,
+    average_wind_speed: raw.average_wind_speed,
+    // -----------------------------------------------------
     score,
     severity: severityFromScore(score),
     summary: raw.recommendations?.[0] ?? `Prevailing wind ${speed.toFixed(1)} m/s from the ${raw.prevailing_direction}.`,
-    data_source: raw.metadata?.data_source ?? "Open-Meteo Archive · ERA5 reanalysis · 10m wind · 5-year daily",
+    data_source: raw.metadata?.data_source ?? "Open-Meteo Archive · ERA5 reanalysis · 10m wind · 1-year daily",
     indicators: [
       { label: "Mean wind speed",       value: speed.toFixed(1),                       unit: "m/s", barFraction: clamp01(speed / 15),              citation: "Open-Meteo ERA5" },
       { label: "Peak gust",             value: num(raw.max_wind_speed).toFixed(1),     unit: "m/s", barFraction: clamp01(num(raw.max_wind_speed) / 25), citation: "IS 875 Part 3: 2015" },
@@ -296,9 +308,10 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
         title: "Seasonal wind speed", kind: "bar", unit: "m/s",
         series: [{ key: "value", label: "Wind speed", color: COLOR.wind }],
         points: [
-          { label: "Summer",  value: num(raw.seasonal_analysis?.summer)  },
-          { label: "Monsoon", value: num(raw.seasonal_analysis?.monsoon) },
-          { label: "Winter",  value: num(raw.seasonal_analysis?.winter)  },
+          // UPDATED to read from the new nested object structure
+          { label: "Summer",  value: num(raw.seasonal_analysis?.summer?.average_wind_speed)  },
+          { label: "Monsoon", value: num(raw.seasonal_analysis?.monsoon?.average_wind_speed) },
+          { label: "Winter",  value: num(raw.seasonal_analysis?.winter?.average_wind_speed)  },
         ],
       },
     ],
@@ -324,7 +337,7 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
     recommendations: raw.recommendations ?? [],
     loading: false,
     error: null,
-  };
+  } as any; 
 }
 
 // ─── Temperature — GET /weather/thermal-profile → ClimateReport ───────────────

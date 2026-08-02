@@ -27,7 +27,6 @@ class SeasonData(BaseModel):
     # Add these 4 new fields:
     max_wind_speed: float | None = None
     gust_risk: str | None = None
-    cross_ventilation_score: float | None = None
     recommended_orientation: str | None = None
 
 
@@ -44,7 +43,6 @@ class ComfortAnalysis(BaseModel):
 
 
 class BuildingImpact(BaseModel):
-    cross_ventilation_score: float
     wind_load_risk: WindLoadRisk
     recommended_orientation: Orientation
 

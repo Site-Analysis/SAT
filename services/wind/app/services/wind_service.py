@@ -120,7 +120,6 @@ class WindAnalysisService:
                 # NEW: Add the missing fields to the payload
                 max_wind_speed=s_max,
                 gust_risk=s_gust_risk,
-                cross_ventilation_score=s_building.cross_ventilation_score,
                 recommended_orientation=s_building.recommended_orientation,
             )
 
@@ -203,7 +202,6 @@ class WindAnalysisService:
         )
 
     def _building_impact(self, speed: float, direction: str) -> BuildingImpact:
-        cross_vent = round(min(100.0, speed * 6.0), 2)
         load_risk = (
             "Low"
             if speed < 5.0
@@ -216,14 +214,13 @@ class WindAnalysisService:
         dir_idx = _COMPASS.index(direction) if direction in _COMPASS else 0
         recommended = _COMPASS[(dir_idx + 2) % 8]
         return BuildingImpact(
-            cross_ventilation_score=cross_vent,
             wind_load_risk=load_risk,  # type: ignore[arg-type]
             recommended_orientation=recommended,  # type: ignore[arg-type]
         )
 
     def _recommendations(self, speed: float, category: str, direction: str) -> list[str]:
         recs = [
-            f"Prevailing winds from {direction} — orient habitable rooms for cross-ventilation.",
+            f"Prevailing winds from {direction} — orient habitable rooms toward the prevailing wind path.",
             f"1-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
         ]
         if speed > 10.0:

@@ -55,7 +55,6 @@ export default function WindPanel({ result, severity, activeSeason, onSeasonChan
   
   const meanSpeed   = currentData?.average_wind_speed ?? indVal(result, "Mean wind speed", "m/s");
   const gust        = currentData?.max_wind_speed ?? indVal(result, "Peak gust", "m/s");
-  const crossVent   = currentData?.cross_ventilation_score ?? indVal(result, "Cross-ventilation");
   const orientation = indVal(result, "Recommended orientation");
   const gustRisk    = currentData?.gust_risk ?? qualVal(result, "Gust risk");
 
@@ -127,7 +126,6 @@ export default function WindPanel({ result, severity, activeSeason, onSeasonChan
         {[
           { label: "Mean speed",        value: meanSpeed,    icon: "≈" },
           { label: "Peak gust",         value: gust,         icon: "↟" },
-          { label: "Cross-ventilation", value: crossVent,    icon: "⇄" },
           { label: "Recommended axis",  value: orientation,  icon: "∠" },
           { label: "Wind category",     value: qualVal(result, "Wind category"), icon: "≋" },
           { label: "Gust risk",         value: qualVal(result, "Gust risk"),     icon: "!" },
