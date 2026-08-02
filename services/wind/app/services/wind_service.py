@@ -11,6 +11,7 @@ import httpx
 from app.models.wind import (
     BuildingImpact,
     ComfortAnalysis,
+    SeasonData,
     SeasonalAnalysis,
     WindAnalysis,
     WindMetadata,
@@ -44,8 +45,8 @@ class WindAnalysisService:
         self.settings = settings or WindSettings()
 
     def analyze(self, request: WindRequest) -> WindAnalysis:
-        end = date.today()
-        start = end - timedelta(days=5 * 365)
+        end = date.today() - timedelta(days=7)
+        start = end - timedelta(days=365)
 
         with httpx.Client(timeout=30) as client:
             resp = client.get(
@@ -77,19 +78,56 @@ class WindAnalysisService:
         avg_speed = round(statistics.mean(speeds), 2)
         max_speed = round(max(gusts) if gusts else max(speeds) * 1.5, 2)
 
-        # Prevailing direction: most common daily dominant direction binned to 8 points
+        # Calculate overall direction distribution (% frequency)
         dir_counts = Counter(_bearing_to_compass(d) for d in dirs)
+        total_dirs_count = len(dirs) or 1
+        overall_dist = {
+            comp: round((dir_counts[comp] / total_dirs_count) * 100, 2)
+            for comp in _COMPASS
+        }
         prevailing = dir_counts.most_common(1)[0][0] if dir_counts else "North"
 
         # Seasonal breakdown — India meteorological seasons
-        def _season_mean(months: set[int]) -> float:
-            vals = [speeds[i] for i, t in enumerate(times) if _month_of(t) in months]
-            return round(statistics.mean(vals) if vals else avg_speed, 2)
+# Seasonal breakdown — India meteorological seasons
+        def _season_stats(months: set[int]) -> SeasonData:
+            indices = [i for i, t in enumerate(times) if _month_of(t) in months]
+            season_speeds = [speeds[i] for i in indices if i < len(speeds)]
+            season_dirs = [dirs[i] for i in indices if i < len(dirs)]
+            # NEW: Grab the gusts for this specific season
+            season_gusts = [gusts[i] for i in indices if i < len(gusts)]
+
+            s_avg = round(statistics.mean(season_speeds), 2) if season_speeds else avg_speed
+            # NEW: Calculate max speed for the season
+            s_max = round(max(season_gusts) if season_gusts else (max(season_speeds) * 1.5 if season_speeds else max_speed), 2)
+
+            s_counts = Counter(_bearing_to_compass(d) for d in season_dirs)
+            s_total = len(season_dirs) or 1
+
+            s_dist = {
+                comp: round((s_counts[comp] / s_total) * 100, 2)
+                for comp in _COMPASS
+            }
+            s_prevailing = s_counts.most_common(1)[0][0] if s_counts else prevailing
+
+            # NEW: Run the architectural math on the seasonal averages
+            s_building = self._building_impact(s_avg, s_prevailing)
+            s_gust_risk = self._gust_risk(s_max)
+
+            return SeasonData(
+                average_wind_speed=s_avg,
+                prevailing_direction=s_prevailing,  # type: ignore[arg-type]
+                direction_distribution=s_dist,
+                # NEW: Add the missing fields to the payload
+                max_wind_speed=s_max,
+                gust_risk=s_gust_risk,
+                cross_ventilation_score=s_building.cross_ventilation_score,
+                recommended_orientation=s_building.recommended_orientation,
+            )
 
         seasonal = SeasonalAnalysis(
-            summer=_season_mean({3, 4, 5}),
-            monsoon=_season_mean({6, 7, 8, 9}),
-            winter=_season_mean({10, 11, 12, 1, 2}),
+            summer=_season_stats({3, 4, 5}),
+            monsoon=_season_stats({6, 7, 8, 9}),
+            winter=_season_stats({10, 11, 12, 1, 2}),
         )
 
         category = self._wind_category(avg_speed)
@@ -102,13 +140,14 @@ class WindAnalysisService:
             latitude=request.latitude,
             longitude=request.longitude,
             radius_meters=request.radius_meters,
-            data_source="Open-Meteo Archive API · ERA5 reanalysis · 10 m wind speed · 5-year daily",
+            data_source="Open-Meteo Archive API · ERA5 reanalysis · 10 m wind speed · 1-year daily",
         )
 
         return WindAnalysis(
             average_wind_speed=avg_speed,
             max_wind_speed=max_speed,
             prevailing_direction=prevailing,  # type: ignore[arg-type]
+            direction_distribution=overall_dist,
             wind_category=category,
             gust_risk=gust_risk,
             seasonal_analysis=seasonal,
@@ -174,7 +213,6 @@ class WindAnalysisService:
             if speed < 15.0
             else "Very High"
         )
-        # Orientation perpendicular to prevailing wind maximises cross-ventilation
         dir_idx = _COMPASS.index(direction) if direction in _COMPASS else 0
         recommended = _COMPASS[(dir_idx + 2) % 8]
         return BuildingImpact(
@@ -186,7 +224,7 @@ class WindAnalysisService:
     def _recommendations(self, speed: float, category: str, direction: str) -> list[str]:
         recs = [
             f"Prevailing winds from {direction} — orient habitable rooms for cross-ventilation.",
-            f"5-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
+            f"1-year mean wind speed: {speed:.1f} m/s (Open-Meteo ERA5, 10 m AGL).",
         ]
         if speed > 10.0:
             recs.extend(

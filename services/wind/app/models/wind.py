@@ -20,10 +20,21 @@ class WindRequest(BaseModel):
     radius_meters: float = Field(1000.0, gt=0, description="Analysis radius in meters")
 
 
+class SeasonData(BaseModel):
+    average_wind_speed: float
+    prevailing_direction: str
+    direction_distribution: dict[str, float]
+    # Add these 4 new fields:
+    max_wind_speed: float | None = None
+    gust_risk: str | None = None
+    cross_ventilation_score: float | None = None
+    recommended_orientation: str | None = None
+
+
 class SeasonalAnalysis(BaseModel):
-    summer: float
-    monsoon: float
-    winter: float
+    summer: SeasonData
+    monsoon: SeasonData
+    winter: SeasonData
 
 
 class ComfortAnalysis(BaseModel):
@@ -49,6 +60,9 @@ class WindAnalysis(BaseModel):
     average_wind_speed: float
     max_wind_speed: float
     prevailing_direction: Orientation
+    direction_distribution: dict[str, float] = Field(
+        ..., description="Overall percentage frequency for each 8-point compass direction"
+    )
     wind_category: str
     gust_risk: str
     seasonal_analysis: SeasonalAnalysis

@@ -8,6 +8,9 @@ import type { ModuleResult, Severity } from "@/lib/stores/analysis";
 interface WindPanelProps {
   result?: ModuleResult;
   severity: Severity;
+  // NEW: Add the season props passed from page.tsx
+  activeSeason: "annual" | "summer" | "monsoon" | "winter";
+  onSeasonChange: (season: "annual" | "summer" | "monsoon" | "winter") => void;
 }
 
 const DIR_BEARING: Record<string, number> = {
@@ -29,15 +32,34 @@ function qualVal(result: ModuleResult | undefined, label: string): string {
   return result?.qualitative?.find((q) => q.label === label)?.value ?? "—";
 }
 
-export function WindPanel({ result, severity }: WindPanelProps) {
-  const prevailing = metVal(result, "Wind profile", "Prevailing direction");
-  const bearing    = DIR_BEARING[String(prevailing).trim().toUpperCase()] ?? null;
-  const meanSpeed  = indVal(result, "Mean wind speed", "m/s");
-  const gust       = indVal(result, "Peak gust", "m/s");
-  const crossVent  = indVal(result, "Cross-ventilation");
-  const orientation = indVal(result, "Recommended orientation");
+export default function WindPanel({ result, severity, activeSeason, onSeasonChange }: WindPanelProps) {
+// 2. Isolate the seasonal data if a season is selected
+  const seasonalAnalysis = result as typeof result & {
+    seasonal_analysis?: Partial<Record<"summer" | "monsoon" | "winter", {
+      prevailing_direction?: string;      // Fixed key
+      average_wind_speed?: string | number;
+      max_wind_speed?: string | number;   // Fixed key
+      cross_ventilation_score?: string | number;
+      recommended_orientation?: string;   // Fixed key
+      gust_risk?: string;
+    }>>;
+  } | undefined;
 
-  // Seasonal wind speeds from the module chart
+  const currentData = activeSeason === "annual"
+    ? null
+    : seasonalAnalysis?.seasonal_analysis?.[activeSeason];
+
+  // 3. Dynamically set the variables using the EXACT JSON keys
+  const prevailing  = currentData?.prevailing_direction ?? metVal(result, "Wind profile", "Prevailing direction");
+  const bearing     = DIR_BEARING[String(prevailing).trim().toUpperCase()] ?? null;
+  
+  const meanSpeed   = currentData?.average_wind_speed ?? indVal(result, "Mean wind speed", "m/s");
+  const gust        = currentData?.max_wind_speed ?? indVal(result, "Peak gust", "m/s");
+  const crossVent   = currentData?.cross_ventilation_score ?? indVal(result, "Cross-ventilation");
+  const orientation = indVal(result, "Recommended orientation");
+  const gustRisk    = currentData?.gust_risk ?? qualVal(result, "Gust risk");
+
+  // ... keep the rest of your component exactly the same from here down
   const seasonal = result?.charts?.find((c) => c.title === "Seasonal wind speed")?.points ?? [];
   const seasMax  = Math.max(1, ...seasonal.map((p) => Number(p.value) || 0));
 
@@ -51,7 +73,25 @@ export function WindPanel({ result, severity }: WindPanelProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 2 }}>
-
+      <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+        {(["annual", "summer", "monsoon", "winter"] as const).map((season) => (
+          <button
+            key={season}
+            onClick={() => onSeasonChange(season)}
+            style={{
+              flex: 1, padding: "6px 0", fontSize: 10, fontWeight: 600,
+              borderRadius: 6, border: "1px solid", cursor: "pointer",
+              textTransform: "capitalize", fontFamily: "inherit",
+              background: activeSeason === season ? "#0E7490" : "transparent",
+              color: activeSeason === season ? "#FDFCFB" : "#7B8F83",
+              borderColor: activeSeason === season ? "#0E7490" : "rgba(207,214,196,0.6)",
+              transition: "all 0.15s ease"
+            }}
+          >
+            {season}
+          </button>
+        ))}
+      </div>
       {/* ── Prevailing direction banner with compass arrow ─────── */}
       <div style={{
         background: "rgba(6,182,212,0.07)", border: "1.5px solid rgba(6,182,212,0.22)",
