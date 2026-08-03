@@ -101,3 +101,41 @@ def test_analyze_flag_on(monkeypatch):
     assert body["score"] == 85.0
     assert body["sub_scores"]["road"] == 45.0
     assert body["transit"][0]["type"] == "metro"
+
+
+@skip_no_app
+def test_overpass_request_sets_user_agent(monkeypatch):
+    """Public Overpass mirrors 406 the default httpx UA — the header must be sent.
+
+    Without it every /infrastructure/analyze call fails 502 at the upstream.
+    """
+    import httpx
+
+    from app.services import infrastructure_service as svc
+
+    seen = {}
+
+    class _FakeAsyncClient:
+        def __init__(self, *a, **kwargs):
+            seen["headers"] = kwargs.get("headers") or {}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, **kwargs):
+            seen["url"] = url
+            return httpx.Response(200, json={"elements": []})
+
+    monkeypatch.setattr(svc.httpx, "AsyncClient", _FakeAsyncClient)
+
+    import asyncio
+
+    asyncio.run(svc.InfrastructureService().analyze(12.97, 77.59, 2000))
+
+    ua = seen["headers"].get("User-Agent", "")
+    assert "overpass" in seen["url"].lower()
+    assert ua, "no User-Agent sent to Overpass"
+    assert "httpx" not in ua.lower(), f"default httpx UA leaked: {ua!r}"

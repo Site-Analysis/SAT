@@ -19,6 +19,8 @@ from app.models.infrastructure import (
 )
 
 OVERPASS_URL = os.getenv("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+# User-Agent required — public Overpass mirrors 403/406 the default httpx UA.
+_OVERPASS_HEADERS = {"User-Agent": "SAT-SiteAnalysisTool/1.0"}
 
 # Paved road surfaces get a score bonus; unpaved get a penalty.
 _PAVED_SURFACES = {"paved", "asphalt", "concrete", "tarmac", "tar", "bituminous"}
@@ -174,7 +176,7 @@ out center tags 10;
 out center tags 15;
 """
         try:
-            async with httpx.AsyncClient(timeout=35) as c:
+            async with httpx.AsyncClient(timeout=35, headers=_OVERPASS_HEADERS) as c:
                 r_road = (await c.post(OVERPASS_URL, data={"data": road_query})).json()
                 r_transit = (await c.post(OVERPASS_URL, data={"data": transit_query})).json()
                 r_util = (await c.post(OVERPASS_URL, data={"data": utility_query})).json()

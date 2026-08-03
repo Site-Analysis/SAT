@@ -89,3 +89,36 @@ def test_analyze_flag_on(monkeypatch):
     assert body["overall_score"] > 40
     assert body["metadata"]["gee_enabled"] is False
     assert "Open-Meteo" in body["metadata"]["data_source"]
+
+
+@skip_no_app
+def test_overpass_request_sets_user_agent():
+    """Public Overpass mirrors 406 the default httpx UA — the header must be sent.
+
+    Guards a silent failure: _fetch_water_distance swallows the error and returns
+    the search radius, so a rejected request looks like "no water nearby" and
+    quietly flattens hydrology risk for every site.
+    """
+    from app.routers import flood as flood_router
+
+    sent = {}
+
+    class _FakeResp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"elements": []}
+
+    class _FakeClient:
+        def post(self, url, **kwargs):
+            sent["url"] = url
+            sent["headers"] = kwargs.get("headers") or {}
+            return _FakeResp()
+
+    flood_router.service._fetch_water_distance(_FakeClient(), 19.07, 72.87, 1000.0)
+
+    ua = sent["headers"].get("User-Agent", "")
+    assert "overpass" in sent["url"].lower()
+    assert ua, "no User-Agent sent to Overpass"
+    assert "httpx" not in ua.lower(), f"default httpx UA leaked: {ua!r}"

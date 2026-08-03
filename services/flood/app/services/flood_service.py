@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from datetime import date, timedelta
 
@@ -22,6 +23,10 @@ from app.settings import FloodSettings
 _OPENMETEO_ELEVATION = "https://api.open-meteo.com/v1/elevation"
 _OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
 _OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# User-Agent required — public Overpass mirrors 403/406 the default httpx UA.
+_OVERPASS_HEADERS = {"User-Agent": "SAT-SiteAnalysisTool/1.0"}
+
+logger = logging.getLogger("flood")
 
 
 class FloodRiskService:
@@ -169,11 +174,17 @@ class FloodRiskService:
             f"out center 30;"
         )
         try:
-            resp = client.post(_OVERPASS_URL, data={"data": query}, timeout=25)
+            resp = client.post(
+                _OVERPASS_URL, data={"data": query}, timeout=25, headers=_OVERPASS_HEADERS
+            )
             resp.raise_for_status()
             elements = resp.json().get("elements", [])
         except Exception:
-            return search_r  # conservative fallback: no water found
+            # Conservative fallback: treat as "no water within the search radius".
+            # Logged because this silently flattens hydrology risk for every site —
+            # a 6-week Overpass 406 outage went unnoticed exactly this way.
+            logger.warning("Overpass water-body lookup failed; using %.0f m fallback", search_r)
+            return search_r
 
         min_dist = float(search_r)
         for el in elements:
