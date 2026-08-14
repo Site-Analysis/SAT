@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAT Contour Backend Test UI</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+      crossorigin=""
+    />
+    <style>
+      :root {
+        --panel-bg: rgba(248, 250, 247, 0.96);
+        --panel-line: rgba(31, 41, 55, 0.14);
+        --ink: #18221d;
+        --muted: #607062;
+        --accent: #1f7a52;
+        --accent-dark: #155f3f;
+        --danger: #b42318;
+        --warning: #a15c07;
+        --ok: #157347;
+        --field: #ffffff;
+      }
+
+      *:not(.leaflet-container):not(.leaflet-container *) {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      #map {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        color: var(--ink);
+        font-family:
+          "Aptos",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        overflow: hidden;
+      }
+
+      #map {
+        background: #dfe8de;
+      }
+
+      .leaflet-container,
+      .leaflet-container * {
+        box-sizing: content-box;
+      }
+
+      .leaflet-container img.leaflet-tile {
+        width: 256px;
+        height: 256px;
+        max-width: none;
+        max-height: none;
+      }
+
+      .control-panel {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 1000;
+        width: min(390px, calc(100vw - 32px));
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+        padding: 18px;
+        border: 1px solid var(--panel-line);
+        border-radius: 24px;
+        background:
+          radial-gradient(circle at 18% 0%, rgba(122, 184, 137, 0.25), transparent 38%),
+          var(--panel-bg);
+        box-shadow: 0 22px 70px rgba(18, 32, 24, 0.25);
+        backdrop-filter: blur(16px);
+      }
+
+      .draw-dock {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: min(460px, calc(100vw - 32px));
+        padding: 10px;
+        border: 1px solid var(--panel-line);
+        border-radius: 999px;
+        background: rgba(248, 250, 247, 0.94);
+        box-shadow: 0 18px 48px rgba(18, 32, 24, 0.2);
+        transform: translateX(-50%);
+        backdrop-filter: blur(14px);
+      }
+
+      .draw-dock-text {
+        flex: 1;
+        min-width: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .draw-dock button {
+        flex: 0 0 auto;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--accent-dark);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: -0.04em;
+      }
+
+      .intro {
+        margin: 8px 0 16px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .section {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--panel-line);
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+
+      label {
+        display: block;
+        margin: 10px 0 6px;
+        color: #2d3a31;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px 11px;
+        border: 1px solid rgba(31, 41, 55, 0.2);
+        border-radius: 12px;
+        background: var(--field);
+        color: var(--ink);
+        outline: none;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: rgba(31, 122, 82, 0.75);
+        box-shadow: 0 0 0 3px rgba(31, 122, 82, 0.14);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 800;
+        transition:
+          transform 0.15s ease,
+          opacity 0.15s ease,
+          background 0.15s ease;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .primary {
+        padding: 11px 16px;
+        background: var(--accent);
+        color: white;
+      }
+
+      .primary:hover:not(:disabled) {
+        background: var(--accent-dark);
+      }
+
+      .secondary {
+        padding: 10px 14px;
+        border: 1px solid rgba(31, 41, 55, 0.16);
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--ink);
+      }
+
+      .danger {
+        padding: 10px 14px;
+        background: rgba(180, 35, 24, 0.1);
+        color: var(--danger);
+      }
+
+      .toggle-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        border: 1px solid rgba(31, 41, 55, 0.14);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .toggle input {
+        width: auto;
+      }
+
+      .status {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(31, 122, 82, 0.08);
+        color: var(--accent-dark);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .status.error {
+        background: rgba(180, 35, 24, 0.1);
+        color: var(--danger);
+      }
+
+      .status.warning {
+        background: rgba(161, 92, 7, 0.12);
+        color: var(--warning);
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat {
+        padding: 10px;
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .stat span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 16px;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .legend {
+        display: grid;
+        gap: 6px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 5px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+      }
+
+      .transect-instructions {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      #transect-chart {
+        width: 100%;
+        min-height: 190px;
+        margin-top: 10px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.78);
+        overflow: hidden;
+      }
+
+      .leaflet-tooltip.contour-label {
+        border: 0;
+        border-radius: 999px;
+        background: rgba(24, 34, 29, 0.82);
+        color: white;
+        font-size: 11px;
+        font-weight: 800;
+        box-shadow: none;
+      }
+
+      @media (max-width: 720px) {
+        .control-panel {
+          top: auto;
+          bottom: 86px;
+          left: 12px;
+          width: calc(100vw - 24px);
+          max-height: 48vh;
+          border-radius: 20px;
+        }
+
+        .draw-dock {
+          bottom: 12px;
+          border-radius: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="control-panel" aria-label="Contour analysis controls">
+      <p class="eyebrow">SAT Contour Test UI</p>
+      <h1>Contour backend probe</h1>
+      <p class="intro">
+        Draw a polygon, run the contour service, then toggle the returned GeoJSON and hillshade
+        layers. This page talks only to the contour backend.
+      </p>
+
+      <section>
+        <div class="section-title">Connection</div>
+        <label for="backend-url">Contour backend URL</label>
+        <input id="backend-url" value="http://127.0.0.1:8010" spellcheck="false" />
+        <div class="button-row">
+          <button class="secondary" id="health-button" type="button">Check health</button>
+          <button class="danger" id="clear-button" type="button">Clear outputs</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Analysis</div>
+        <div class="row">
+          <div>
+            <label for="contour-interval">Contour interval</label>
+            <select id="contour-interval">
+              <option value="10">10 m</option>
+              <option value="20" selected>20 m</option>
+              <option value="30">30 m</option>
+              <option value="40">40 m</option>
+              <option value="50">50 m</option>
+              <option value="60">60 m</option>
+            </select>
+          </div>
+          <div>
+            <label for="polygon-state">Polygon</label>
+            <input id="polygon-state" value="Not drawn" readonly />
+          </div>
+        </div>
+        <div class="button-row">
+          <button class="primary" id="run-button" type="button">Run contour analysis</button>
+        </div>
+        <div class="status" id="status">Draw a site polygon to begin.</div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Map Layers</div>
+        <div class="toggle-grid">
+          <label class="toggle"><input type="checkbox" id="toggle-contours" checked />Contours</label>
+          <label class="toggle"><input type="checkbox" id="toggle-slope" />Slope</label>
+          <label class="toggle"><input type="checkbox" id="toggle-buildability" />Buildability</label>
+          <label class="toggle"><input type="checkbox" id="toggle-hillshade" checked />Hillshade</label>
+        </div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Analysis Summary</div>
+        <div id="summary" class="empty">No contour response yet.</div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Transect Tool</div>
+        <p class="transect-instructions">
+          Activate the tool, click at least two points across the analyzed polygon, then run the
+          transect request to render an elevation slice.
+        </p>
+        <div class="button-row">
+          <button class="secondary" id="transect-toggle" type="button">Start transect</button>
+          <button class="primary" id="transect-run" type="button" disabled>Run transect</button>
+          <button class="danger" id="transect-clear" type="button">Clear transect</button>
+        </div>
+        <div id="transect-summary" class="empty" style="margin-top: 10px">No transect yet.</div>
+        <div id="transect-chart"></div>
+      </section>
+    </main>
+
+    <section class="draw-dock" aria-label="Drawing controls">
+      <span class="draw-dock-text" id="draw-dock-status">Draw a polygon boundary to test contours</span>
+      <button class="primary" id="draw-polygon-button" type="button">Draw polygon</button>
+    </section>
+
+    <div id="map" aria-label="Leaflet map"></div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" crossorigin=""></script>
+    <script>
+      const map = L.map("map", { zoomControl: false, preferCanvas: true }).setView([12.9716, 77.5946], 13);
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+
+      const baseTiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      map.whenReady(() => {
+        requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+      });
+      window.addEventListener("load", () => map.invalidateSize({ pan: false }));
+      window.addEventListener("resize", () => map.invalidateSize({ pan: false }));
+
+      const drawnItems = new L.FeatureGroup().addTo(map);
+      const drawControl = new L.Control.Draw({
+        position: "topright",
+        draw: {
+          circle: false,
+          circlemarker: false,
+          marker: false,
+          polyline: false,
+          rectangle: true,
+          polygon: {
+            allowIntersection: false,
+            showArea: true,
+            shapeOptions: { color: "#1f7a52", weight: 3, fillOpacity: 0.12 },
+          },
+        },
+        edit: { featureGroup: drawnItems },
+      });
+      map.addControl(drawControl);
+
+      const els = {
+        backendUrl: document.getElementById("backend-url"),
+        healthButton: document.getElementById("health-button"),
+        clearButton: document.getElementById("clear-button"),
+        drawPolygonButton: document.getElementById("draw-polygon-button"),
+        drawDockStatus: document.getElementById("draw-dock-status"),
+        runButton: document.getElementById("run-button"),
+        interval: document.getElementById("contour-interval"),
+        polygonState: document.getElementById("polygon-state"),
+        status: document.getElementById("status"),
+        summary: document.getElementById("summary"),
+        legend: document.getElementById("legend"),
+        toggleContours: document.getElementById("toggle-contours"),
+        toggleSlope: document.getElementById("toggle-slope"),
+        toggleBuildability: document.getElementById("toggle-buildability"),
+        toggleHillshade: document.getElementById("toggle-hillshade"),
+        transectToggle: document.getElementById("transect-toggle"),
+        transectRun: document.getElementById("transect-run"),
+        transectClear: document.getElementById("transect-clear"),
+        transectSummary: document.getElementById("transect-summary"),
+        transectChart: document.getElementById("transect-chart"),
+      };
+
+      const state = {
+        polygonLayer: null,
+        analysis: null,
+        layers: {
+          contours: null,
+          contourLabels: null,
+          slope: null,
+          buildability: null,
+          hillshade: null,
+        },
+        transect: {
+          active: false,
+          points: [],
+          line: null,
+          markers: [],
+          result: null,
+        },
+      };
+
+      const slopeLegend = [
+        ["#2d6a4f", "Flat 0-5%"],
+        ["#52b788", "Gentle 5-10%"],
+        ["#ffd166", "Moderate 10-15%"],
+        ["#f4a261", "Steep 15-25%"],
+        ["#e76f51", "Very steep 25-33%"],
+        ["#c1121f", "Hazard >33%"],
+      ];
+
+      function endpoint(path) {
+        return `${els.backendUrl.value.replace(/\/+$/, "")}${path}`;
+      }
+
+      function setStatus(message, kind = "info") {
+        els.status.textContent = message;
+        els.status.className = `status${kind === "error" ? " error" : kind === "warning" ? " warning" : ""}`;
+      }
+
+      function setBusy(isBusy, label = "Run contour analysis") {
+        els.runButton.disabled = isBusy;
+        els.runButton.textContent = isBusy ? "Running..." : label;
+      }
+
+      function polygonFeature() {
+        if (!state.polygonLayer) {
+          return null;
+        }
+        const geojson = state.polygonLayer.toGeoJSON();
+        return geojson.type === "Feature" ? geojson : { type: "Feature", geometry: geojson };
+      }
+
+      function updatePolygonState() {
+        if (!state.polygonLayer) {
+          els.polygonState.value = "Not drawn";
+          return;
+        }
+        const latLngs = state.polygonLayer.getLatLngs();
+        const ring = Array.isArray(latLngs[0]) ? latLngs[0] : latLngs;
+        els.polygonState.value = `${ring.length} vertices`;
+        els.drawDockStatus.textContent = `Polygon ready: ${ring.length} vertices`;
+      }
+
+      function clearMapLayer(layer) {
+        if (layer && map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      }
+
+      function clearAnalysisLayers() {
+        Object.values(state.layers).forEach(clearMapLayer);
+        state.layers.contours = null;
+        state.layers.contourLabels = null;
+        state.layers.slope = null;
+        state.layers.buildability = null;
+        state.layers.hillshade = null;
+      }
+
+      function clearOutputs() {
+        state.analysis = null;
+        clearAnalysisLayers();
+        clearTransect();
+        els.summary.className = "empty";
+        els.summary.textContent = "No contour response yet.";
+        els.legend.innerHTML = "";
+        setStatus(state.polygonLayer ? "Outputs cleared. Ready to run again." : "Draw a site polygon to begin.");
+      }
+
+      function startPolygonDraw() {
+        if (state.transect.active) {
+          toggleTransectTool();
+        }
+        const drawer = new L.Draw.Polygon(map, {
+          allowIntersection: false,
+          showArea: true,
+          shapeOptions: { color: "#1f7a52", weight: 3, fillOpacity: 0.12 },
+        });
+        drawer.enable();
+        els.drawDockStatus.textContent = "Click map points to draw. Close the shape to finish.";
+        setStatus("Polygon drawing active. Click map points, then close the polygon.");
+      }
+
+      function featureColor(feature, fallback) {
+        return feature?.properties?.color || fallback;
+      }
+
+      function addOrRemove(layer, shouldShow) {
+        if (!layer) {
+          return;
+        }
+        if (shouldShow && !map.hasLayer(layer)) {
+          layer.addTo(map);
+        }
+        if (!shouldShow && map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      }
+
+      function syncLayerToggles() {
+        addOrRemove(state.layers.hillshade, els.toggleHillshade.checked);
+        addOrRemove(state.layers.slope, els.toggleSlope.checked);
+        addOrRemove(state.layers.buildability, els.toggleBuildability.checked);
+        addOrRemove(state.layers.contours, els.toggleContours.checked);
+        addOrRemove(state.layers.contourLabels, els.toggleContours.checked);
+      }
+
+      function bindGeoJsonPopup(layer, labelKey) {
+        layer.bindPopup((featureLayer) => {
+          const props = featureLayer.feature?.properties || {};
+          const entries = Object.entries(props)
+            .filter(([key]) => key !== "color")
+            .map(([key, value]) => `<strong>${key}</strong>: ${value}`)
+            .join("<br />");
+          return `<strong>${labelKey}</strong><br />${entries || "No properties"}`;
+        });
+      }
+
+      function midpoint(coords) {
+        if (!Array.isArray(coords) || coords.length === 0) {
+          return null;
+        }
+        const point = coords[Math.floor(coords.length / 2)];
+        return Array.isArray(point) && point.length >= 2 ? [point[1], point[0]] : null;
+      }
+
+      function createContourLabels(geojson) {
+        const group = L.layerGroup();
+        (geojson.features || []).forEach((feature) => {
+          if (!feature.properties?.is_index) {
+            return;
+          }
+          const at = midpoint(feature.geometry?.coordinates);
+          if (!at) {
+            return;
+          }
+          L.marker(at, {
+            interactive: false,
+            icon: L.divIcon({
+              className: "leaflet-tooltip contour-label",
+              html: `${feature.properties.elevation} m`,
+              iconSize: null,
+            }),
+          }).addTo(group);
+        });
+        return group;
+      }
+
+      function renderAnalysisLayers(response) {
+        clearAnalysisLayers();
+
+        state.layers.hillshade = L.imageOverlay(
+          `data:image/png;base64,${response.hillshade_png_b64}`,
+          state.polygonLayer.getBounds(),
+          { opacity: 0.42, interactive: false }
+        );
+
+        state.layers.slope = L.geoJSON(response.slope_geojson, {
+          style: (feature) => ({
+            color: featureColor(feature, "#4f772d"),
+            fillColor: featureColor(feature, "#4f772d"),
+            weight: 0.8,
+            opacity: 0.8,
+            fillOpacity: 0.34,
+          }),
+          onEachFeature: (_feature, layer) => bindGeoJsonPopup(layer, "Slope class"),
+        });
+
+        state.layers.buildability = L.geoJSON(response.buildability_geojson, {
+          style: (feature) => ({
+            color: featureColor(feature, "#2d6a4f"),
+            fillColor: featureColor(feature, "#2d6a4f"),
+            weight: 0.8,
+            opacity: 0.8,
+            fillOpacity: 0.36,
+          }),
+          onEachFeature: (_feature, layer) => bindGeoJsonPopup(layer, "Buildability"),
+        });
+
+        state.layers.contours = L.geoJSON(response.contour_geojson, {
+          style: (feature) => ({
+            color: featureColor(feature, "#1f7a52"),
+            weight: feature.properties?.line_weight || 1,
+            opacity: feature.properties?.is_index ? 1 : 0.72,
+          }),
+          onEachFeature: (feature, layer) => {
+            layer.bindTooltip(`${feature.properties?.elevation ?? "?"} m`, {
+              sticky: true,
+              className: "contour-label",
+            });
+          },
+        });
+        state.layers.contourLabels = createContourLabels(response.contour_geojson);
+        syncLayerToggles();
+      }
+
+      function pct(value) {
+        return Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}%` : "n/a";
+      }
+
+      function renderSummary(response) {
+        const dem = response.dem_metadata || {};
+        const slope = response.slope_stats || {};
+        const aspect = response.aspect_stats || {};
+        els.summary.className = "";
+        els.summary.innerHTML = `
+          <div class="stat-grid">
+            <div class="stat"><span>DEM source</span><strong>${dem.source || "n/a"}</strong></div>
+            <div class="stat"><span>Resolution</span><strong>${dem.resolution_m || "n/a"} m</strong></div>
+            <div class="stat"><span>Vertical RMSE</span><strong>${dem.vertical_rmse_m || "n/a"} m</strong></div>
+            <div class="stat"><span>Interval</span><strong>${dem.contour_interval_m || "n/a"} m</strong></div>
+            <div class="stat"><span>Mean slope</span><strong>${pct(slope.mean_slope_pct)}</strong></div>
+            <div class="stat"><span>Max slope</span><strong>${pct(slope.max_slope_pct)}</strong></div>
+            <div class="stat"><span>Flat area</span><strong>${pct(slope.flat_area_pct)}</strong></div>
+            <div class="stat"><span>Hazard area</span><strong>${pct(slope.hazard_area_pct)}</strong></div>
+            <div class="stat"><span>Dominant aspect</span><strong>${aspect.dominant_aspect_label || "n/a"}</strong></div>
+            <div class="stat"><span>Aspect degrees</span><strong>${aspect.dominant_aspect_deg ?? "n/a"}°</strong></div>
+          </div>
+        `;
+        els.legend.innerHTML = slopeLegend
+          .map(
+            ([color, label]) =>
+              `<div class="legend-row"><span class="swatch" style="background:${color}"></span>${label}</div>`
+          )
+          .join("");
+        if (dem.warning) {
+          setStatus(dem.warning, "warning");
+        }
+      }
+
+      async function parseResponse(response) {
+        const contentType = response.headers.get("content-type") || "";
+        const body = contentType.includes("application/json") ? await response.json() : await response.text();
+        if (!response.ok) {
+          const detail = typeof body === "object" ? body.detail || JSON.stringify(body) : body;
+          throw new Error(detail || `Request failed with ${response.status}`);
+        }
+        return body;
+      }
+
+      async function checkHealth() {
+        try {
+          const response = await fetch(endpoint("/health"));
+          const body = await parseResponse(response);
+          setStatus(`Health check passed: ${body.status} (${body.service})`);
+        } catch (error) {
+          setStatus(`Health check failed: ${error.message}`, "error");
+        }
+      }
+
+      async function runAnalysis() {
+        const polygon = polygonFeature();
+        if (!polygon) {
+          setStatus("Draw a polygon before running contour analysis.", "error");
+          return;
+        }
+        setBusy(true);
+        setStatus("Running contour analysis. DEM requests can take a moment...");
+        try {
+          const response = await fetch(endpoint("/contour/analyze"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              polygon,
+              contour_interval: Number(els.interval.value),
+            }),
+          });
+          const body = await parseResponse(response);
+          state.analysis = body;
+          renderAnalysisLayers(body);
+          renderSummary(body);
+          const count = body.contour_geojson?.features?.length || 0;
+          if (!body.dem_metadata?.warning) {
+            setStatus(`Contour analysis complete. Rendered ${count} contour features.`);
+          }
+        } catch (error) {
+          setStatus(`Contour analysis failed: ${error.message}`, "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function clearTransect() {
+        if (state.transect.line) {
+          clearMapLayer(state.transect.line);
+        }
+        state.transect.markers.forEach(clearMapLayer);
+        state.transect.active = false;
+        state.transect.points = [];
+        state.transect.line = null;
+        state.transect.markers = [];
+        state.transect.result = null;
+        els.transectToggle.textContent = "Start transect";
+        els.transectRun.disabled = true;
+        els.transectSummary.className = "empty";
+        els.transectSummary.textContent = "No transect yet.";
+        els.transectChart.innerHTML = "";
+      }
+
+      function updateTransectLine() {
+        if (state.transect.line) {
+          clearMapLayer(state.transect.line);
+        }
+        state.transect.markers.forEach(clearMapLayer);
+        state.transect.markers = [];
+
+        if (state.transect.points.length > 0) {
+          state.transect.markers = state.transect.points.map((point, index) =>
+            L.circleMarker(point, {
+              radius: index === 0 || index === state.transect.points.length - 1 ? 6 : 4,
+              color: "#18221d",
+              fillColor: "#ffffff",
+              fillOpacity: 1,
+              weight: 2,
+            }).addTo(map)
+          );
+        }
+
+        if (state.transect.points.length > 1) {
+          state.transect.line = L.polyline(state.transect.points, {
+            color: "#18221d",
+            weight: 3,
+            dashArray: "8 7",
+          }).addTo(map);
+        }
+
+        els.transectRun.disabled = state.transect.points.length < 2;
+      }
+
+      function toggleTransectTool() {
+        state.transect.active = !state.transect.active;
+        els.transectToggle.textContent = state.transect.active ? "Stop adding points" : "Start transect";
+        setStatus(
+          state.transect.active
+            ? "Transect mode active. Click the map to add line points."
+            : "Transect mode paused."
+        );
+      }
+
+      function transectGeoJson() {
+        return {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: state.transect.points.map((latLng) => [latLng.lng, latLng.lat]),
+          },
+        };
+      }
+
+      function renderTransectChart(points) {
+        if (!points || points.length < 2) {
+          els.transectChart.innerHTML = '<p class="empty" style="padding:12px">No profile points returned.</p>';
+          return;
+        }
+        const width = 340;
+        const height = 180;
+        const pad = { top: 16, right: 18, bottom: 30, left: 44 };
+        const minX = Math.min(...points.map((p) => p.distance_m));
+        const maxX = Math.max(...points.map((p) => p.distance_m));
+        const minY = Math.min(...points.map((p) => p.elevation_m));
+        const maxY = Math.max(...points.map((p) => p.elevation_m));
+        const xScale = (x) =>
+          pad.left + ((x - minX) / Math.max(maxX - minX, 1)) * (width - pad.left - pad.right);
+        const yScale = (y) =>
+          height - pad.bottom - ((y - minY) / Math.max(maxY - minY, 1)) * (height - pad.top - pad.bottom);
+        const line = points.map((p) => `${xScale(p.distance_m).toFixed(2)},${yScale(p.elevation_m).toFixed(2)}`).join(" ");
+        els.transectChart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" width="100%" height="190" role="img" aria-label="Transect elevation profile">
+            <rect width="${width}" height="${height}" fill="rgba(255,255,255,0.72)"></rect>
+            <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" stroke="#9aa69b"></line>
+            <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${height - pad.bottom}" stroke="#9aa69b"></line>
+            <polyline points="${line}" fill="none" stroke="#1f7a52" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+            <text x="${pad.left}" y="${height - 9}" font-size="10" fill="#607062">0 m</text>
+            <text x="${width - pad.right - 54}" y="${height - 9}" font-size="10" fill="#607062">${Math.round(maxX)} m</text>
+            <text x="8" y="${pad.top + 4}" font-size="10" fill="#607062">${maxY.toFixed(1)} m</text>
+            <text x="8" y="${height - pad.bottom}" font-size="10" fill="#607062">${minY.toFixed(1)} m</text>
+          </svg>
+        `;
+      }
+
+      async function runTransect() {
+        const polygon = polygonFeature();
+        if (!polygon) {
+          setStatus("Draw a polygon before running a transect.", "error");
+          return;
+        }
+        if (state.transect.points.length < 2) {
+          setStatus("Add at least two transect points before running.", "error");
+          return;
+        }
+        els.transectRun.disabled = true;
+        els.transectRun.textContent = "Running...";
+        setStatus("Running transect analysis...");
+        try {
+          const response = await fetch(endpoint("/contour/transect"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              polygon,
+              transect_line: transectGeoJson(),
+            }),
+          });
+          const body = await parseResponse(response);
+          state.transect.result = body;
+          els.transectSummary.className = "";
+          els.transectSummary.innerHTML = `
+            <div class="stat-grid">
+              <div class="stat"><span>Length</span><strong>${body.total_length_m} m</strong></div>
+              <div class="stat"><span>Relief</span><strong>${body.relief_m} m</strong></div>
+              <div class="stat"><span>Min elevation</span><strong>${body.min_elevation_m} m</strong></div>
+              <div class="stat"><span>Max elevation</span><strong>${body.max_elevation_m} m</strong></div>
+            </div>
+          `;
+          renderTransectChart(body.points);
+          setStatus(`Transect complete. Returned ${body.points?.length || 0} profile points.`);
+        } catch (error) {
+          setStatus(`Transect failed: ${error.message}`, "error");
+        } finally {
+          els.transectRun.disabled = state.transect.points.length < 2;
+          els.transectRun.textContent = "Run transect";
+        }
+      }
+
+      map.on(L.Draw.Event.CREATED, (event) => {
+        drawnItems.clearLayers();
+        state.polygonLayer = event.layer;
+        drawnItems.addLayer(state.polygonLayer);
+        updatePolygonState();
+        clearOutputs();
+        map.fitBounds(state.polygonLayer.getBounds(), { padding: [32, 32] });
+        setStatus("Polygon captured. Ready to run contour analysis.");
+      });
+
+      map.on(L.Draw.Event.EDITED, () => {
+        const layers = drawnItems.getLayers();
+        state.polygonLayer = layers[0] || null;
+        updatePolygonState();
+        clearOutputs();
+        setStatus("Polygon edited. Re-run contour analysis for updated outputs.");
+      });
+
+      map.on(L.Draw.Event.DELETED, () => {
+        state.polygonLayer = null;
+        updatePolygonState();
+        els.drawDockStatus.textContent = "Draw a polygon boundary to test contours";
+        clearOutputs();
+        setStatus("Draw a site polygon to begin.");
+      });
+
+      map.on("click", (event) => {
+        if (!state.transect.active) {
+          return;
+        }
+        state.transect.points.push(event.latlng);
+        updateTransectLine();
+      });
+
+      els.healthButton.addEventListener("click", checkHealth);
+      els.clearButton.addEventListener("click", clearOutputs);
+      els.drawPolygonButton.addEventListener("click", startPolygonDraw);
+      els.runButton.addEventListener("click", runAnalysis);
+      els.toggleContours.addEventListener("change", syncLayerToggles);
+      els.toggleSlope.addEventListener("change", syncLayerToggles);
+      els.toggleBuildability.addEventListener("change", syncLayerToggles);
+      els.toggleHillshade.addEventListener("change", syncLayerToggles);
+      els.transectToggle.addEventListener("click", toggleTransectTool);
+      els.transectRun.addEventListener("click", runTransect);
+      els.transectClear.addEventListener("click", () => {
+        clearTransect();
+        setStatus("Transect cleared.");
+      });
+
+      updatePolygonState();
+    </script>
+  </body>
+</html>

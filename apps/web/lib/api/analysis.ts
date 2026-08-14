@@ -15,12 +15,13 @@
 
 import type {
   ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone,
+  ContourResponse, TransectResponse, GeoJSONLike,
 } from "../stores/analysis";
 
 // Per-module accent colours (match the rest of the UI).
 const COLOR = {
   flood: "#2563EB", sunpath: "#F59E0B", temperature: "#EF4444",
-  wind: "#06B6D4", rainfall: "#1D4ED8",
+  wind: "#06B6D4", rainfall: "#1D4ED8", contour: "#2D6A4F",
 } as const;
 
 function comfortTone(v: string): QualitativeTone {
@@ -43,6 +44,7 @@ const SVC = {
   wind:           process.env.NEXT_PUBLIC_WIND_API_URL           ?? "http://localhost:8003",
   temperature:    process.env.NEXT_PUBLIC_TEMPERATURE_API_URL    ?? "http://localhost:8000",
   rainfall:       process.env.NEXT_PUBLIC_RAINFALL_API_URL       ?? "http://localhost:8004",
+  contour:        process.env.NEXT_PUBLIC_CONTOUR_API_URL        ?? process.env.NEXT_PUBLIC_CONTOUR_SERVICE_URL ?? "http://localhost:8010",
   zone:           process.env.NEXT_PUBLIC_GEO_API_URL            ?? "http://localhost:8005",
   planning:       process.env.NEXT_PUBLIC_PLANNING_API_URL       ?? "http://localhost:8006",
   infrastructure: process.env.NEXT_PUBLIC_INFRA_API_URL          ?? "http://localhost:8007",
@@ -96,6 +98,91 @@ export interface AnalysisCoords {
   bufferM?: number;
   startDate?: string;
   endDate?: string;
+}
+
+export async function analyzeContour(
+  polygon: GeoJSONLike,
+  contourInterval: number
+): Promise<ContourResponse> {
+  return svcFetch<ContourResponse>(SVC.contour, "/contour/analyze", {
+    method: "POST",
+    body: JSON.stringify({ polygon, contour_interval: contourInterval }),
+  }, 90_000);
+}
+
+export async function analyzeTransect(
+  polygon: GeoJSONLike,
+  transectLine: GeoJSONLike
+): Promise<TransectResponse> {
+  return svcFetch<TransectResponse>(SVC.contour, "/contour/transect", {
+    method: "POST",
+    body: JSON.stringify({ polygon, transect_line: transectLine }),
+  }, 90_000);
+}
+
+export async function getContourAnalysis(
+  polygon: GeoJSONLike,
+  contourInterval = 20
+): Promise<ModuleResult> {
+  const raw = await analyzeContour(polygon, contourInterval);
+  const s = raw.slope_stats;
+  const a = raw.aspect_stats;
+  const buildablePct = num(s.flat_area_pct) + num(s.gentle_area_pct);
+  const hazardPct = num(s.very_steep_area_pct) + num(s.hazard_area_pct);
+  const score = clampScore(buildablePct - hazardPct * 1.5 + 20);
+  return {
+    score,
+    severity: severityFromScore(score),
+    summary: `${buildablePct.toFixed(1)}% low-slope terrain; dominant aspect ${a.dominant_aspect_label}.`,
+    data_source: "Copernicus DEM GLO-30 2024 (DSM, 30m, EGM2008)",
+    indicators: [
+      { label: "Mean slope", value: num(s.mean_slope_pct).toFixed(1), unit: "%", barFraction: clamp01(num(s.mean_slope_pct) / 33), citation: "Copernicus DEM GLO-30 2024" },
+      { label: "Max slope", value: num(s.max_slope_pct).toFixed(1), unit: "%", barFraction: clamp01(num(s.max_slope_pct) / 60), citation: "Horn slope estimator" },
+      { label: "Buildable low-slope", value: buildablePct.toFixed(1), unit: "%", barFraction: clamp01(buildablePct / 100), citation: "Slope classification" },
+      { label: "Hazard slope", value: num(s.hazard_area_pct).toFixed(1), unit: "%", barFraction: clamp01(num(s.hazard_area_pct) / 100), citation: "Slope >33%" },
+    ],
+    chart_data: [],
+    charts: [
+      {
+        title: "Slope class share", kind: "bar", unit: "% area",
+        series: [{ key: "value", label: "Area", color: COLOR.contour }],
+        points: [
+          { label: "Flat", value: num(s.flat_area_pct) },
+          { label: "Gentle", value: num(s.gentle_area_pct) },
+          { label: "Moderate", value: num(s.moderate_area_pct) },
+          { label: "Steep", value: num(s.steep_area_pct) },
+          { label: "V.Steep", value: num(s.very_steep_area_pct) },
+          { label: "Hazard", value: num(s.hazard_area_pct) },
+        ],
+      },
+    ],
+    qualitative: [
+      { label: "DEM", value: "Copernicus 30m", tone: "neutral" },
+      { label: "Aspect", value: `${a.dominant_aspect_label} ${num(a.dominant_aspect_deg).toFixed(0)}°`, tone: "neutral" },
+      { label: "North-facing", value: `${num(a.north_facing_pct).toFixed(1)}%`, tone: "neutral" },
+      { label: "South-facing", value: `${num(a.south_facing_pct).toFixed(1)}%`, tone: "neutral" },
+    ],
+    detailMetrics: [
+      { group: "DEM", rows: [
+        { label: "Source", value: "Copernicus DEM GLO-30 2024" },
+        { label: "Resolution", value: String(raw.dem_metadata.resolution_m), unit: "m" },
+        { label: "Contour interval", value: String(raw.dem_metadata.contour_interval_m), unit: "m" },
+      ]},
+      { group: "Slope", rows: [
+        { label: "Flat", value: num(s.flat_area_pct).toFixed(1), unit: "%" },
+        { label: "Gentle", value: num(s.gentle_area_pct).toFixed(1), unit: "%" },
+        { label: "Hazard", value: num(s.hazard_area_pct).toFixed(1), unit: "%" },
+      ]},
+    ],
+    recommendations: [
+      hazardPct > 5
+        ? "High-slope zones detected; confirm retaining and drainage strategy with a topographic survey."
+        : "Terrain appears broadly buildable from DEM slope screening; verify with site survey before grading design.",
+    ],
+    contour: raw,
+    loading: false,
+    error: null,
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1525,6 +1612,7 @@ export async function getAmenitiesAnalysis(lat: number, lon: number, radiusM = 2
 const SEVERITY_RANK: Record<Severity, number> = { none: 0, low: 1, moderate: 2, high: 3 };
 const MODULE_LABEL: Record<ModuleId, string> = {
   flood: "Flood", sunpath: "Sun path", wind: "Wind", temperature: "Temperature", rainfall: "Rainfall",
+  contour: "Contour",
   zone: "Zone & Land Use", planning: "Site Capacity", zoning: "Zoning Compliance",
   infrastructure: "Connectivity",
   soil: "Soil Profile", waterConstraints: "Water Constraints", growth: "Growth Context", land: "Title & Documents",

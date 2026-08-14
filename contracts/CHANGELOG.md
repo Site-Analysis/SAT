@@ -1,5 +1,16 @@
 # Contract Changelog
 
+## 2.8.0 - 2026-07-14
+
+### Added - contour.yaml (new service, SAT-19 contour analysis)
+- New `services/contour`; `contour.yaml` (v1.0.0) documents:
+  - `POST /contour/analyze` -> `ContourResponse` (DEM metadata, slope/aspect
+    stats, contour lines, slope polygons, buildability zones, hillshade PNG).
+  - `POST /contour/transect` -> `TransectResponse` (sampled elevation profile).
+  - Gated by `feature.contour.analysis` (403 when disabled).
+- Data source: Copernicus DEM GLO-30 2024 (`COPERNICUS/DEM/GLO30_2024_1`, band
+  `DEM`), 30m DSM. Local DEM ingestion is planned as a follow-up source layer.
+
 ## 2.1.0 — 2026-06-20
 
 ### Added — planning.yaml (new service, SAT-10 build-capacity)

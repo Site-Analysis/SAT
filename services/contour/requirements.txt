@@ -1,0 +1,14 @@
+fastapi==0.136.3
+uvicorn[standard]==0.48.0
+pydantic==2.13.4
+pydantic-settings==2.14.2
+earthengine-api==1.7.28
+numpy==1.26.4
+scipy==1.17.1
+rasterio==1.4.3
+shapely==2.1.2
+pyproj==3.7.2
+scikit-image==0.25.2
+httpx==0.28.1
+pytest==9.0.3
+pytest-asyncio==1.4.0

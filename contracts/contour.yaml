@@ -1,0 +1,214 @@
+openapi: "3.1.0"
+info:
+  title: Contour Analysis Service
+  version: "1.0.0"
+  description: >
+    Contour analysis for polygon site boundaries using Copernicus DEM GLO-30
+    2024_1 from Google Earth Engine. Produces contour lines, slope classes,
+    buildability zones, hillshade, and transect elevation profiles.
+
+servers:
+  - url: http://localhost:8010
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: contour
+
+  /contour/analyze:
+    post:
+      operationId: analyzeContour
+      summary: Run full contour analysis on a site polygon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContourRequest"
+      responses:
+        "200":
+          description: Contour analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContourResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+        "503":
+          description: DEM fetch failed
+
+  /contour/transect:
+    post:
+      operationId: analyzeContourTransect
+      summary: Compute elevation profile along a user-drawn transect line
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransectRequest"
+      responses:
+        "200":
+          description: Transect elevation profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransectResponse"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+        "503":
+          description: DEM fetch failed
+
+components:
+  schemas:
+    ContourRequest:
+      type: object
+      required: [polygon]
+      properties:
+        polygon:
+          type: object
+          description: GeoJSON Polygon feature, geometry, or FeatureCollection.
+          example:
+            type: Feature
+            geometry:
+              type: Polygon
+              coordinates:
+                - - [77.58, 12.97]
+                  - [77.59, 12.97]
+                  - [77.59, 12.98]
+                  - [77.58, 12.98]
+                  - [77.58, 12.97]
+        contour_interval:
+          type: integer
+          minimum: 10
+          maximum: 60
+          default: 20
+          description: Contour interval in metres.
+
+    TransectRequest:
+      type: object
+      required: [polygon, transect_line]
+      properties:
+        polygon:
+          type: object
+          description: Site boundary GeoJSON used for DEM source selection.
+        transect_line:
+          type: object
+          description: GeoJSON LineString geometry or feature.
+          example:
+            type: LineString
+            coordinates:
+              - [77.581, 12.971]
+              - [77.589, 12.979]
+
+    DEMMetadata:
+      type: object
+      required: [source, resolution_m, vertical_rmse_m, contour_interval_m]
+      properties:
+        source:
+          type: string
+          enum: [copernicus]
+          example: copernicus
+        resolution_m:
+          type: integer
+          example: 30
+        vertical_rmse_m:
+          type: number
+          format: float
+          example: 4.0
+        contour_interval_m:
+          type: integer
+          example: 20
+        warning:
+          type: string
+          nullable: true
+          example: Minimum reliable contour interval for Copernicus GLO-30 is 10m.
+
+    SlopeStats:
+      type: object
+      required: [mean_slope_pct, max_slope_pct, flat_area_pct, gentle_area_pct, moderate_area_pct, steep_area_pct, very_steep_area_pct, hazard_area_pct]
+      properties:
+        mean_slope_pct: { type: number, format: float, example: 4.8 }
+        max_slope_pct: { type: number, format: float, example: 18.2 }
+        flat_area_pct: { type: number, format: float, example: 61.3 }
+        gentle_area_pct: { type: number, format: float, example: 24.5 }
+        moderate_area_pct: { type: number, format: float, example: 8.2 }
+        steep_area_pct: { type: number, format: float, example: 5.1 }
+        very_steep_area_pct: { type: number, format: float, example: 0.8 }
+        hazard_area_pct: { type: number, format: float, example: 0.1 }
+
+    AspectStats:
+      type: object
+      required: [dominant_aspect_deg, dominant_aspect_label, north_facing_pct, south_facing_pct]
+      properties:
+        dominant_aspect_deg: { type: number, format: float, example: 184.0 }
+        dominant_aspect_label: { type: string, example: S }
+        north_facing_pct: { type: number, format: float, example: 22.5 }
+        south_facing_pct: { type: number, format: float, example: 41.2 }
+
+    ContourResponse:
+      type: object
+      required: [dem_metadata, slope_stats, aspect_stats, contour_geojson, slope_geojson, buildability_geojson, hillshade_png_b64]
+      properties:
+        dem_metadata:
+          $ref: "#/components/schemas/DEMMetadata"
+        slope_stats:
+          $ref: "#/components/schemas/SlopeStats"
+        aspect_stats:
+          $ref: "#/components/schemas/AspectStats"
+        contour_geojson:
+          type: object
+          description: GeoJSON FeatureCollection of contour LineStrings.
+        slope_geojson:
+          type: object
+          description: GeoJSON FeatureCollection of slope classification polygons.
+        buildability_geojson:
+          type: object
+          description: GeoJSON FeatureCollection of buildability polygons.
+        hillshade_png_b64:
+          type: string
+          description: Base64-encoded PNG hillshade.
+
+    TransectPoint:
+      type: object
+      required: [distance_m, elevation_m, slope_pct, slope_class]
+      properties:
+        distance_m: { type: number, format: float, example: 25.0 }
+        elevation_m: { type: number, format: float, example: 913.4 }
+        slope_pct: { type: number, format: float, example: 6.2 }
+        slope_class: { type: string, example: GENTLE }
+
+    TransectResponse:
+      type: object
+      required: [total_length_m, min_elevation_m, max_elevation_m, relief_m, dem_source, points]
+      properties:
+        total_length_m: { type: number, format: float, example: 1120.0 }
+        min_elevation_m: { type: number, format: float, example: 904.2 }
+        max_elevation_m: { type: number, format: float, example: 922.8 }
+        relief_m: { type: number, format: float, example: 18.6 }
+        dem_source: { type: string, example: copernicus }
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransectPoint"

@@ -28,6 +28,7 @@ export const REPORT_MODULE_META: { id: ModuleId; name: string; color: string }[]
   { id: "temperature", name: "Temperature", color: "#EF4444" },
   { id: "wind",        name: "Wind",        color: "#06B6D4" },
   { id: "rainfall",    name: "Rainfall",    color: "#1D4ED8" },
+  { id: "contour",     name: "Contour",     color: "#2D6A4F" },
 ];
 
 // Remaining data-only modules collapse into one compact summary page.

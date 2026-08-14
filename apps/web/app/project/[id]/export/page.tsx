@@ -20,6 +20,7 @@ import {
   getSunpathAnalysis,
   getWindAnalysis,
   getTemperatureAnalysis,
+  getContourAnalysis,
   getZoneAnalysis,
   getPlanningAnalysis,
   getZoningAnalysis,
@@ -37,6 +38,7 @@ const MODULE_META: { id: ModuleId; name: string; color: string }[] = [
   { id: "temperature",      name: "Temperature",       color: "#EF4444" },
   { id: "wind",             name: "Wind",              color: "#06B6D4" },
   { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8" },
+  { id: "contour",          name: "Contour",           color: "#2D6A4F" },
   { id: "zoning",           name: "Zoning Compliance", color: "#B45309" },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981" },
   { id: "planning",         name: "Site Capacity",     color: "#F97316" },
@@ -115,6 +117,9 @@ export default function ExportPage() {
       const coords: AnalysisCoords = { lat, lng, projectId: id };
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
       setIncluded(run);
+      const contourPolygon = p.boundary?.type === "Polygon"
+        ? { type: "Feature", geometry: p.boundary }
+        : null;
 
       const existing = useAnalysisStore.getState().modules;
       for (const { id: moduleId } of MODULE_META) {
@@ -122,9 +127,13 @@ export default function ExportPage() {
         const cur = existing[moduleId];
         if (cur && !cur.loading && !cur.error) continue; // already hydrated
         setModuleLoading(moduleId);
-        const fetcher = FETCHERS[moduleId];
+        const fetcher = moduleId === "contour" && contourPolygon
+          ? () => getContourAnalysis(contourPolygon, 20)
+          : FETCHERS[moduleId]
+            ? () => FETCHERS[moduleId]!(coords)
+            : null;
         if (!fetcher) continue;
-        fetcher(coords)
+        fetcher()
           .then((result) => setModuleResult(moduleId, result as never))
           .catch((err) => setModuleError(moduleId, err instanceof Error ? err.message : "Failed"));
       }

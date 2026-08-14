@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Waves, Thermometer, Wind, CloudRain, Settings, MapPin, Building2, Wifi, Layers, Droplets, TrendingUp, FileText, Scale } from "lucide-react";
+import { Sun, Waves, Thermometer, Wind, CloudRain, Settings, MapPin, Building2, Wifi, Layers, Droplets, TrendingUp, FileText, Scale, Mountain } from "lucide-react";
 import { TopNav } from "@/components/layout/TopNav";
 import { RightPanel } from "@/components/layout/RightPanel";
 import type { ActiveModuleInfo } from "@/components/layout/RightPanel";
@@ -19,10 +19,14 @@ import { WindPanel } from "@/components/layout/WindPanel";
 import { WindOverlay } from "@/components/map/WindOverlay";
 import { RainfallPanel } from "@/components/layout/RainfallPanel";
 import { TemperaturePanel } from "@/components/layout/TemperaturePanel";
+import { ContourPanel } from "@/components/layout/ContourPanel";
 import { LandRecordsPanel } from "@/components/layout/LandRecordsPanel";
 import { TemperatureOverlay } from "@/components/map/TemperatureOverlay";
 import { SunOverlay } from "@/components/map/SunOverlay";
 import { RainfallOverlay } from "@/components/map/RainfallOverlay";
+import { ContourOverlay } from "@/components/map/ContourOverlay";
+import { ContourTransectTool } from "@/components/map/ContourTransectTool";
+import { TransectOverlay } from "@/components/map/TransectOverlay";
 import { MapCompass } from "@/components/map/MapCompass";
 import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
@@ -37,6 +41,7 @@ import {
   getSunpathAnalysis,
   getWindAnalysis,
   getTemperatureAnalysis,
+  getContourAnalysis,
   getZoneAnalysis,
   getPlanningAnalysis,
   getZoningAnalysis,
@@ -128,6 +133,7 @@ const SEVERITY_VERDICT: Record<string, string> = {
 
 const MODULE_ABBREV: Record<ModuleId, string> = {
   sunpath: "SUN", flood: "FLOOD", temperature: "TEMP", wind: "WIND", rainfall: "RAIN",
+  contour: "TERRAIN",
   zone: "ZONE", planning: "FAR", zoning: "ZONING", infrastructure: "INFRA", soil: "SOIL",
   waterConstraints: "WATER", growth: "GROWTH", land: "TITLE", amenities: "AMENITY",
 };
@@ -143,6 +149,7 @@ const MODULE_META: {
   { id: "temperature",      name: "Temperature",       color: "#EF4444", icon: <Thermometer size={14} />  },
   { id: "wind",             name: "Wind",              color: "#06B6D4", icon: <Wind size={14} />         },
   { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={14} />    },
+  { id: "contour",          name: "Contour",           color: "#2D6A4F", icon: <Mountain size={14} />     },
   { id: "zoning",           name: "Zoning",            color: "#B45309", icon: <Scale size={14} />        },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981", icon: <MapPin size={14} />       },
   { id: "planning",         name: "Site Capacity",     color: "#F97316", icon: <Building2 size={14} />    },
@@ -163,6 +170,23 @@ function getInitials(user: { email?: string; user_metadata?: { full_name?: strin
   return user.email?.[0]?.toUpperCase() ?? "U";
 }
 
+function contourUnavailableResult(): ModuleResult {
+  return {
+    score: 0,
+    severity: "none",
+    summary: "Contour analysis requires a polygon site boundary.",
+    indicators: [],
+    chart_data: [],
+    charts: [],
+    qualitative: [{ label: "Boundary", value: "Polygon required", tone: "warn" }],
+    detailMetrics: [],
+    recommendations: ["Create the project with a polygon boundary to run contour analysis."],
+    data_source: "Copernicus DEM GLO-30 2024",
+    loading: false,
+    error: null,
+  };
+}
+
 export default function ProjectPage() {
   const router      = useRouter();
   const { id }      = useParams<{ id: string }>();
@@ -178,6 +202,15 @@ export default function ProjectPage() {
     setModuleError,
     setSiteScore,
     resetAnalysis,
+    contourInterval,
+    setContourInterval,
+    contourResult,
+    contourLoading,
+    contourError,
+    transectResult,
+    transectLoading,
+    runContourAnalysis,
+    runTransectAnalysis,
   } = useAnalysisStore();
 
   const [project,      setProject]      = useState<Awaited<ReturnType<typeof getProject>> | null>(null);
@@ -188,6 +221,8 @@ export default function ProjectPage() {
   const [showAmenities, setShowAmenities] = useState(false);
   const [showClimate,  setShowClimate]  = useState(false);
   const [showSiteCircle, setShowSiteCircle] = useState(true);
+  const [transectActive, setTransectActive] = useState(false);
+  const [transectPositions, setTransectPositions] = useState<[number, number][]>([]);
   const [analysisCoords, setAnalysisCoords] = useState<AnalysisCoords | null>(null);
   const climateRequestedRef = useRef(false);
   // 3D sun-path study — selected date drives the accurate sun/shadows.
@@ -208,6 +243,7 @@ export default function ProjectPage() {
     : solar ? dayRange(solar.equinox) : { start: 6, end: 18 };
   const [expanded,     setExpanded]     = useState<Record<ModuleId, boolean>>({
     flood: true, sunpath: false, wind: false, temperature: false, rainfall: false,
+    contour: false,
     zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
     waterConstraints: false, growth: false, land: false, amenities: false,
   });
@@ -253,12 +289,16 @@ export default function ProjectPage() {
       // The zoning map overlay renders amenity pins, so amenities must run whenever
       // zoning does — even if the project's modules_run didn't list it explicitly.
       if (run.has("zoning")) run.add("amenities");
+      const polygonFeature = p.boundary?.type === "Polygon"
+        ? { type: "Feature", geometry: p.boundary }
+        : null;
       const allFetchers: [ModuleId, () => Promise<unknown>][] = [
         ["flood",             () => getFloodAnalysis(coords)],
         ["rainfall",          () => getRainfallAnalysis(coords)],
         ["sunpath",           () => getSunpathAnalysis(coords)],
         ["wind",              () => getWindAnalysis(coords)],
         ["temperature",       () => getTemperatureAnalysis(coords)],
+        ["contour",           () => polygonFeature ? getContourAnalysis(polygonFeature, 20) : Promise.resolve(contourUnavailableResult())],
         ["zone",              () => getZoneAnalysis(lat, lng)],
         ["planning",          () => getPlanningAnalysis(lat, lng)],
         ["zoning",            () => getZoningAnalysis(lat, lng, p.area_sqm && p.area_sqm > 0 ? p.area_sqm : 1000)],
@@ -274,6 +314,7 @@ export default function ProjectPage() {
       if (firstSelected) {
         setExpanded({
           flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+          contour: false,
           zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
           waterConstraints: false, growth: false, land: false, amenities: false,
           [firstSelected]: true,
@@ -335,6 +376,7 @@ export default function ProjectPage() {
   function toggleModule(moduleId: ModuleId) {
     setExpanded((prev) => ({
       flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+      contour: false,
       zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
       waterConstraints: false, growth: false, land: false, amenities: false,
       [moduleId]: !prev[moduleId],
@@ -366,6 +408,9 @@ export default function ProjectPage() {
   const runModules = MODULE_META.filter(
     (m) => !project?.modules_run || project.modules_run.includes(m.id)
   );
+  const contourPolygon = project?.boundary?.type === "Polygon"
+    ? { type: "Feature", geometry: project.boundary }
+    : null;
 
   if (!user) return null;
 
@@ -498,6 +543,25 @@ export default function ProjectPage() {
                   )}
                   {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                     <SunPathArc center={center} result={result} />
+                  )}
+                  {detailModule === "contour" && result?.contour && !result.loading && !result.error && (
+                    <ContourOverlay contour={result.contour} />
+                  )}
+                  {detailModule === "contour" && transectPositions.length >= 2 && (
+                    <TransectOverlay positions={transectPositions} />
+                  )}
+                  {detailModule === "contour" && contourPolygon && (
+                    <ContourTransectTool
+                      active={transectActive}
+                      polygon={contourPolygon}
+                      loading={transectLoading}
+                      onPositionsChange={setTransectPositions}
+                      onCancel={() => setTransectActive(false)}
+                      onConfirm={(line) => {
+                        setTransectActive(false);
+                        void runTransectAnalysis(contourPolygon, line);
+                      }}
+                    />
                   )}
                   {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                     <ZoningContextOverlay center={center} zoningResult={result} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
@@ -802,6 +866,25 @@ export default function ProjectPage() {
                     {expanded.sunpath && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                       <SunPathArc center={center} result={modules.sunpath} />
                     )}
+                    {expanded.contour && modules.contour?.contour && !modules.contour.loading && !modules.contour.error && (
+                      <ContourOverlay contour={modules.contour.contour} />
+                    )}
+                    {expanded.contour && transectPositions.length >= 2 && (
+                      <TransectOverlay positions={transectPositions} />
+                    )}
+                    {expanded.contour && contourPolygon && (
+                      <ContourTransectTool
+                        active={transectActive}
+                        polygon={contourPolygon}
+                        loading={transectLoading}
+                        onPositionsChange={setTransectPositions}
+                        onCancel={() => setTransectActive(false)}
+                        onConfirm={(line) => {
+                          setTransectActive(false);
+                          void runTransectAnalysis(contourPolygon, line);
+                        }}
+                      />
+                    )}
                     {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                       <ZoningContextOverlay center={center} zoningResult={modules.zoning} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                     )}
@@ -887,6 +970,24 @@ export default function ProjectPage() {
                       moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
+                      moduleId === "contour" ? <ContourPanel
+                        result={result}
+                        contour={result?.contour ?? contourResult}
+                        interval={contourInterval}
+                        loading={contourLoading}
+                        error={contourError}
+                        polygonAvailable={!!contourPolygon}
+                        transect={transectResult}
+                        transectLoading={transectLoading}
+                        transectActive={transectActive}
+                        onIntervalChange={setContourInterval}
+                        onToggleTransect={() => setTransectActive((v) => !v)}
+                        onRunAnalysis={() => {
+                          if (!contourPolygon) return;
+                          setModuleLoading("contour");
+                          void runContourAnalysis(contourPolygon, contourInterval);
+                        }}
+                      /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {
                         const k = modules.zoning?.zoning?.kgis;
                         if (!k || k.type !== "Rural") return undefined;
