@@ -1,10 +1,10 @@
 import ee
 
-KEY_PATH = r"C:\Program Files\Json Keys\third-ridge-473908-h6-46cae993d64c.json"
+KEY_PATH = r""
 
 try:
     credentials = ee.ServiceAccountCredentials(
-        "karthikramoo55@gmail.com",
+        "",
         KEY_PATH,
     )
     ee.Initialize(credentials)
