@@ -18,6 +18,8 @@ import type { ExportSettings } from "@/components/layout/ExportDrawer";
 import { ModuleChart } from "@/components/layout/ModuleChart";
 import { SunPanel } from "@/components/layout/SunPanel";
 import { RainfallRadar } from "@/components/map/RainfallRadar";
+import { ContourReportExtras, ContourReportVisual } from "@/components/export/ContourReportVisual";
+import { useContourStore } from "@/lib/stores/contour";
 
 // Plain hex only — html2canvas chokes on oklch / CSS vars.
 const C = {
@@ -62,6 +64,14 @@ function pickVisuals(moduleId: ModuleId, result: ModuleResult) {
   }
   if (moduleId === "rainfall") {
     return { hero: <RainfallRadar result={result} size={260} />, primaryChart: charts[0] };
+  }
+  if (moduleId === "contour") {
+    const contour = result.contour;
+    const transect = useContourStore.getState().transectResult;
+    return {
+      hero: contour ? <ContourReportVisual result={contour} transect={transect} /> : null,
+      primaryChart: charts[0],
+    };
   }
   // flood / temperature / wind — no dedicated SVG diagram, anchor on the first
   // chart, surface the next one (if any) in the right column.
@@ -194,6 +204,9 @@ export function ReportFeaturePage({ moduleId, name, color, result, settings, wid
               <span style={{ fontWeight: 700, color: C.text }}>Note · </span>{note}
             </div>
           )}
+          {moduleId === "contour" && result.contour ? (
+            <ContourReportExtras result={result.contour} transect={useContourStore.getState().transectResult} />
+          ) : null}
         </div>
       </div>
 

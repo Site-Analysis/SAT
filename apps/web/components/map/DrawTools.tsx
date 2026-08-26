@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useMap, Rectangle, Circle, Polygon, Polyline, CircleMarker } from "react-leaflet";
 import L from "leaflet";
 import { Square, PenTool, Trash2, MousePointer2 } from "lucide-react";
+import { polygonAreaM2, type LatLng as GeoLatLng } from "@/lib/geo";
 import { useDrawStore } from "@/lib/stores/draw";
 
 type LatLng = [number, number];
@@ -44,17 +45,7 @@ function interiorAngle(a: LatLng, b: LatLng, c: LatLng) {
   return Math.round(d);
 }
 function polyAreaM2(pts: LatLng[]) {
-  if (pts.length < 3) return 0;
-  const R = 6371000;
-  const lat0 = (pts.reduce((s, p) => s + p[0], 0) / pts.length) * Math.PI / 180;
-  const cosL = Math.cos(lat0);
-  const xy = pts.map(p => [p[1] * Math.PI / 180 * R * cosL, p[0] * Math.PI / 180 * R]);
-  let area = 0;
-  for (let i = 0; i < xy.length; i++) {
-    const j = (i + 1) % xy.length;
-    area += xy[i][0] * xy[j][1] - xy[j][0] * xy[i][1];
-  }
-  return Math.abs(area / 2);
+  return polygonAreaM2(pts as GeoLatLng[]);
 }
 function polyPerimM(pts: LatLng[], map: L.Map) {
   let sum = 0;
@@ -208,8 +199,25 @@ export function DrawTools({ onShapeCommitted, onClear, hasSiteCircle }: DrawTool
   const [shapes, setShapes] = useState<Shape[]>([]);
   const idRef = useRef(1);
 
-  // Expose the active tool to MapClickHandler (suppresses marker placement).
-  useEffect(() => { setDrawMode(mode); }, [mode, setDrawMode]);
+  const storeMode = useDrawStore((s) => s.mode);
+
+  // Expose the active tool to MapClickHandler. Yield to transect (AD-18) so the
+  // two tools never both consume the same click.
+  useEffect(() => {
+    if (storeMode === "transect") {
+      if (mode !== null) setMode(null);
+      return;
+    }
+    if (mode) {
+      setDrawMode(mode);
+      return;
+    }
+    setDrawMode(null);
+  }, [mode, storeMode, setDrawMode]);
+
+  useEffect(() => {
+    if (storeMode === "transect" && mode !== null) setMode(null);
+  }, [storeMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [draftRect, setDraftRect]     = useState<[LatLng, LatLng] | null>(null);
   const [draftCircle, setDraftCircle] = useState<{ center: LatLng; radius: number } | null>(null);
@@ -344,6 +352,7 @@ export function DrawTools({ onShapeCommitted, onClear, hasSiteCircle }: DrawTool
 
   // ── Rectangle / Circle: press-drag-release ──────────────────────────────
   useEffect(() => {
+    if (storeMode === "transect") return;
     if (mode !== "rect" && mode !== "circle") return;
     map.dragging.disable();
     const el = map.getContainer();
@@ -385,10 +394,11 @@ export function DrawTools({ onShapeCommitted, onClear, hasSiteCircle }: DrawTool
       setDraftRect(null);
       setDraftCircle(null);
     };
-  }, [mode, map, commit]);
+  }, [mode, storeMode, map, commit]);
 
   // ── Polygon: click points, close on first-point click or double-click ────
   useEffect(() => {
+    if (storeMode === "transect") return;
     if (mode !== "poly") return;
     const el = map.getContainer();
     el.style.cursor = "crosshair";
@@ -445,7 +455,7 @@ export function DrawTools({ onShapeCommitted, onClear, hasSiteCircle }: DrawTool
       setCursor(null);
       if (measureElRef.current) measureElRef.current.innerHTML = "";
     };
-  }, [mode, map, commit, showDimensions]);
+  }, [mode, storeMode, map, commit, showDimensions]);
 
   function selectTool(id: Exclude<Mode, null>) {
     setMode((m) => (m === id ? null : id));

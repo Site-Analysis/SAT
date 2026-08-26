@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Contour Analysis Service
-  version: "1.0.0"
+  version: "1.1.0"
   description: >
     Contour analysis for polygon site boundaries using Copernicus DEM GLO-30
     2024_1 from Google Earth Engine. Produces contour lines, slope classes,
@@ -189,6 +189,18 @@ components:
         hillshade_png_b64:
           type: string
           description: Base64-encoded PNG hillshade.
+        hillshade_bounds:
+          type: array
+          nullable: true
+          description: >
+            WGS84 bounds of the hillshade PNG as [[south, west], [north, east]].
+            The raster covers the polygon's UTM bounding box snapped to the DEM pixel
+            grid, which the client cannot reconstruct from the polygon alone.
+          items:
+            type: array
+            items:
+              type: number
+          example: [[12.9698, 77.5798], [12.9802, 77.5902]]
 
     TransectPoint:
       type: object
@@ -198,6 +210,16 @@ components:
         elevation_m: { type: number, format: float, example: 913.4 }
         slope_pct: { type: number, format: float, example: 6.2 }
         slope_class: { type: string, example: GENTLE }
+        lat:
+          type: number
+          nullable: true
+          description: WGS84 latitude of the sample point.
+          example: 12.9710
+        lng:
+          type: number
+          nullable: true
+          description: WGS84 longitude of the sample point.
+          example: 77.5810
 
     TransectResponse:
       type: object

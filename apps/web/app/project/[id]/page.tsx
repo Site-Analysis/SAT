@@ -19,21 +19,21 @@ import { WindPanel } from "@/components/layout/WindPanel";
 import { WindOverlay } from "@/components/map/WindOverlay";
 import { RainfallPanel } from "@/components/layout/RainfallPanel";
 import { TemperaturePanel } from "@/components/layout/TemperaturePanel";
-import { ContourPanel } from "@/components/layout/ContourPanel";
+import { ContourPanel } from "@/components/contour/ContourPanel";
 import { LandRecordsPanel } from "@/components/layout/LandRecordsPanel";
 import { TemperatureOverlay } from "@/components/map/TemperatureOverlay";
 import { SunOverlay } from "@/components/map/SunOverlay";
 import { RainfallOverlay } from "@/components/map/RainfallOverlay";
-import { ContourOverlay } from "@/components/map/ContourOverlay";
-import { ContourTransectTool } from "@/components/map/ContourTransectTool";
-import { TransectOverlay } from "@/components/map/TransectOverlay";
 import { MapCompass } from "@/components/map/MapCompass";
 import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
 import { useProjectStore } from "@/lib/stores/project";
 import { useAnalysisStore } from "@/lib/stores/analysis";
+import { useContourStore } from "@/lib/stores/contour";
 import { useConfigStore } from "@/lib/stores/config";
 import { getProject } from "@/lib/api/projects";
+import { deriveContourEligibility } from "@/lib/contour/eligibility";
+import { DEFAULT_INTERVAL } from "@/lib/contour/constants";
 import {
   computeSiteScore,
   getFloodAnalysis,
@@ -41,7 +41,6 @@ import {
   getSunpathAnalysis,
   getWindAnalysis,
   getTemperatureAnalysis,
-  getContourAnalysis,
   getZoneAnalysis,
   getPlanningAnalysis,
   getZoningAnalysis,
@@ -120,6 +119,38 @@ const MapToggle = dynamic(
   () => import("@/components/map/MapToggle").then((m) => m.MapToggle),
   { ssr: false }
 );
+const ContourMapLayers = dynamic(
+  () => import("@/components/map/contour/ContourMapLayers").then((m) => m.ContourMapLayers),
+  { ssr: false }
+);
+const TransectDrawTool = dynamic(
+  () => import("@/components/map/contour/TransectDrawTool").then((m) => m.TransectDrawTool),
+  { ssr: false }
+);
+const TransectPathOverlay = dynamic(
+  () => import("@/components/map/contour/TransectPathOverlay").then((m) => m.TransectPathOverlay),
+  { ssr: false }
+);
+const TransectStartEndLabels = dynamic(
+  () => import("@/components/map/contour/TransectPathOverlay").then((m) => m.TransectStartEndLabels),
+  { ssr: false }
+);
+const TransectCursorMarker = dynamic(
+  () => import("@/components/map/contour/TransectCursorMarker").then((m) => m.TransectCursorMarker),
+  { ssr: false }
+);
+const ContourLayerControl = dynamic(
+  () => import("@/components/map/contour/ContourLayerControl").then((m) => m.ContourLayerControl),
+  { ssr: false }
+);
+const ContourLegend = dynamic(
+  () => import("@/components/map/contour/ContourLegend").then((m) => m.ContourLegend),
+  { ssr: false }
+);
+const ContourMapStatus = dynamic(
+  () => import("@/components/map/contour/ContourMapStatus").then((m) => m.ContourMapStatus),
+  { ssr: false }
+);
 const ClimateContextHUD = dynamic(
   () => import("@/components/zoning/ClimateContextHUD").then((m) => m.ClimateContextHUD),
   { ssr: false }
@@ -170,23 +201,6 @@ function getInitials(user: { email?: string; user_metadata?: { full_name?: strin
   return user.email?.[0]?.toUpperCase() ?? "U";
 }
 
-function contourUnavailableResult(): ModuleResult {
-  return {
-    score: 0,
-    severity: "none",
-    summary: "Contour analysis requires a polygon site boundary.",
-    indicators: [],
-    chart_data: [],
-    charts: [],
-    qualitative: [{ label: "Boundary", value: "Polygon required", tone: "warn" }],
-    detailMetrics: [],
-    recommendations: ["Create the project with a polygon boundary to run contour analysis."],
-    data_source: "Copernicus DEM GLO-30 2024",
-    loading: false,
-    error: null,
-  };
-}
-
 export default function ProjectPage() {
   const router      = useRouter();
   const { id }      = useParams<{ id: string }>();
@@ -202,16 +216,8 @@ export default function ProjectPage() {
     setModuleError,
     setSiteScore,
     resetAnalysis,
-    contourInterval,
-    setContourInterval,
-    contourResult,
-    contourLoading,
-    contourError,
-    transectResult,
-    transectLoading,
-    runContourAnalysis,
-    runTransectAnalysis,
   } = useAnalysisStore();
+  const resetContour = useContourStore((s) => s.resetForProject);
 
   const [project,      setProject]      = useState<Awaited<ReturnType<typeof getProject>> | null>(null);
   const [center,       setCenter]       = useState<[number, number]>([12.9716, 77.5946]);
@@ -221,8 +227,6 @@ export default function ProjectPage() {
   const [showAmenities, setShowAmenities] = useState(false);
   const [showClimate,  setShowClimate]  = useState(false);
   const [showSiteCircle, setShowSiteCircle] = useState(true);
-  const [transectActive, setTransectActive] = useState(false);
-  const [transectPositions, setTransectPositions] = useState<[number, number][]>([]);
   const [analysisCoords, setAnalysisCoords] = useState<AnalysisCoords | null>(null);
   const climateRequestedRef = useRef(false);
   // 3D sun-path study — selected date drives the accurate sun/shadows.
@@ -257,6 +261,7 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!id || !user) return;
     resetAnalysis();
+    resetContour();
     getProject(id).then((p) => {
       setProject(p);
       setCurrentProject(p);
@@ -286,19 +291,14 @@ export default function ProjectPage() {
 
       // Only run the modules the user selected at creation (default: all 5).
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
-      // The zoning map overlay renders amenity pins, so amenities must run whenever
-      // zoning does — even if the project's modules_run didn't list it explicitly.
       if (run.has("zoning")) run.add("amenities");
-      const polygonFeature = p.boundary?.type === "Polygon"
-        ? { type: "Feature", geometry: p.boundary }
-        : null;
+      const eligibility = deriveContourEligibility(p);
       const allFetchers: [ModuleId, () => Promise<unknown>][] = [
         ["flood",             () => getFloodAnalysis(coords)],
         ["rainfall",          () => getRainfallAnalysis(coords)],
         ["sunpath",           () => getSunpathAnalysis(coords)],
         ["wind",              () => getWindAnalysis(coords)],
         ["temperature",       () => getTemperatureAnalysis(coords)],
-        ["contour",           () => polygonFeature ? getContourAnalysis(polygonFeature, 20) : Promise.resolve(contourUnavailableResult())],
         ["zone",              () => getZoneAnalysis(lat, lng)],
         ["planning",          () => getPlanningAnalysis(lat, lng)],
         ["zoning",            () => getZoningAnalysis(lat, lng, p.area_sqm && p.area_sqm > 0 ? p.area_sqm : 1000)],
@@ -308,6 +308,14 @@ export default function ProjectPage() {
         ["growth",            () => getGrowthAnalysis(lat, lng)],
         ["amenities",         () => getAmenitiesAnalysis(lat, lng)],
       ];
+      if (eligibility.eligible) {
+        allFetchers.push(["contour", async () => {
+          const { useContourStore: store } = await import("@/lib/stores/contour");
+          store.getState().setInterval(DEFAULT_INTERVAL);
+          await store.getState().runAnalysis(eligibility.polygon);
+          return useAnalysisStore.getState().modules.contour;
+        }]);
+      }
 
       // Open the first selected module in canonical order.
       const firstSelected = MODULE_META.find((m) => run.has(m.id))?.id;
@@ -368,7 +376,11 @@ export default function ProjectPage() {
 
   // Composite site score — recomputed from module results as they resolve.
   useEffect(() => {
-    const total = project?.modules_run?.length ?? 14;
+    if (!project) return;
+    const run = project.modules_run ?? MODULE_META.map((m) => m.id);
+    let total = run.length;
+    const elig = deriveContourEligibility(project);
+    if (run.includes("contour") && !elig.eligible) total -= 1;
     const score = computeSiteScore(modules, total);
     if (score) setSiteScore(score);
   }, [modules, project, setSiteScore]);
@@ -402,15 +414,25 @@ export default function ProjectPage() {
     };
   })();
 
-  const panelState = siteScore ? "populated" : "loading";
-
   // Only the modules the user selected at creation (default: all 5).
   const runModules = MODULE_META.filter(
     (m) => !project?.modules_run || project.modules_run.includes(m.id)
   );
-  const contourPolygon = project?.boundary?.type === "Polygon"
-    ? { type: "Feature", geometry: project.boundary }
-    : null;
+  const eligibility = deriveContourEligibility(project);
+  const contourSkipped = !eligibility.eligible;
+  const runnableIds = (project
+    ? (project.modules_run ?? MODULE_META.map((m) => m.id))
+    : []
+  ).filter((id) => id !== "contour" || eligibility.eligible);
+  const stillLoading =
+    !project ||
+    runnableIds.some((id) => {
+      const r = modules[id];
+      return !r || r.loading;
+    });
+  const panelState = stillLoading ? "loading" : "populated";
+  const contourVisible = !view3D && (detailModule === "contour" || (detailModule === null && expanded.contour));
+  const sitePolygon = eligibility.eligible ? eligibility.polygon : null;
 
   if (!user) return null;
 
@@ -544,24 +566,14 @@ export default function ProjectPage() {
                   {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                     <SunPathArc center={center} result={result} />
                   )}
-                  {detailModule === "contour" && result?.contour && !result.loading && !result.error && (
-                    <ContourOverlay contour={result.contour} />
-                  )}
-                  {detailModule === "contour" && transectPositions.length >= 2 && (
-                    <TransectOverlay positions={transectPositions} />
-                  )}
-                  {detailModule === "contour" && contourPolygon && (
-                    <ContourTransectTool
-                      active={transectActive}
-                      polygon={contourPolygon}
-                      loading={transectLoading}
-                      onPositionsChange={setTransectPositions}
-                      onCancel={() => setTransectActive(false)}
-                      onConfirm={(line) => {
-                        setTransectActive(false);
-                        void runTransectAnalysis(contourPolygon, line);
-                      }}
-                    />
+                  {contourVisible && (
+                    <>
+                      <ContourMapLayers sitePolygon={sitePolygon} />
+                      <TransectPathOverlay />
+                      <TransectStartEndLabels />
+                      <TransectDrawTool />
+                      <TransectCursorMarker />
+                    </>
                   )}
                   {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                     <ZoningContextOverlay center={center} zoningResult={result} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
@@ -591,6 +603,13 @@ export default function ProjectPage() {
                 )}
                 {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                   <SunOverlay result={result} />
+                )}
+                {contourVisible && (
+                  <>
+                    <ContourLayerControl />
+                    <ContourLegend />
+                    <ContourMapStatus />
+                  </>
                 )}
                 {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                   <>
@@ -866,24 +885,14 @@ export default function ProjectPage() {
                     {expanded.sunpath && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                       <SunPathArc center={center} result={modules.sunpath} />
                     )}
-                    {expanded.contour && modules.contour?.contour && !modules.contour.loading && !modules.contour.error && (
-                      <ContourOverlay contour={modules.contour.contour} />
-                    )}
-                    {expanded.contour && transectPositions.length >= 2 && (
-                      <TransectOverlay positions={transectPositions} />
-                    )}
-                    {expanded.contour && contourPolygon && (
-                      <ContourTransectTool
-                        active={transectActive}
-                        polygon={contourPolygon}
-                        loading={transectLoading}
-                        onPositionsChange={setTransectPositions}
-                        onCancel={() => setTransectActive(false)}
-                        onConfirm={(line) => {
-                          setTransectActive(false);
-                          void runTransectAnalysis(contourPolygon, line);
-                        }}
-                      />
+                    {contourVisible && (
+                      <>
+                        <ContourMapLayers sitePolygon={sitePolygon} />
+                        <TransectPathOverlay />
+                        <TransectStartEndLabels />
+                        <TransectDrawTool />
+                        <TransectCursorMarker />
+                      </>
                     )}
                     {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                       <ZoningContextOverlay center={center} zoningResult={modules.zoning} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
@@ -912,6 +921,13 @@ export default function ProjectPage() {
                   )}
                   {expanded.sunpath && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                     <SunOverlay result={modules.sunpath} />
+                  )}
+                  {contourVisible && (
+                    <>
+                      <ContourLayerControl />
+                      <ContourLegend />
+                      <ContourMapStatus />
+                    </>
                   )}
                   {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                     <>
@@ -956,8 +972,9 @@ export default function ProjectPage() {
                     moduleName={name}
                     moduleColor={color}
                     severity={result?.severity ?? "none"}
-                    score={result?.score ?? 0}
-                    loading={!result || result.loading}
+                    score={moduleId === "contour" && contourSkipped ? null : (result?.score ?? 0)}
+                    loading={moduleId === "contour" && contourSkipped ? false : (!result || result.loading)}
+                    skipped={moduleId === "contour" && contourSkipped}
                     error={result?.error}
                     indicators={result?.indicators}
                     charts={result?.charts}
@@ -970,24 +987,7 @@ export default function ProjectPage() {
                       moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
-                      moduleId === "contour" ? <ContourPanel
-                        result={result}
-                        contour={result?.contour ?? contourResult}
-                        interval={contourInterval}
-                        loading={contourLoading}
-                        error={contourError}
-                        polygonAvailable={!!contourPolygon}
-                        transect={transectResult}
-                        transectLoading={transectLoading}
-                        transectActive={transectActive}
-                        onIntervalChange={setContourInterval}
-                        onToggleTransect={() => setTransectActive((v) => !v)}
-                        onRunAnalysis={() => {
-                          if (!contourPolygon) return;
-                          setModuleLoading("contour");
-                          void runContourAnalysis(contourPolygon, contourInterval);
-                        }}
-                      /> :
+                      moduleId === "contour" ? <ContourPanel result={result} eligibility={eligibility} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {
                         const k = modules.zoning?.zoning?.kgis;
                         if (!k || k.type !== "Rural") return undefined;

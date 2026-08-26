@@ -28,7 +28,8 @@ in-process via `monkeypatch.setenv("FLAGS", ...)`.
 | `sunpath_smoke.py` | sunpath | 13 | ✅ 13 passed | `feature.sunpath.diagram`, `feature.sunpath.solar-day` |
 | `temperature_smoke.py` | temperature | 8 | ✅ 8 passed | `feature.temperature.thermal-profile` |
 | `wind_smoke.py` | wind | 4 | ✅ 4 passed | `feature.wind.analysis` |
-| **Total** | | **55** | **✅ 55 passed, 0 failed** | |
+| `contour_smoke.py` | contour | 5 | on `feat/contour-analysis` (DEM monkeypatched) | `feature.contour.analysis` |
+| **Total** | | **55** | **✅ 55 passed, 0 failed** on `main` 2026-06-21; contour is branch-only until merge | |
 
 Plus `tests/temperature_imd_validation.py` — **2 xfailed** (expected: documents correct
 `imdlib` API usage; xfail until IMD `.grd` data is mounted and `IMD_DATA_DIR` is set). Not a
@@ -48,6 +49,7 @@ smoke file, not in the CI glob; run manually.
 | `sunpath_smoke.py` | health ungated; tz regression (local-not-UTC, not arctic); summer/winter day-length; events shape; `diagram.svg`; orientation recommendation; sunlight-hours open-sky vs building-shadow reduction; flag-off → 403; `solar-day` gated by `feature.sunpath.solar-day` (+ `diagram`); bad date → 422. |
 | `temperature_smoke.py` | health + root; `climate-archive` (Mumbai); `thermal-grid` small polygon; deprecated `thermal-profile` still works; no live network calls (cached); flag-off → 403; flag-on → 200. |
 | `wind_smoke.py` | `/health` → `wind`; `POST /wind/analyze` flag-off → 403; flag-on → 200; response shape (mean/max speed, direction, seasonal). |
+| `contour_smoke.py` | `/health` → `contour`; `POST /contour/analyze` → contours/slope/buildability/hillshade + `hillshade_bounds`; `POST /contour/transect` → finite `lat`/`lng` samples; interval 5 and 70 → **422**. DEM fetch monkeypatched (no live GEE). |
 
 ### Run commands
 

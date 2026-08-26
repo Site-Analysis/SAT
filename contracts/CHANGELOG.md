@@ -1,5 +1,15 @@
 # Contract Changelog
 
+## 2.9.0 - 2026-08-21
+
+### Added - contour.yaml (SAT-19 frontend contract addendum)
+- Optional `hillshade_bounds: [[south, west], [north, east]]` on `ContourResponse`
+  so the hillshade PNG can be georeferenced to the DEM pixel-snapped UTM box
+  rather than guessed from the site polygon (AD-5a).
+- Optional `lat` / `lng` on `TransectPoint` so the graph-to-map scrub marker
+  can sit on the exact sample rather than interpolating along the drawn line
+  (AD-5b). Both fields are additive and backwards-compatible.
+
 ## 2.8.0 - 2026-07-14
 
 ### Added - contour.yaml (new service, SAT-19 contour analysis)

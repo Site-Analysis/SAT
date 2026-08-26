@@ -7,6 +7,7 @@ Run:
 
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
@@ -111,6 +112,14 @@ def test_analyze_returns_contours():
     assert len(body["slope_geojson"]["features"]) > 0
     assert len(body["buildability_geojson"]["features"]) > 0
     assert body["hillshade_png_b64"]
+    bounds = body["hillshade_bounds"]
+    assert bounds is not None
+    assert len(bounds) == 2
+    assert len(bounds[0]) == 2 and len(bounds[1]) == 2
+    south, west = bounds[0]
+    north, east = bounds[1]
+    assert south < north
+    assert west < east
 
 
 @skip_no_app
@@ -123,6 +132,18 @@ def test_transect_returns_points():
     body = resp.json()
     assert body["total_length_m"] > 0
     assert len(body["points"]) > 0
+    for pt in body["points"]:
+        assert math.isfinite(pt["lat"])
+        assert math.isfinite(pt["lng"])
+    start_lng, start_lat = BENGALURU_TRANSECT["coordinates"][0]
+    end_lng, end_lat = BENGALURU_TRANSECT["coordinates"][-1]
+    first, last = body["points"][0], body["points"][-1]
+    # Fake DEM is a 1.44 km UTM window; samples outside it are skipped, so last
+    # included point can sit a few hundred metres short of the requested end.
+    assert abs(first["lat"] - start_lat) < 0.01
+    assert abs(first["lng"] - start_lng) < 0.01
+    assert abs(last["lat"] - end_lat) < 0.01
+    assert abs(last["lng"] - end_lng) < 0.01
 
 
 @skip_no_app

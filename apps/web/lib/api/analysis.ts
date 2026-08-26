@@ -13,10 +13,14 @@
 //   wind        (8003): feature.wind.analysis
 //   rainfall    (8004): feature.rainfall.summary
 
+import { ApiError, RequestCancelledError } from "./client";
+import { CONTOUR_TIMEOUT_MS } from "../contour/constants";
 import type {
   ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone,
   ContourResponse, TransectResponse, GeoJSONLike,
 } from "../stores/analysis";
+
+export { RequestCancelledError };
 
 // Per-module accent colours (match the rest of the UI).
 const COLOR = {
@@ -53,9 +57,23 @@ const SVC = {
   amenities:      process.env.NEXT_PUBLIC_GEO_API_URL            ?? "http://localhost:8005",
 } as const;
 
-async function svcFetch<T>(base: string, path: string, init?: RequestInit, timeoutMs = 30_000): Promise<T> {
+async function svcFetch<T>(
+  base: string,
+  path: string,
+  init?: RequestInit,
+  timeoutMs = 30_000,
+  externalSignal?: AbortSignal,
+): Promise<T> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const timer = setTimeout(() => ctrl.abort("timeout"), timeoutMs);
+  const onExternalAbort = () => ctrl.abort("cancelled");
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timer);
+      throw new RequestCancelledError();
+    }
+    externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+  }
   try {
     const res = await fetch(`${base}${path}`, {
       headers: { "Content-Type": "application/json", ...init?.headers },
@@ -68,16 +86,19 @@ async function svcFetch<T>(base: string, path: string, init?: RequestInit, timeo
         const body = await res.json();
         if (body?.detail) detail = String(body.detail);
       } catch { /* non-JSON error body */ }
-      throw new Error(detail);
+      throw new ApiError(res.status, detail);
     }
     return res.json() as Promise<T>;
   } catch (err) {
+    if (err instanceof RequestCancelledError) throw err;
     if (err instanceof DOMException && err.name === "AbortError") {
+      if (externalSignal?.aborted) throw new RequestCancelledError();
       throw new Error("Service timed out — upstream may be rate-limited. Try again shortly.");
     }
     throw err;
   } finally {
     clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
   }
 }
 
@@ -102,29 +123,40 @@ export interface AnalysisCoords {
 
 export async function analyzeContour(
   polygon: GeoJSONLike,
-  contourInterval: number
+  contourInterval: number,
+  signal?: AbortSignal,
 ): Promise<ContourResponse> {
+  if (process.env.NEXT_PUBLIC_CONTOUR_FIXTURES === "1") {
+    const { contourFixture } = await import("../contour/fixtures");
+    return contourFixture(contourInterval);
+  }
   return svcFetch<ContourResponse>(SVC.contour, "/contour/analyze", {
     method: "POST",
     body: JSON.stringify({ polygon, contour_interval: contourInterval }),
-  }, 90_000);
+  }, CONTOUR_TIMEOUT_MS, signal);
 }
 
 export async function analyzeTransect(
   polygon: GeoJSONLike,
-  transectLine: GeoJSONLike
+  transectLine: GeoJSONLike,
+  signal?: AbortSignal,
 ): Promise<TransectResponse> {
+  if (process.env.NEXT_PUBLIC_CONTOUR_FIXTURES === "1") {
+    const { transectFixture } = await import("../contour/fixtures");
+    return transectFixture();
+  }
   return svcFetch<TransectResponse>(SVC.contour, "/contour/transect", {
     method: "POST",
     body: JSON.stringify({ polygon, transect_line: transectLine }),
-  }, 90_000);
+  }, CONTOUR_TIMEOUT_MS, signal);
 }
 
 export async function getContourAnalysis(
   polygon: GeoJSONLike,
-  contourInterval = 20
+  contourInterval = 20,
+  signal?: AbortSignal,
 ): Promise<ModuleResult> {
-  const raw = await analyzeContour(polygon, contourInterval);
+  const raw = await analyzeContour(polygon, contourInterval, signal);
   const s = raw.slope_stats;
   const a = raw.aspect_stats;
   const buildablePct = num(s.flat_area_pct) + num(s.gentle_area_pct);
@@ -1625,7 +1657,21 @@ export function computeSiteScore(
 ): SiteScore | null {
   const resolved = (Object.entries(modules) as [ModuleId, ModuleResult][])
     .filter(([, r]) => r && !r.loading && !r.error);
-  if (resolved.length === 0) return null;
+  if (resolved.length === 0) {
+    // Contour-only (or otherwise empty) after ineligible modules were dropped
+    // from `total`. Do not average in a fake 0 — populate a completed empty score
+    // so the right panel can leave the loading skeleton (SAT-19-QA-001 / D-12).
+    if (total === 0) {
+      return {
+        overall_score: null,
+        overall_severity: "none",
+        verdict_text: "No scored modules",
+        desc_text: "Contour analysis is not applicable to this site geometry.",
+        module_progress: { complete: 0, total: 0 },
+      };
+    }
+    return null;
+  }
 
   const overall = Math.round(resolved.reduce((sum, [, r]) => sum + r.score, 0) / resolved.length);
 

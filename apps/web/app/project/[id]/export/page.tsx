@@ -13,6 +13,9 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { useProjectStore } from "@/lib/stores/project";
 import { useAnalysisStore, type ModuleId } from "@/lib/stores/analysis";
 import { getProject } from "@/lib/api/projects";
+import { DEFAULT_INTERVAL } from "@/lib/contour/constants";
+import { deriveContourEligibility } from "@/lib/contour/eligibility";
+import { useContourStore } from "@/lib/stores/contour";
 import {
   computeSiteScore,
   getFloodAnalysis,
@@ -116,19 +119,20 @@ export default function ExportPage() {
       }
       const coords: AnalysisCoords = { lat, lng, projectId: id };
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
+      const eligibility = deriveContourEligibility(p);
+      if (!eligibility.eligible) run.delete("contour");
       setIncluded(run);
-      const contourPolygon = p.boundary?.type === "Polygon"
-        ? { type: "Feature", geometry: p.boundary }
-        : null;
+      const interval = useContourStore.getState().resultInterval ?? DEFAULT_INTERVAL;
 
       const existing = useAnalysisStore.getState().modules;
       for (const { id: moduleId } of MODULE_META) {
         if (!run.has(moduleId)) continue;
         const cur = existing[moduleId];
-        if (cur && !cur.loading && !cur.error) continue; // already hydrated
+        if (cur && !cur.loading && !cur.error) continue;
+        if (moduleId === "contour" && !eligibility.eligible) continue;
         setModuleLoading(moduleId);
-        const fetcher = moduleId === "contour" && contourPolygon
-          ? () => getContourAnalysis(contourPolygon, 20)
+        const fetcher = moduleId === "contour" && eligibility.eligible
+          ? () => getContourAnalysis(eligibility.polygon, interval)
           : FETCHERS[moduleId]
             ? () => FETCHERS[moduleId]!(coords)
             : null;
@@ -142,7 +146,10 @@ export default function ExportPage() {
 
   // Recompute composite score as module results resolve.
   useEffect(() => {
-    const total = project?.modules_run?.length ?? 5;
+    if (!project) return;
+    const run = project.modules_run ?? MODULE_META.map((m) => m.id);
+    let total = run.length;
+    if (run.includes("contour") && !deriveContourEligibility(project).eligible) total -= 1;
     const score = computeSiteScore(analysisModules, total);
     if (score) setSiteScore(score);
   }, [analysisModules, project, setSiteScore]);

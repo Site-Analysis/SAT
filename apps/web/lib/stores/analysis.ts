@@ -4,6 +4,9 @@
 "use client";
 
 import { create } from "zustand";
+import type { ContourResponse, TransectResponse } from "../contour/types";
+
+export type { ContourResponse, TransectResponse } from "../contour/types";
 
 export type ModuleId = "flood" | "rainfall" | "sunpath" | "wind" | "temperature" | "contour" | "zone" | "planning" | "zoning" | "infrastructure" | "soil" | "waterConstraints" | "growth" | "land" | "amenities";
 export type Severity = "high" | "moderate" | "low" | "none";
@@ -96,50 +99,6 @@ export interface AmenityPoint {
   lon: number;
 }
 
-export interface ContourResponse {
-  dem_metadata: {
-    source: "copernicus";
-    resolution_m: number;
-    vertical_rmse_m: number;
-    contour_interval_m: number;
-    warning?: string | null;
-  };
-  slope_stats: {
-    mean_slope_pct: number;
-    max_slope_pct: number;
-    flat_area_pct: number;
-    gentle_area_pct: number;
-    moderate_area_pct: number;
-    steep_area_pct: number;
-    very_steep_area_pct: number;
-    hazard_area_pct: number;
-  };
-  aspect_stats: {
-    dominant_aspect_deg: number;
-    dominant_aspect_label: string;
-    north_facing_pct: number;
-    south_facing_pct: number;
-  };
-  contour_geojson: GeoJSONLike;
-  slope_geojson: GeoJSONLike;
-  buildability_geojson: GeoJSONLike;
-  hillshade_png_b64: string;
-}
-
-export interface TransectResponse {
-  total_length_m: number;
-  min_elevation_m: number;
-  max_elevation_m: number;
-  relief_m: number;
-  dem_source: string;
-  points: Array<{
-    distance_m: number;
-    elevation_m: number;
-    slope_pct: number;
-    slope_class: string;
-  }>;
-}
-
 export type GeoJSONLike = Record<string, unknown>;
 
 // Structured, raw zoning fields the floating HUD visuals consume directly —
@@ -216,7 +175,8 @@ export interface ModuleResult {
 }
 
 export interface SiteScore {
-  overall_score: number;
+  /** Null when no runnable modules produced a score (e.g. Contour-only on a point site). */
+  overall_score: number | null;
   overall_severity: Severity;
   verdict_text: string;
   desc_text?: string;
@@ -226,32 +186,16 @@ export interface SiteScore {
 interface AnalysisState {
   modules: Partial<Record<ModuleId, ModuleResult>>;
   siteScore: SiteScore | null;
-  contourInterval: number;
-  contourResult: ContourResponse | null;
-  contourLoading: boolean;
-  contourError: string | null;
-  transectResult: TransectResponse | null;
-  transectLoading: boolean;
   setModuleResult: (id: ModuleId, result: ModuleResult) => void;
   setModuleLoading: (id: ModuleId) => void;
   setModuleError: (id: ModuleId, error: string) => void;
   setSiteScore: (score: SiteScore) => void;
-  setContourInterval: (interval: number) => void;
-  runContourAnalysis: (polygon: GeoJSONLike, interval: number) => Promise<void>;
-  runTransectAnalysis: (polygon: GeoJSONLike, transect: GeoJSONLike) => Promise<void>;
-  clearContourResults: () => void;
   resetAnalysis: () => void;
 }
 
 export const useAnalysisStore = create<AnalysisState>((set) => ({
   modules: {},
   siteScore: null,
-  contourInterval: 20,
-  contourResult: null,
-  contourLoading: false,
-  contourError: null,
-  transectResult: null,
-  transectLoading: false,
   setModuleResult: (id, result) =>
     set((s) => ({ modules: { ...s.modules, [id]: result } })),
   setModuleLoading: (id) =>
@@ -269,51 +213,9 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
       },
     })),
   setSiteScore: (score) => set({ siteScore: score }),
-  setContourInterval: (interval) => set({ contourInterval: interval }),
-  runContourAnalysis: async (polygon, interval) => {
-    set({ contourLoading: true, contourError: null });
-    try {
-      const { getContourAnalysis } = await import("../api/analysis");
-      const result = await getContourAnalysis(polygon, interval);
-      const contour = result.contour ?? null;
-      set((s) => ({
-        contourResult: contour,
-        contourLoading: false,
-        modules: { ...s.modules, contour: result },
-      }));
-    } catch (err) {
-      set({
-        contourLoading: false,
-        contourError: err instanceof Error ? err.message : "Contour analysis failed",
-      });
-    }
-  },
-  runTransectAnalysis: async (polygon, transect) => {
-    set({ transectLoading: true });
-    try {
-      const { analyzeTransect } = await import("../api/analysis");
-      const transectResult = await analyzeTransect(polygon, transect);
-      set({ transectResult, transectLoading: false });
-    } catch {
-      set({ transectLoading: false });
-    }
-  },
-  clearContourResults: () =>
-    set({
-      contourResult: null,
-      contourLoading: false,
-      contourError: null,
-      transectResult: null,
-      transectLoading: false,
-    }),
   resetAnalysis: () =>
     set({
       modules: {},
       siteScore: null,
-      contourResult: null,
-      contourLoading: false,
-      contourError: null,
-      transectResult: null,
-      transectLoading: false,
     }),
 }));

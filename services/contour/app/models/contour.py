@@ -57,6 +57,7 @@ class ContourResponse(BaseModel):
     slope_geojson: dict
     buildability_geojson: dict
     hillshade_png_b64: str
+    hillshade_bounds: list[list[float]] | None = None
 
 
 class TransectPoint(BaseModel):
@@ -64,6 +65,8 @@ class TransectPoint(BaseModel):
     elevation_m: float
     slope_pct: float
     slope_class: str
+    lat: float | None = None
+    lng: float | None = None
 
 
 class TransectResponse(BaseModel):

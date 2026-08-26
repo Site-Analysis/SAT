@@ -41,6 +41,7 @@ async def compute_transect(
 ) -> dict:
     line_wgs84 = _line_geometry(transect_geojson)
     transformer = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+    inverse_transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
     line: LineString = shapely_transform(transformer.transform, line_wgs84)
     total = float(line.length)
     distances = np.arange(0, total + sample_interval_m, sample_interval_m)
@@ -51,6 +52,7 @@ async def compute_transect(
     points = []
     for distance in distances:
         point = line.interpolate(float(distance))
+        lon_wgs, lat_wgs = inverse_transformer.transform(point.x, point.y)
         col, row = inverse * (point.x, point.y)
         r = int(round(row))
         c = int(round(col))
@@ -68,6 +70,8 @@ async def compute_transect(
                 "elevation_m": round(elev, 2),
                 "slope_pct": round(slope_pct, 2),
                 "slope_class": slope_class,
+                "lat": round(float(lat_wgs), 6),
+                "lng": round(float(lon_wgs), 6),
             }
         )
 

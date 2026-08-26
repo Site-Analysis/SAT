@@ -18,10 +18,11 @@ authoritative from `deployment-plan.md` and match `infra/DEPLOY.md` and
 | infrastructure | 8007 | `/infrastructure/*` | 1.0.0 | `feature.infrastructure.connectivity` | OSM Overpass (roads, transit, power) |
 | future-infra | 8008 | `/future-infra/*` | 1.0.0 | `feature.context.growth-pipeline` | None — curated public-announcement JSON (BMRCL/BDA/NHAI/KIADB, 2024-Q4) |
 | land-records | 8009 | `/land-records/*` | 1.0.0 | `feature.land.records` | None — portal-only deep links (Bhoomi/KAVERI/eCourts); no scraping |
+| contour | 8010 | `/contour/*` (not yet in live Caddyfile) | 1.0.0 + 2.9.0 addendum | `feature.contour.analysis` | GEE Copernicus DEM GLO-30 2024 (`COPERNICUS/DEM/GLO30_2024_1`) |
 | overpass | self-hosted | internal only | — | n/a (infra) | `wiktorn/overpass-api`, Southern Zone PBF |
 
-Full per-version contract history: `contracts/CHANGELOG.md`. Flag registry (source of truth, 20
-flags): `packages/flags/src/flags.py` (Python `FeatureFlag` enum) + `packages/flags/src/index.ts`
+Full per-version contract history: `contracts/CHANGELOG.md`. Flag registry (source of truth, 21
+flags including SAT-19 contour): `packages/flags/src/flags.py` (Python `FeatureFlag` enum) + `packages/flags/src/index.ts`
 (TS, frontend subset).
 
 ## Endpoints (from each contract)
@@ -38,6 +39,7 @@ flags): `packages/flags/src/flags.py` (Python `FeatureFlag` enum) + `packages/fl
 | infrastructure | `GET /health` · `POST /infrastructure/analyze` |
 | future-infra | `GET /health` · `GET /future-infra/pipeline` |
 | land-records | `GET /health` · `POST /land-records/lookup` |
+| contour | `GET /health` · `POST /contour/analyze` · `POST /contour/transect` |
 
 ## Shared packages
 

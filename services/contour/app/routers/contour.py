@@ -5,6 +5,10 @@ from __future__ import annotations
 
 import os
 
+from fastapi import APIRouter, HTTPException
+from rasterio.transform import array_bounds
+from rasterio.warp import transform_bounds
+
 from app.models.contour import ContourRequest, ContourResponse, TransectRequest, TransectResponse
 from app.services import dem_service
 from app.services.contour_engine import compute_hillshade, encode_png_b64, generate_contours
@@ -17,7 +21,6 @@ from app.services.slope_engine import (
     slope_stats,
 )
 from app.services.transect_service import compute_transect
-from fastapi import APIRouter, HTTPException
 
 _CONTOUR_FLAG = "feature.contour.analysis"
 
@@ -33,6 +36,14 @@ def _require_flag() -> None:
 
 def _cellsize(transform) -> float:
     return abs(float(transform.a)) or 30.0
+
+
+def _hillshade_bounds(dem: dict) -> list[list[float]]:
+    h, w = dem["array"].shape
+    west, south, east, north = transform_bounds(
+        dem["crs"], "EPSG:4326", *array_bounds(h, w, dem["transform"])
+    )
+    return [[float(south), float(west)], [float(north), float(east)]]
 
 
 async def _analysis_arrays(polygon: dict) -> tuple[dict, object, object, object]:
@@ -85,6 +96,7 @@ async def analyze_contour(request: ContourRequest) -> ContourResponse:
         slope_geojson=slope_geojson(classes, dem["transform"], dem["crs"]),
         buildability_geojson=buildability_geojson(classes, dem["transform"], dem["crs"]),
         hillshade_png_b64=encode_png_b64(hillshade),
+        hillshade_bounds=_hillshade_bounds(dem),
     )
 
 

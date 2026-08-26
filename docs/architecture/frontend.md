@@ -71,6 +71,7 @@ Two layers in `lib/api/`:
 | infrastructure | `NEXT_PUBLIC_INFRA_API_URL` | `http://localhost:8007` |
 | growth (future-infra) | `NEXT_PUBLIC_FUTURE_INFRA_API_URL` | `http://localhost:8008` |
 | land | `NEXT_PUBLIC_LAND_RECORDS_API_URL` | `http://localhost:8009` |
+| contour | `NEXT_PUBLIC_CONTOUR_API_URL` | `http://localhost:8010` |
 
 In production all of these point at the Caddy reverse proxy on `api.qnit.site` (per-service
 routes `/temperature/*`, `/sunpath/*`, … — see `docs/architecture/services.md`).

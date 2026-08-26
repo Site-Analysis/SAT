@@ -80,6 +80,15 @@ clean. FVDs SAT-10..18 + 04b/07b/09b. Deferred → Phase 6: landing CTA cross-do
 Folded from `apps/web/CHANGELOG.md` (frontend) and `contracts/CHANGELOG.md` (services). Newest
 first.
 
+### 2026-08-26 — SAT-19 Contour Analysis frontend (on `feat/contour-analysis`)
+- Full contour module in `apps/web` (`components/contour/`, `components/map/contour/`,
+  `lib/stores/contour.ts`): eligibility, interval 10–60 m, run/cancel, DEM/slope/aspect/
+  buildability, independent map layers, transect draw + profile scrub, report SVG.
+- Backend already on the branch (`services/contour`, port 8010, `feature.contour.analysis`).
+- QA playbook + findings: `docs/SAT-19_contour-frontend-agent-qa.md`,
+  `docs/SAT-19_contour-frontend-qa-findings.md`. Not production-signed-off; remaining
+  cases C-28/C-29/C-30/C-53.
+
 ### 2026-06-20 — Rainfall radar + nav cleanup + landing copy
 - **`RainfallRadar`** — SVG spider/radar chart in the rainfall right panel (12 month spokes, scale
   rings, monsoon months highlighted). Replaces the confusing `RainfallRose` petal map overlay;

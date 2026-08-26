@@ -5,6 +5,8 @@ All notable changes to the Qnit web application are documented here.
 ## [Unreleased]
 
 ### Added
+- **SAT-19 Contour Analysis frontend** — full contour module in `components/contour/` and `components/map/contour/`, driven by `lib/stores/contour.ts`. Panel: eligibility, reactive service status, interval select (10–60 m), run/re-run with cancel, DEM metadata, slope stats with InfoTips, aspect, buildability, transect graph with keyboard/pointer scrub. Map: hillshade, contours, slope, buildability layers with independent toggles, zoom-gated index labels, dashed transect with distinct Start/End markers. Report: static SVG hero plus disclaimer. Point projects no longer contribute a contour score of 0.
+
 - **`RainfallRadar` component** — SVG spider/radar chart rendered in the Rainfall right panel. 12 month spokes clockwise from Jan, concentric dashed scale rings, single data polygon (blue fill + stroke), monsoon months (Jun–Sep) labelled in dark blue. Scales to panel width via `viewBox`. Sits between the metrics grid and the horizontal bar chart.
 
 ### Changed

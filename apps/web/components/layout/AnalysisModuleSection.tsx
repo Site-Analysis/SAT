@@ -22,9 +22,11 @@ export interface AnalysisModuleSectionProps {
   moduleName: string;
   moduleColor: string;
   severity: Severity;
-  score: number;
+  score: number | null;
   loading?: boolean;
   error?: string | null;
+  /** Ineligible / skipped — not loading, not a score of 0 (D-12 / SAT-19-QA-001). */
+  skipped?: boolean;
   indicators?: Indicator[];
   chartData?: ChartDataPoint[];
   charts?: ModuleChartSpec[];
@@ -57,6 +59,7 @@ export function AnalysisModuleSection({
   score,
   loading = false,
   error = null,
+  skipped = false,
   indicators = [],
   charts = [],
   qualitative = [],
@@ -101,14 +104,14 @@ export function AnalysisModuleSection({
           <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 600, background: "#F5E4E4", color: "#C46A6A" }}>
             Retry
           </span>
-        ) : (
+        ) : skipped ? null : (
           <SeverityBadge severity={severity} />
         )}
 
         {/* Score */}
         {loading ? (
           <div className="h-3 w-6 rounded bg-neutral-border animate-pulse" />
-        ) : error ? (
+        ) : error || skipped || score == null ? (
           <span className="text-[13px] font-bold text-text-disabled w-6 text-right">—</span>
         ) : (
           <span className="text-[13px] font-bold text-text-primary w-6 text-right tabular-nums">{score}</span>
@@ -121,7 +124,7 @@ export function AnalysisModuleSection({
           <ChevronDown
             size={12}
             className={cn(
-              "text-text-secondary shrink-0 transition-transform duration-200 ml-1",
+              "text-text-secondary shrink-0 motion-safe:transition-transform motion-safe:duration-200 ml-1",
               expanded && "rotate-180"
             )}
             aria-hidden
@@ -133,7 +136,7 @@ export function AnalysisModuleSection({
       <div
         id={`module-body-${moduleName}`}
         className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-in-out",
+          "grid motion-safe:transition-[grid-template-rows] motion-safe:duration-200 motion-safe:ease-in-out",
           expanded && !error && !loading ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
