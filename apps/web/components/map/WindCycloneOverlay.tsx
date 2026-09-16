@@ -53,8 +53,6 @@ export function WindCycloneOverlay({
   });
 
   const layers = controlledLayers || internalLayers;
-  const [activeLegend, setActiveLegend] = useState<"tracks" | "windZones">("tracks");
-  const prevWindZonesRef = useRef(layers.windZones);
 
   // Store connection for docked storm widget and wind zone mode
   const {
@@ -75,18 +73,6 @@ export function WindCycloneOverlay({
     setStoreWindZoneMode(mode);
     if (onWindZoneModeChange) onWindZoneModeChange(mode);
   };
-
-  // Auto-switch legend tab based on active IS 875 Wind Zones layer toggle
-  useEffect(() => {
-    if (layers.windZones !== prevWindZonesRef.current) {
-      if (layers.windZones) {
-        setActiveLegend("windZones");
-      } else {
-        setActiveLegend("tracks");
-      }
-      prevWindZonesRef.current = layers.windZones;
-    }
-  }, [layers.windZones]);
 
   const toggle = (key: "windZones" | "tracks" | "eyePoints") => {
     const next = !layers[key];
@@ -564,118 +550,163 @@ export function WindCycloneOverlay({
       </div>
 
 
-      {/* Bottom-right Segmented Dual Map Legend (Cyclone Tracks vs IS 875 Wind Zones) */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 20,
-          right: 14,
-          background: "rgba(253,252,251,0.97)",
-          borderRadius: 10,
-          padding: "8px 12px",
-          boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
-          pointerEvents: "auto",
-          maxWidth: 250,
-          width: 250,
-        }}
-      >
-        {/* Compact Segmented Toggle Control */}
+      {/* Bottom-right Stacked Map Legends (Cyclone Tracks & IS 875 Wind Zones) */}
+      {(layers.tracks || layers.windZones) && (
         <div
           style={{
+            position: "absolute",
+            bottom: 20,
+            right: 14,
             display: "flex",
-            background: "#F1F5F9",
-            borderRadius: 6,
-            padding: 2,
-            marginBottom: 8,
+            flexDirection: "column",
+            gap: 10,
+            pointerEvents: "auto",
+            maxWidth: 260,
+            width: 260,
+            zIndex: 400,
           }}
         >
-          <button
-            type="button"
-            onClick={() => setActiveLegend("tracks")}
-            style={{
-              flex: 1,
-              fontSize: 9,
-              fontWeight: 700,
-              padding: "4px 6px",
-              borderRadius: 4,
-              border: "none",
-              cursor: "pointer",
-              background: activeLegend === "tracks" ? "#FFFFFF" : "transparent",
-              color: activeLegend === "tracks" ? "#0284C7" : "#64748B",
-              boxShadow: activeLegend === "tracks" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-              transition: "all 0.15s ease",
-            }}
-          >
-            Cyclone Tracks
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveLegend("windZones")}
-            style={{
-              flex: 1,
-              fontSize: 9,
-              fontWeight: 700,
-              padding: "4px 6px",
-              borderRadius: 4,
-              border: "none",
-              cursor: "pointer",
-              background: activeLegend === "windZones" ? "#FFFFFF" : "transparent",
-              color: activeLegend === "windZones" ? "#0284C7" : "#64748B",
-              boxShadow: activeLegend === "windZones" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-              transition: "all 0.15s ease",
-            }}
-          >
-            IS 875 Wind Zones
-          </button>
-        </div>
+          {/* 1. Cyclone Tracks Legend (Pure White Card) */}
+          {layers.tracks && (
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 10,
+                padding: "9px 12px",
+                boxShadow: "0 3px 14px rgba(0,0,0,0.09)",
+                border: "1px solid #E2E8F0",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                  borderBottom: "1px solid #F1F5F9",
+                  paddingBottom: 4,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Wind size={11} className="text-sky-600" />
+                  Cyclone Tracks
+                </span>
+                <span
+                  style={{
+                    fontSize: 8.5,
+                    color: "#64748B",
+                    fontWeight: 600,
+                  }}
+                >
+                  IMD Tiers
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+                {IMD_LEGEND.map(({ color, label }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        width: 14,
+                        height: 3.5,
+                        borderRadius: 2,
+                        background: color,
+                        flexShrink: 0,
+                        display: "inline-block",
+                      }}
+                    />
+                    <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500, lineHeight: 1.2 }}>
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Legend Content */}
-        {activeLegend === "tracks" ? (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
-              IMD Cyclone Intensity Tiers
-            </div>
-            {IMD_LEGEND.map(({ color, label }) => (
-              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+          {/* 2. IS 875 Wind Zones Legend (Faint Slate/Tinted Card) */}
+          {layers.windZones && (
+            <div
+              style={{
+                background: "rgba(248, 250, 252, 0.98)", // Slate-50 background for distinct color delineation
+                borderRadius: 10,
+                padding: "9px 12px",
+                boxShadow: "0 3px 14px rgba(0,0,0,0.09)",
+                border: "1px solid #CBD5E1", // Distinct border treatment
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                  borderBottom: "1px solid #E2E8F0",
+                  paddingBottom: 4,
+                }}
+              >
                 <span
                   style={{
-                    width: 14,
-                    height: 3,
-                    borderRadius: 2,
-                    background: color,
-                    flexShrink: 0,
-                    display: "inline-block",
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
                   }}
-                />
-                <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500 }}>{label}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
-              IS 875 Basic Design Speed (Vb)
-            </div>
-            {IS875_LEGEND.map(({ color, label }) => (
-              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                >
+                  <Shield size={11} className="text-slate-700" />
+                  IS 875 Wind Zones
+                </span>
                 <span
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 2,
-                    background: color,
-                    opacity: 0.85,
-                    border: "1px solid rgba(0,0,0,0.15)",
-                    flexShrink: 0,
-                    display: "inline-block",
+                    fontSize: 8.5,
+                    color: "#64748B",
+                    fontWeight: 600,
                   }}
-                />
-                <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500 }}>{label}</span>
+                >
+                  Vb Baseline
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+                {IS875_LEGEND.map(({ color, label }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 2,
+                        background: color,
+                        opacity: 0.85,
+                        border: "1px solid rgba(0,0,0,0.2)",
+                        flexShrink: 0,
+                        display: "inline-block",
+                      }}
+                    />
+                    <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500, lineHeight: 1.2 }}>
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
