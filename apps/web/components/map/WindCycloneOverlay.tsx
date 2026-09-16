@@ -316,7 +316,7 @@ export function WindCycloneOverlay({
                       }}
                     >
                       <Square size={12} fill="currentColor" />
-                      <span>Stop Animation</span>
+                      <span>Stop Wind Animation</span>
                     </button>
                   ) : (
                     <button

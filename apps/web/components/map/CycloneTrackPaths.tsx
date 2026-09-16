@@ -53,10 +53,18 @@ export function WindCycloneTracks({
 
   // Native Leaflet Velocity layer state and ref
   const velocityLayerRef = useRef<any>(null);
+  const animationTimerRef = useRef<any>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const [activeStormSid, setActiveStormSid] = useState<string | null>(null);
   const [loadingSid, setLoadingSid] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchErrorSid, setFetchErrorSid] = useState<string | null>(null);
+
+  const setIsAnimating = (animating: boolean) => {
+    if (!animating) {
+      handleStopAnimation();
+    }
+  };
 
   const handleAnimateStorm = async (sid: string, name: string) => {
     setLoadingSid(sid);
@@ -70,6 +78,15 @@ export function WindCycloneTracks({
       if (velocityLayerRef.current) {
         map.removeLayer(velocityLayerRef.current);
         velocityLayerRef.current = null;
+      }
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        clearInterval(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
 
       // 2. Fetch pre-cached wind grid from MinIO
@@ -132,6 +149,44 @@ export function WindCycloneTracks({
         // Ensure transitions don't delay the hide effect
         velocityCanvas.style.transition = "opacity 0.1s ease-out";
       }
+
+      // 6. Animation loop & auto-reset when reaching the final frame of the storm data array
+      const stormDataArray: any[] = Array.isArray(fetchedData[0])
+        ? fetchedData
+        : Array.isArray(fetchedData) && fetchedData.length > 2
+        ? fetchedData
+        : [fetchedData];
+
+      let currentFrameIndex = 0;
+      const totalFrames = stormDataArray.length;
+
+      const runAnimationLoop = () => {
+        // Boundary check: when the animation reaches the final frame of the storm data array, automatically reset state
+        if (currentFrameIndex >= totalFrames - 1) {
+          setIsAnimating(false);
+          return;
+        }
+
+        currentFrameIndex++;
+
+        // Update layer data if multi-frame wind dataset
+        if (velocityLayerRef.current && stormDataArray[currentFrameIndex]) {
+          if (typeof velocityLayerRef.current.setData === "function") {
+            velocityLayerRef.current.setData(stormDataArray[currentFrameIndex]);
+          }
+        }
+
+        animationTimerRef.current = setTimeout(runAnimationLoop, 1000);
+      };
+
+      if (totalFrames > 1) {
+        animationTimerRef.current = setTimeout(runAnimationLoop, 1000);
+      } else {
+        // For static single-peak storm grid playback, auto-reset when natural playback concludes (8s duration)
+        animationTimerRef.current = setTimeout(() => {
+          setIsAnimating(false);
+        }, 8000);
+      }
     } catch (err: any) {
       const errMsg = err?.message || "Failed to fetch storm wind grid from MinIO";
       setFetchError(errMsg);
@@ -144,6 +199,15 @@ export function WindCycloneTracks({
   };
 
   const handleStopAnimation = () => {
+    if (animationTimerRef.current) {
+      clearTimeout(animationTimerRef.current);
+      clearInterval(animationTimerRef.current);
+      animationTimerRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     if (velocityLayerRef.current) {
       map.removeLayer(velocityLayerRef.current);
       velocityLayerRef.current = null;
@@ -659,7 +723,7 @@ export function WindCycloneTracks({
                           className="w-full py-1.5 px-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                         >
                           <Square size={12} className="fill-current" />
-                          <span>Stop Animation</span>
+                          <span>Stop Wind Animation</span>
                         </button>
                       ) : (
                         <button
@@ -759,7 +823,7 @@ export function WindCycloneTracks({
                         className="w-full py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
                       >
                         <Square size={11} className="fill-current" />
-                        <span>Stop Animation</span>
+                        <span>Stop Wind Animation</span>
                       </button>
                     ) : (
                       <button
