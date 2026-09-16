@@ -3,7 +3,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Circle, Polyline, Polygon, CircleMarker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Play, Square, Wind } from "lucide-react";
@@ -242,9 +242,9 @@ export function WindCycloneTracks({
     };
   }, [map]);
 
-  // Fallback: fetch /data/is875_wind_zones.geojson if data.wind_zones is missing
+  // Always fetch /data/is875_wind_zones.geojson on mount so national zones are available
   useEffect(() => {
-    if (!data?.wind_zones?.features?.length) {
+    if (staticWindZones.length === 0) {
       fetch("/data/is875_wind_zones.geojson")
         .then((res) => res.json())
         .then((json) => {
@@ -252,17 +252,31 @@ export function WindCycloneTracks({
         })
         .catch(() => {});
     }
-  }, [data]);
-
-  if (!data) return null;
+  }, [staticWindZones.length]);
 
   const showTracks = layers.tracks ?? true;
   const showWindZones = layers.windZones ?? false;
   const showEyePoints = layers.eyePoints ?? false;
 
-  const windZoneFeatures = (data.wind_zones?.features?.length ?? 0) > 0
-    ? data.wind_zones!.features
-    : staticWindZones;
+  const getZoneColors = (speed: number) => {
+    const strokeColor =
+      speed === 55 ? "#7E22CE" :
+      speed === 50 ? "#EF4444" :
+      speed === 47 ? "#F97316" :
+      speed === 44 ? "#FBBF24" :
+      speed === 39 ? "#059669" :
+      speed === 33 ? "#0284C7" : "#475569";
+
+    const fillColor =
+      speed === 55 ? "#7E22CE" :
+      speed === 50 ? "#EF4444" :
+      speed === 47 ? "#F97316" :
+      speed === 44 ? "#FBBF24" :
+      speed === 39 ? "#34D399" :
+      speed === 33 ? "#60A5FA" : "#CBD5E1";
+
+    return { strokeColor, fillColor };
+  };
 
   // Strict Point-in-Polygon containment: ensure rendered polygon strictly contains site coordinates
   const pointInPolygon = (lat: number, lon: number, ring: [number, number][]) => {
@@ -277,46 +291,42 @@ export function WindCycloneTracks({
     return inside;
   };
 
-  const scopedWindZoneFeatures = (data.wind_zones?.features?.length ?? 0) > 0
-    ? data.wind_zones!.features
-    : windZoneFeatures.filter((zone) =>
-        zone.geometry.coordinates.some((ring) => pointInPolygon(center[0], center[1], ring as [number, number][]))
-      );
+  // Scoped regional wind zone matching the site
+  const scopedWindZoneFeatures = useMemo(() => {
+    if ((data?.wind_zones?.features?.length ?? 0) > 0) {
+      return data!.wind_zones!.features;
+    }
+    return staticWindZones.filter((zone) =>
+      zone.geometry.coordinates.some((ring) => pointInPolygon(center[0], center[1], ring as [number, number][]))
+    );
+  }, [data?.wind_zones, staticWindZones, center]);
 
-  // Generate Turf circular buffer polygon for Buffer Focus mode
-  const bufferKm = bufferM / 1000;
-  const bufferCenterPoint = turf.point([center[1], center[0]]); // [lon, lat]
-  const bufferCircle = turf.circle(bufferCenterPoint, bufferKm, { steps: 64, units: "kilometers" });
+  // National wind zone features across India
+  const nationalWindZoneFeatures = useMemo(() => {
+    return staticWindZones.length > 0 ? staticWindZones : scopedWindZoneFeatures;
+  }, [staticWindZones, scopedWindZoneFeatures]);
 
-  // Calculate Buffer Focus zone intersections
-  const bufferFocusedPolygons: Array<{
-    positions: [number, number][][];
-    color: string;
-    fillColor: string;
-    name: string;
-    speed: number;
-    zoneId: string;
-  }> = [];
+  // Calculate Buffer Focus zone intersections (strictly clipped to circular buffer)
+  const bufferFocusedPolygons = useMemo(() => {
+    if (!showWindZones || windZoneMode !== "buffer" || !data) return [];
 
-  if (showWindZones && windZoneMode === "buffer") {
+    const bufferKm = bufferM / 1000;
+    const bufferCenterPoint = turf.point([center[1], center[0]]);
+    const bufferCircle = turf.circle(bufferCenterPoint, bufferKm, { steps: 64, units: "kilometers" });
+
+    const polygons: Array<{
+      positions: [number, number][][];
+      color: string;
+      fillColor: string;
+      name: string;
+      speed: number;
+      zoneId: string;
+    }> = [];
+
     scopedWindZoneFeatures.forEach((zone, idx) => {
       const props = zone.properties;
       const speed = props.zone_speed || props.v_b_ms || 39;
-      const strokeColor =
-        speed === 55 ? "#7E22CE" :
-        speed === 50 ? "#EF4444" :
-        speed === 47 ? "#F97316" :
-        speed === 44 ? "#FBBF24" :
-        speed === 39 ? "#059669" :
-        speed === 33 ? "#0284C7" : "#475569";
-
-      const fillColor =
-        speed === 55 ? "#7E22CE" :
-        speed === 50 ? "#EF4444" :
-        speed === 47 ? "#F97316" :
-        speed === 44 ? "#FBBF24" :
-        speed === 39 ? "#34D399" :
-        speed === 33 ? "#60A5FA" : "#CBD5E1";
+      const { strokeColor, fillColor } = getZoneColors(speed);
 
       try {
         const zonePoly = turf.polygon(zone.geometry.coordinates as any);
@@ -326,7 +336,7 @@ export function WindCycloneTracks({
             const positions: [number, number][][] = (intersected.geometry.coordinates as [number, number][][]).map(
               (ring) => ring.map(([lon, lat]) => [lat, lon])
             );
-            bufferFocusedPolygons.push({
+            polygons.push({
               positions,
               color: strokeColor,
               fillColor,
@@ -337,7 +347,7 @@ export function WindCycloneTracks({
           } else if (intersected.geometry.type === "MultiPolygon") {
             (intersected.geometry.coordinates as [number, number][][][]).forEach((polyRings, pIdx) => {
               const positions = polyRings.map((ring) => ring.map(([lon, lat]) => [lat, lon] as [number, number]));
-              bufferFocusedPolygons.push({
+              polygons.push({
                 positions,
                 color: strokeColor,
                 fillColor,
@@ -354,25 +364,11 @@ export function WindCycloneTracks({
     });
 
     // Fallback if direct polygon intersection returns empty: fill buffer with statutory rating
-    if (bufferFocusedPolygons.length === 0) {
+    if (polygons.length === 0) {
       const speed = data.statutory_v_b_ms || 39;
-      const strokeColor =
-        speed === 55 ? "#7E22CE" :
-        speed === 50 ? "#EF4444" :
-        speed === 47 ? "#F97316" :
-        speed === 44 ? "#FBBF24" :
-        speed === 39 ? "#059669" :
-        speed === 33 ? "#0284C7" : "#475569";
-      const fillColor =
-        speed === 55 ? "#7E22CE" :
-        speed === 50 ? "#EF4444" :
-        speed === 47 ? "#F97316" :
-        speed === 44 ? "#FBBF24" :
-        speed === 39 ? "#34D399" :
-        speed === 33 ? "#60A5FA" : "#CBD5E1";
-
+      const { strokeColor, fillColor } = getZoneColors(speed);
       const circlePositions = (bufferCircle.geometry.coordinates[0] as [number, number][]).map(([lon, lat]) => [lat, lon] as [number, number]);
-      bufferFocusedPolygons.push({
+      polygons.push({
         positions: [circlePositions],
         color: strokeColor,
         fillColor,
@@ -381,7 +377,9 @@ export function WindCycloneTracks({
         zoneId: "statutory-fallback",
       });
     }
-  }
+
+    return polygons;
+  }, [showWindZones, windZoneMode, bufferM, center, scopedWindZoneFeatures, data]);
 
   const handleSelectTrack = (props: any) => {
     setSelectedStorm({
@@ -396,24 +394,64 @@ export function WindCycloneTracks({
     });
   };
 
-  // Derive Storm Eye Points from LineString coordinates if eye_points FeatureCollection is empty
-  const eyePointFeatures = (data.eye_points?.features?.length ?? 0) > 0
-    ? data.eye_points!.features
-    : (data.tracks?.features ?? []).flatMap((trackFeature) => {
-        if (trackFeature.geometry.type !== "LineString") return [];
-        return trackFeature.geometry.coordinates.map((coord, idx) => ({
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates: coord as [number, number],
-          },
-          properties: {
-            ...trackFeature.properties,
-            wind_ms: trackFeature.properties.max_wind_ms,
-            point_index: idx,
-          },
-        }));
+  // Chunked progressive rendering when tracks count > 50 to prevent freezing browser main thread
+  const allTracks = useMemo(() => data?.tracks?.features ?? [], [data?.tracks?.features]);
+  const [renderedTrackCount, setRenderedTrackCount] = useState<number>(() =>
+    allTracks.length > 50 ? 30 : allTracks.length
+  );
+
+  useEffect(() => {
+    if (allTracks.length <= 50) {
+      setRenderedTrackCount(allTracks.length);
+      return;
+    }
+
+    setRenderedTrackCount(30);
+    let rafId: number;
+    const renderNextChunk = () => {
+      setRenderedTrackCount((prev) => {
+        if (prev >= allTracks.length) return prev;
+        const next = Math.min(prev + 25, allTracks.length);
+        if (next < allTracks.length) {
+          rafId = requestAnimationFrame(renderNextChunk);
+        }
+        return next;
       });
+    };
+
+    rafId = requestAnimationFrame(renderNextChunk);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [allTracks.length]);
+
+  const visibleTracks = useMemo(() => {
+    return allTracks.slice(0, renderedTrackCount);
+  }, [allTracks, renderedTrackCount]);
+
+  // Derive Storm Eye Points from LineString coordinates (scoped to visible tracks)
+  const eyePointFeatures = useMemo(() => {
+    if ((data?.eye_points?.features?.length ?? 0) > 0) {
+      return data!.eye_points!.features;
+    }
+    return visibleTracks.flatMap((trackFeature) => {
+      if (trackFeature.geometry.type !== "LineString") return [];
+      return trackFeature.geometry.coordinates.map((coord, idx) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: coord as [number, number],
+        },
+        properties: {
+          ...trackFeature.properties,
+          wind_ms: trackFeature.properties.max_wind_ms,
+          point_index: idx,
+        },
+      }));
+    });
+  }, [data?.eye_points, visibleTracks]);
+
+  if (!data) return null;
 
   return (
     <>
@@ -430,10 +468,10 @@ export function WindCycloneTracks({
         }}
       />
 
-      {/* IS 875 Statutory Wind Zone Polygons Layer (Dual-Mode: Buffer Focus vs Full Regional) */}
+      {/* IS 875 Statutory Wind Zone Polygons Layer (3-Way: Buffer Focus | Regional | All Zones) */}
       {showWindZones && (
         windZoneMode === "buffer" ? (
-          // BUFFER FOCUS: fill strictly restricted to circular buffer
+          // BUFFER FOCUS: fill strictly restricted to circular buffer, clean solid borders (no dotted lines)
           bufferFocusedPolygons.map((zone, idx) => (
             <Polygon
               key={`buffer-zone-${zone.zoneId}-${idx}`}
@@ -442,8 +480,7 @@ export function WindCycloneTracks({
                 color: zone.color,
                 fillColor: zone.fillColor,
                 fillOpacity: 0.28,
-                weight: 2,
-                dashArray: "4, 4",
+                weight: 1.5,
               }}
             >
               <Popup>
@@ -464,27 +501,12 @@ export function WindCycloneTracks({
               </Popup>
             </Polygon>
           ))
-        ) : (
-          // FULL REGIONAL: render full multi-polygon zonal boundaries across map canvas
+        ) : windZoneMode === "regional" ? (
+          // REGIONAL: render zone containing the site with clean solid borders (no dotted lines)
           scopedWindZoneFeatures.map((zone, idx) => {
             const props = zone.properties;
             const speed = props.zone_speed || props.v_b_ms || 39;
-            const strokeColor =
-              speed === 55 ? "#7E22CE" :
-              speed === 50 ? "#EF4444" :
-              speed === 47 ? "#F97316" :
-              speed === 44 ? "#FBBF24" :
-              speed === 39 ? "#059669" :
-              speed === 33 ? "#0284C7" : "#475569";
-
-            const fillColor =
-              speed === 55 ? "#7E22CE" :
-              speed === 50 ? "#EF4444" :
-              speed === 47 ? "#F97316" :
-              speed === 44 ? "#FBBF24" :
-              speed === 39 ? "#34D399" :
-              speed === 33 ? "#60A5FA" : "#CBD5E1";
-
+            const { strokeColor, fillColor } = getZoneColors(speed);
             const rawRings = zone.geometry.coordinates;
             const positions: [number, number][][] = rawRings.map((ring) =>
               ring.map(([lon, lat]) => [lat, lon] as [number, number])
@@ -498,8 +520,7 @@ export function WindCycloneTracks({
                   color: strokeColor,
                   fillColor: fillColor,
                   fillOpacity: 0.20,
-                  weight: 2,
-                  dashArray: "4, 4",
+                  weight: 1.5,
                 }}
               >
                 <Popup>
@@ -507,7 +528,48 @@ export function WindCycloneTracks({
                     <div className="flex items-center gap-1.5 border-b border-neutral-200 pb-1">
                       <span className="font-bold text-neutral-900">{props.name}</span>
                       <span className="text-[9px] font-semibold text-neutral-600 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
-                        Full Regional
+                        Regional
+                      </span>
+                    </div>
+                    <div className="text-sky-700 font-semibold">
+                      Basic Design Wind Speed Vb: {speed} m/s
+                    </div>
+                    <div className="text-[10px] text-neutral-500">
+                      Bureau of Indian Standards · IS 875 (Part 3): 2015
+                    </div>
+                  </div>
+                </Popup>
+              </Polygon>
+            );
+          })
+        ) : (
+          // ALL ZONES: render complete national unclipped wind zone dataset across the entire country
+          nationalWindZoneFeatures.map((zone, idx) => {
+            const props = zone.properties;
+            const speed = props.zone_speed || props.v_b_ms || 39;
+            const { strokeColor, fillColor } = getZoneColors(speed);
+            const rawRings = zone.geometry.coordinates;
+            const positions: [number, number][][] = rawRings.map((ring) =>
+              ring.map(([lon, lat]) => [lat, lon] as [number, number])
+            );
+
+            return (
+              <Polygon
+                key={`windzone-all-${props.zone_id}-${idx}`}
+                positions={positions}
+                pathOptions={{
+                  color: strokeColor,
+                  fillColor: fillColor,
+                  fillOpacity: 0.20,
+                  weight: 1.5,
+                }}
+              >
+                <Popup>
+                  <div className="p-1 font-sans space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 border-b border-neutral-200 pb-1">
+                      <span className="font-bold text-neutral-900">{props.name}</span>
+                      <span className="text-[9px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+                        All Zones (National)
                       </span>
                     </div>
                     <div className="text-sky-700 font-semibold">
@@ -524,9 +586,9 @@ export function WindCycloneTracks({
         )
       )}
 
-      {/* Historical Cyclone LineString Track Paths */}
+      {/* Historical Cyclone LineString Track Paths (Progressively Chunked) */}
       {showTracks &&
-        data.tracks?.features?.map((feature) => {
+        visibleTracks.map((feature) => {
           const props = feature.properties;
           const rawCoords = feature.geometry.coordinates;
 

@@ -52,7 +52,7 @@ const SVC = {
   amenities:      process.env.NEXT_PUBLIC_GEO_API_URL            ?? "http://localhost:8005",
 } as const;
 
-async function svcFetch<T>(base: string, path: string, init?: RequestInit, timeoutMs = 30_000): Promise<T> {
+async function svcFetch<T>(base: string, path: string, init?: RequestInit, timeoutMs = 60_000): Promise<T> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -394,14 +394,19 @@ export async function getWindCycloneAnalysis(
     return cached.data;
   }
 
-  const raw = await svcFetch<RawWindCycloneAnalysis>(SVC.windCyclone, "/api/v1/wind-cyclone/analyze", {
-    method: "POST",
-    body: JSON.stringify({
-      latitude: coords.lat,
-      longitude: coords.lng,
-      buffer_radius_km: bufferRadiusKm,
-    }),
-  });
+  const raw = await svcFetch<RawWindCycloneAnalysis>(
+    SVC.windCyclone,
+    "/api/v1/wind-cyclone/analyze",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        latitude: coords.lat,
+        longitude: coords.lng,
+        buffer_radius_km: bufferRadiusKm,
+      }),
+    },
+    60_000
+  );
 
   if (!raw.is_within_india) {
     throw new Error("Cyclone frequency and IS 875 wind hazard data is currently available only for locations within India.");
@@ -571,7 +576,8 @@ export async function getWindCycloneRecommendations(
         longitude: coords.lng,
         buffer_radius_km: bufferRadiusKm,
       }),
-    }
+    },
+    60_000
   );
 
   windCycloneRecommendationsCache.set(cacheKey, { data: res, timestamp: Date.now() });

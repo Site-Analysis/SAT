@@ -333,14 +333,14 @@ interface WindCycloneUIState {
   activeStormSid: string | null;
   loadingSid: string | null;
   fetchError: string | null;
-  windZoneMode: "buffer" | "regional";
+  windZoneMode: "buffer" | "regional" | "all";
   isDockedMinimized: boolean;
 
   setSelectedStorm: (storm: SelectedStormInfo | null) => void;
   setActiveStormSid: (sid: string | null) => void;
   setLoadingSid: (sid: string | null) => void;
   setFetchError: (error: string | null) => void;
-  setWindZoneMode: (mode: "buffer" | "regional") => void;
+  setWindZoneMode: (mode: "buffer" | "regional" | "all") => void;
   setIsDockedMinimized: (minimized: boolean | ((prev: boolean) => boolean)) => void;
   toggleDockedMinimized: () => void;
 }

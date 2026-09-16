@@ -96,9 +96,10 @@ export function WindCyclonePanel({
   });
 
   const data = result?.windCyclone;
+  const hasData = Boolean(data);
 
   useEffect(() => {
-    if (!data || !lat || !lng) return;
+    if (!hasData || !lat || !lng) return;
     setReportLoading(true);
     setReportError(null);
     getWindCycloneRecommendations({ lat, lng }, selectedBuffer)
@@ -110,7 +111,7 @@ export function WindCyclonePanel({
         setReportError(err instanceof Error ? err.message : "Failed to load recommendations");
         setReportLoading(false);
       });
-  }, [data, lat, lng, selectedBuffer]);
+  }, [hasData, lat, lng, selectedBuffer]);
 
   const handleBufferSelect = (radiusKm: number) => {
     setSelectedBuffer(radiusKm);

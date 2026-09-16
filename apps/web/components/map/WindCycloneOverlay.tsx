@@ -16,8 +16,8 @@ interface WindCycloneOverlayProps {
     eyePoints: boolean;
   };
   onToggleLayer?: (layerKey: "windZones" | "tracks" | "eyePoints", enabled: boolean) => void;
-  windZoneMode?: "buffer" | "regional";
-  onWindZoneModeChange?: (mode: "buffer" | "regional") => void;
+  windZoneMode?: "buffer" | "regional" | "all";
+  onWindZoneModeChange?: (mode: "buffer" | "regional" | "all") => void;
 }
 
 const IMD_LEGEND = [
@@ -71,7 +71,7 @@ export function WindCycloneOverlay({
 
   const windZoneMode = controlledWindZoneMode || storeWindZoneMode;
 
-  const handleWindZoneModeChange = (mode: "buffer" | "regional") => {
+  const handleWindZoneModeChange = (mode: "buffer" | "regional" | "all") => {
     setStoreWindZoneMode(mode);
     if (onWindZoneModeChange) onWindZoneModeChange(mode);
   };
@@ -492,7 +492,7 @@ export function WindCycloneOverlay({
             <span>IS 875 Wind Zones ({layers.windZones ? "ON" : "OFF"})</span>
           </button>
 
-          {/* Secondary Segmented Control for Dual-Mode Wind Zones when ON */}
+          {/* 3-Way Segmented Control for Wind Zones when ON */}
           {layers.windZones && (
             <div
               style={{
@@ -505,44 +505,38 @@ export function WindCycloneOverlay({
                 gap: 2,
               }}
             >
-              <button
-                type="button"
-                onClick={() => handleWindZoneModeChange("buffer")}
-                style={{
-                  flex: 1,
-                  fontSize: 8.5,
-                  fontWeight: 700,
-                  padding: "2px 5px",
-                  borderRadius: 3,
-                  border: "none",
-                  cursor: "pointer",
-                  background: windZoneMode === "buffer" ? "#FFFFFF" : "transparent",
-                  color: windZoneMode === "buffer" ? "#0284C7" : "#64748B",
-                  boxShadow: windZoneMode === "buffer" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                Buffer Focus
-              </button>
-              <button
-                type="button"
-                onClick={() => handleWindZoneModeChange("regional")}
-                style={{
-                  flex: 1,
-                  fontSize: 8.5,
-                  fontWeight: 700,
-                  padding: "2px 5px",
-                  borderRadius: 3,
-                  border: "none",
-                  cursor: "pointer",
-                  background: windZoneMode === "regional" ? "#FFFFFF" : "transparent",
-                  color: windZoneMode === "regional" ? "#0284C7" : "#64748B",
-                  boxShadow: windZoneMode === "regional" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                Full Regional
-              </button>
+              {(
+                [
+                  { id: "buffer", label: "Buffer Focus" },
+                  { id: "regional", label: "Regional" },
+                  { id: "all", label: "All Zones" },
+                ] as const
+              ).map((tab) => {
+                const active = windZoneMode === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleWindZoneModeChange(tab.id)}
+                    style={{
+                      flex: 1,
+                      fontSize: 8.5,
+                      fontWeight: 700,
+                      padding: "2.5px 4px",
+                      borderRadius: 3,
+                      border: "none",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      background: active ? "#FFFFFF" : "transparent",
+                      color: active ? "#0284C7" : "#64748B",
+                      boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

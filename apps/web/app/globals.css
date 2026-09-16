@@ -62,6 +62,12 @@
   50%       { transform: translateX(-50%) translateY(6px); opacity: 1;    }
 }
 
+@keyframes sat-pulse {
+  0% { transform: scale(0.6); opacity: 0.85; }
+  70% { transform: scale(1.8); opacity: 0.15; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 /* Base */
 body {
   background-color: var(--color-neutral-bg);
