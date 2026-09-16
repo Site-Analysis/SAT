@@ -1,0 +1,689 @@
+// Copyright (c) 2026 Qnit. All rights reserved.
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import type { ModuleResult } from "@/lib/stores/analysis";
+import { Eye, Shield, Wind, ChevronDown, ChevronUp, X, Play, Square } from "lucide-react";
+import { useWindCycloneUIStore } from "@/lib/stores/analysis";
+
+interface WindCycloneOverlayProps {
+  result: ModuleResult;
+  layers?: {
+    tracks: boolean;
+    windZones: boolean;
+    eyePoints: boolean;
+  };
+  onToggleLayer?: (layerKey: "windZones" | "tracks" | "eyePoints", enabled: boolean) => void;
+  windZoneMode?: "buffer" | "regional";
+  onWindZoneModeChange?: (mode: "buffer" | "regional") => void;
+}
+
+const IMD_LEGEND = [
+  { color: "#7E22CE", label: "Super Cyclonic Storm (≥ 62 m/s / ≥ 222 km/h)" },
+  { color: "#EF4444", label: "Extremely Severe (47–61 m/s / 167–221 km/h)" },
+  { color: "#F97316", label: "Very Severe (33–46 m/s / 118–166 km/h)" },
+  { color: "#FBBF24", label: "Severe Cyclonic Storm (25–32 m/s / 89–117 km/h)" },
+  { color: "#34D399", label: "Cyclonic Storm (17–24 m/s / 62–88 km/h)" },
+  { color: "#60A5FA", label: "Depression / Deep Dep. (< 17 m/s / < 62 km/h)" },
+];
+
+const IS875_LEGEND = [
+  { color: "#7E22CE", label: "Zone VI: 55 m/s (Very High Damage Risk)" },
+  { color: "#EF4444", label: "Zone V: 50 m/s (Very High Damage Risk)" },
+  { color: "#F97316", label: "Zone IV: 47 m/s (High Damage Risk)" },
+  { color: "#FBBF24", label: "Zone III: 44 m/s (Moderate Damage Risk)" },
+  { color: "#34D399", label: "Zone II: 39 m/s (Moderate Damage Risk)" },
+  { color: "#60A5FA", label: "Zone I: 33 m/s (Low Damage Risk)" },
+];
+
+export function WindCycloneOverlay({
+  result,
+  layers: controlledLayers,
+  onToggleLayer,
+  windZoneMode: controlledWindZoneMode,
+  onWindZoneModeChange,
+}: WindCycloneOverlayProps) {
+  const data = result.windCyclone;
+  const [internalLayers, setInternalLayers] = useState({
+    windZones: false,
+    tracks: true,
+    eyePoints: false,
+  });
+
+  const layers = controlledLayers || internalLayers;
+  const [activeLegend, setActiveLegend] = useState<"tracks" | "windZones">("tracks");
+  const prevWindZonesRef = useRef(layers.windZones);
+
+  // Store connection for docked storm widget and wind zone mode
+  const {
+    selectedStorm,
+    activeStormSid,
+    loadingSid,
+    fetchError,
+    windZoneMode: storeWindZoneMode,
+    isDockedMinimized,
+    setSelectedStorm,
+    setWindZoneMode: setStoreWindZoneMode,
+    toggleDockedMinimized,
+  } = useWindCycloneUIStore();
+
+  const windZoneMode = controlledWindZoneMode || storeWindZoneMode;
+
+  const handleWindZoneModeChange = (mode: "buffer" | "regional") => {
+    setStoreWindZoneMode(mode);
+    if (onWindZoneModeChange) onWindZoneModeChange(mode);
+  };
+
+  // Auto-switch legend tab based on active IS 875 Wind Zones layer toggle
+  useEffect(() => {
+    if (layers.windZones !== prevWindZonesRef.current) {
+      if (layers.windZones) {
+        setActiveLegend("windZones");
+      } else {
+        setActiveLegend("tracks");
+      }
+      prevWindZonesRef.current = layers.windZones;
+    }
+  }, [layers.windZones]);
+
+  const toggle = (key: "windZones" | "tracks" | "eyePoints") => {
+    const next = !layers[key];
+    setInternalLayers((prev) => ({ ...prev, [key]: next }));
+    if (onToggleLayer) onToggleLayer(key, next);
+  };
+
+  const handleAnimateFromDocked = (sid: string, name: string) => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("sat:animate-storm", { detail: { sid, name } })
+      );
+    }
+  };
+
+  const handleStopAnimationFromDocked = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("sat:stop-animation"));
+    }
+  };
+
+  if (!data) return null;
+
+  const vb = data.statutory_v_b_ms;
+  const metrics = data.metrics;
+
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 400 }}>
+      {/* Top-left Stack: Statutory Vb Badge + Docked Storm Summary Widget */}
+      <div
+        style={{
+          position: "absolute",
+          top: 14,
+          left: 14,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          pointerEvents: "none",
+          maxWidth: 250,
+        }}
+      >
+        {/* Statutory Wind & Cyclone Summary Badge */}
+        <div
+          style={{
+            background: "rgba(253,252,251,0.97)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
+            pointerEvents: "auto",
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              color: "#0284C7",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              marginBottom: 2,
+            }}
+          >
+            Vb (Basic Design Wind Speed)
+          </div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              lineHeight: 1,
+              color: "#0F172A",
+              fontFamily: "var(--font-geist-mono), monospace",
+            }}
+          >
+            {vb.toFixed(1)} m/s
+          </div>
+          <div style={{ fontSize: 9.5, color: "#64748B", marginTop: 3, fontWeight: 500 }}>
+            {data.damage_risk_category}
+          </div>
+          <div style={{ fontSize: 9, color: "#0284C7", marginTop: 4, fontWeight: 600 }}>
+            {metrics.total_historical_events} storms in buffer · {metrics.annual_rate_50yr.toFixed(2)}/yr
+          </div>
+          {data.is_coastal_buffer && (
+            <div
+              style={{
+                fontSize: 8.5,
+                color: "#B45309",
+                marginTop: 4,
+                fontWeight: 600,
+                background: "#FEF3C7",
+                padding: "2px 6px",
+                borderRadius: 4,
+              }}
+            >
+              {data.coastal_penalty_applied ? "10 km Coastal Penalty Active (≥ 39 m/s)" : "Coastal Zone (≤ 10 km)"}
+            </div>
+          )}
+        </div>
+
+        {/* Docked Storm Summary Widget (Anchored directly beneath top-left summary card) */}
+        {selectedStorm && (
+          <div
+            style={{
+              background: "rgba(253,252,251,0.98)",
+              borderRadius: 10,
+              padding: isDockedMinimized ? "8px 12px" : "10px 14px",
+              boxShadow: "0 4px 18px rgba(0,0,0,0.15)",
+              pointerEvents: "auto",
+              border: "1px solid rgba(2,132,199,0.25)",
+              width: "100%",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            {/* Widget Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                <Wind size={13} className="text-sky-600 shrink-0" />
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {selectedStorm.name}
+                </span>
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 600,
+                    color: "#64748B",
+                    background: "#F1F5F9",
+                    padding: "1px 5px",
+                    borderRadius: 4,
+                  }}
+                >
+                  {selectedStorm.season}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={toggleDockedMinimized}
+                  title={isDockedMinimized ? "Expand card" : "Minimize card"}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 3,
+                    borderRadius: 4,
+                    color: "#64748B",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {isDockedMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStorm(null)}
+                  title="Close active storm view"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 3,
+                    borderRadius: 4,
+                    color: "#64748B",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Expanded Content */}
+            {!isDockedMinimized ? (
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                {selectedStorm.category && (
+                  <div
+                    style={{
+                      fontSize: 9.5,
+                      fontWeight: 600,
+                      color: "#0369A1",
+                      background: "#E0F2FE",
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                      display: "inline-block",
+                      alignSelf: "flex-start",
+                    }}
+                  >
+                    {selectedStorm.category.split(" (")[0]}
+                  </div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748B" }}>Max Wind Speed:</span>
+                    <span style={{ fontWeight: 700, color: "#E11D48" }}>
+                      {selectedStorm.max_wind_ms} m/s ({selectedStorm.max_wind_kmh} km/h)
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748B" }}>Min Pressure:</span>
+                    <span style={{ fontWeight: 600, color: "#334155" }}>
+                      {selectedStorm.min_pressure_hpa} hPa
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#64748B" }}>Closest to Site:</span>
+                    <span style={{ fontWeight: 700, color: "#0F172A" }}>
+                      {selectedStorm.closest_distance_km} km
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Button: Animate / Stop */}
+                <div style={{ marginTop: 4, paddingTop: 6, borderTop: "1px solid #E2E8F0" }}>
+                  {activeStormSid === selectedStorm.sid ? (
+                    <button
+                      type="button"
+                      onClick={handleStopAnimationFromDocked}
+                      style={{
+                        width: "100%",
+                        padding: "5px 8px",
+                        background: "#E11D48",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: 6,
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        cursor: "pointer",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      }}
+                    >
+                      <Square size={12} fill="currentColor" />
+                      <span>Stop Animation</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAnimateFromDocked(selectedStorm.sid, selectedStorm.name)}
+                      disabled={loadingSid === selectedStorm.sid}
+                      style={{
+                        width: "100%",
+                        padding: "5px 8px",
+                        background: loadingSid === selectedStorm.sid ? "#94A3B8" : "#0284C7",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: 6,
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        cursor: loadingSid === selectedStorm.sid ? "not-allowed" : "pointer",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      }}
+                    >
+                      {loadingSid === selectedStorm.sid ? (
+                        <>
+                          <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                          <span>Loading Grid...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={12} fill="currentColor" />
+                          <span>▶ Animate Storm Peak</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {fetchError && (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: 9,
+                        color: "#BE123C",
+                        background: "#FFE4E6",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {fetchError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Minimized compact row */
+              <div
+                style={{
+                  marginTop: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: 9.5,
+                }}
+              >
+                <span style={{ color: "#E11D48", fontWeight: 700 }}>
+                  {selectedStorm.max_wind_ms} m/s
+                </span>
+                <span style={{ color: "#64748B" }}>
+                  {selectedStorm.closest_distance_km} km to site
+                </span>
+                {activeStormSid === selectedStorm.sid && (
+                  <span
+                    style={{
+                      color: "#16A34A",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Animating
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Top-right Independent Layer Toggles */}
+      <div
+        style={{
+          position: "absolute",
+          top: 60,
+          right: 14,
+          background: "rgba(253,252,251,0.97)",
+          borderRadius: 9,
+          padding: "8px 10px",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+          pointerEvents: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 9,
+            fontWeight: 700,
+            color: "#64748B",
+            textTransform: "uppercase",
+            letterSpacing: "0.4px",
+          }}
+        >
+          Map Layers
+        </div>
+        <button
+          type="button"
+          onClick={() => toggle("tracks")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 10,
+            fontWeight: 600,
+            color: layers.tracks ? "#0284C7" : "#64748B",
+            background: layers.tracks ? "#E0F2FE" : "transparent",
+            border: "none",
+            borderRadius: 5,
+            padding: "3px 7px",
+            cursor: "pointer",
+          }}
+        >
+          <Wind size={12} />
+          <span>Cyclone Tracks ({layers.tracks ? "ON" : "OFF"})</span>
+        </button>
+
+        <div>
+          <button
+            type="button"
+            onClick={() => toggle("windZones")}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 10,
+              fontWeight: 600,
+              color: layers.windZones ? "#0284C7" : "#64748B",
+              background: layers.windZones ? "#E0F2FE" : "transparent",
+              border: "none",
+              borderRadius: 5,
+              padding: "3px 7px",
+              cursor: "pointer",
+            }}
+          >
+            <Shield size={12} />
+            <span>IS 875 Wind Zones ({layers.windZones ? "ON" : "OFF"})</span>
+          </button>
+
+          {/* Secondary Segmented Control for Dual-Mode Wind Zones when ON */}
+          {layers.windZones && (
+            <div
+              style={{
+                marginLeft: 18,
+                marginTop: 4,
+                display: "flex",
+                background: "#F1F5F9",
+                borderRadius: 5,
+                padding: 2,
+                gap: 2,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleWindZoneModeChange("buffer")}
+                style={{
+                  flex: 1,
+                  fontSize: 8.5,
+                  fontWeight: 700,
+                  padding: "2px 5px",
+                  borderRadius: 3,
+                  border: "none",
+                  cursor: "pointer",
+                  background: windZoneMode === "buffer" ? "#FFFFFF" : "transparent",
+                  color: windZoneMode === "buffer" ? "#0284C7" : "#64748B",
+                  boxShadow: windZoneMode === "buffer" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Buffer Focus
+              </button>
+              <button
+                type="button"
+                onClick={() => handleWindZoneModeChange("regional")}
+                style={{
+                  flex: 1,
+                  fontSize: 8.5,
+                  fontWeight: 700,
+                  padding: "2px 5px",
+                  borderRadius: 3,
+                  border: "none",
+                  cursor: "pointer",
+                  background: windZoneMode === "regional" ? "#FFFFFF" : "transparent",
+                  color: windZoneMode === "regional" ? "#0284C7" : "#64748B",
+                  boxShadow: windZoneMode === "regional" ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Full Regional
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => toggle("eyePoints")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 10,
+            fontWeight: 600,
+            color: layers.eyePoints ? "#0284C7" : "#64748B",
+            background: layers.eyePoints ? "#E0F2FE" : "transparent",
+            border: "none",
+            borderRadius: 5,
+            padding: "3px 7px",
+            cursor: "pointer",
+          }}
+        >
+          <Eye size={12} />
+          <span>Storm Eye Points ({layers.eyePoints ? "ON" : "OFF"})</span>
+        </button>
+      </div>
+
+
+      {/* Bottom-right Segmented Dual Map Legend (Cyclone Tracks vs IS 875 Wind Zones) */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 20,
+          right: 14,
+          background: "rgba(253,252,251,0.97)",
+          borderRadius: 10,
+          padding: "8px 12px",
+          boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
+          pointerEvents: "auto",
+          maxWidth: 250,
+          width: 250,
+        }}
+      >
+        {/* Compact Segmented Toggle Control */}
+        <div
+          style={{
+            display: "flex",
+            background: "#F1F5F9",
+            borderRadius: 6,
+            padding: 2,
+            marginBottom: 8,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveLegend("tracks")}
+            style={{
+              flex: 1,
+              fontSize: 9,
+              fontWeight: 700,
+              padding: "4px 6px",
+              borderRadius: 4,
+              border: "none",
+              cursor: "pointer",
+              background: activeLegend === "tracks" ? "#FFFFFF" : "transparent",
+              color: activeLegend === "tracks" ? "#0284C7" : "#64748B",
+              boxShadow: activeLegend === "tracks" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all 0.15s ease",
+            }}
+          >
+            Cyclone Tracks
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveLegend("windZones")}
+            style={{
+              flex: 1,
+              fontSize: 9,
+              fontWeight: 700,
+              padding: "4px 6px",
+              borderRadius: 4,
+              border: "none",
+              cursor: "pointer",
+              background: activeLegend === "windZones" ? "#FFFFFF" : "transparent",
+              color: activeLegend === "windZones" ? "#0284C7" : "#64748B",
+              boxShadow: activeLegend === "windZones" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all 0.15s ease",
+            }}
+          >
+            IS 875 Wind Zones
+          </button>
+        </div>
+
+        {/* Legend Content */}
+        {activeLegend === "tracks" ? (
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+              IMD Cyclone Intensity Tiers
+            </div>
+            {IMD_LEGEND.map(({ color, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                <span
+                  style={{
+                    width: 14,
+                    height: 3,
+                    borderRadius: 2,
+                    background: color,
+                    flexShrink: 0,
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#475569", marginBottom: 5, textTransform: "uppercase" }}>
+              IS 875 Basic Design Speed (Vb)
+            </div>
+            {IS875_LEGEND.map(({ color, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 2,
+                    background: color,
+                    opacity: 0.85,
+                    border: "1px solid rgba(0,0,0,0.15)",
+                    flexShrink: 0,
+                    display: "inline-block",
+                  }}
+                />
+                <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default WindCycloneOverlay;

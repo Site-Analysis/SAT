@@ -5,7 +5,7 @@
 
 import { create } from "zustand";
 
-export type ModuleId = "flood" | "rainfall" | "sunpath" | "wind" | "temperature" | "zone" | "planning" | "zoning" | "infrastructure" | "soil" | "waterConstraints" | "growth" | "land" | "amenities";
+export type ModuleId = "flood" | "rainfall" | "sunpath" | "wind" | "windCyclone" | "temperature" | "zone" | "planning" | "zoning" | "infrastructure" | "soil" | "waterConstraints" | "growth" | "land" | "amenities";
 export type Severity = "high" | "moderate" | "low" | "none";
 
 export interface Indicator {
@@ -32,7 +32,7 @@ export interface ChartSeries {
 // per series key.
 export interface ModuleChart {
   title: string;
-  kind: "bar" | "line" | "area" | "groupedBar" | "multiLine" | "dailyBar";
+  kind: "bar" | "horizontal-bar" | "line" | "area" | "groupedBar" | "multiLine" | "dailyBar";
   unit?: string;
   series: ChartSeries[];
   points: Array<{ label: string } & Record<string, number | string>>;
@@ -169,6 +169,93 @@ export interface ZoningData {
   severity: Severity;
 }
 
+export interface WindCycloneTrackFeature {
+  type: "Feature";
+  geometry: { type: "LineString"; coordinates: [number, number][] };
+  properties: {
+    sid: string;
+    name: string;
+    season: number;
+    max_wind_ms: number;
+    max_wind_kmh: number;
+    min_pressure_hpa: number;
+    closest_distance_km: number;
+    category: string;
+    stroke: string;
+    stroke_width: number;
+  };
+}
+
+export interface WindCycloneMetrics {
+  total_historical_events: number;
+  annual_rate_50yr: number;
+  max_recorded_wind_speed_ms: number;
+  max_recorded_wind_speed_kmh: number;
+  closest_recorded_distance_km: number;
+}
+
+export interface PrioritizedMitigationItem {
+  priority: "CRITICAL" | "HIGH" | "ADVISORY";
+  category: string;
+  standard_reference: string;
+  recommendation_text: string;
+}
+
+export interface SiteResilienceReportData {
+  recommended_design_wind_speed_ms: number;
+  statutory_wind_speed_ms: number;
+  is_design_speed_elevated: boolean;
+  elevation_reason: string;
+  prioritized_mitigations: PrioritizedMitigationItem[];
+  early_warning_checklist: string[];
+}
+
+export interface WindCycloneZoneFeature {
+  type: "Feature";
+  geometry: { type: "Polygon"; coordinates: [number, number][][] };
+  properties: {
+    zone_id: string;
+    zone_speed?: number;
+    v_b_ms: number;
+    name: string;
+    color: string;
+    stroke: string;
+  };
+}
+
+export interface WindCycloneEyePointFeature {
+  type: "Feature";
+  geometry: { type: "Point"; coordinates: [number, number] };
+  properties: {
+    sid: string;
+    name: string;
+    season: number;
+    wind_ms: number;
+    category: string;
+    stroke: string;
+    color: string;
+    point_index: number;
+  };
+}
+
+export interface WindCycloneData {
+  is_within_india: boolean;
+  statutory_v_b_ms: number;
+  damage_risk_category: string;
+  is_coastal_buffer: boolean;
+  coastal_penalty_applied: boolean;
+  terrain_wind_profile: Record<string, number>;
+  metrics: WindCycloneMetrics;
+  decadal_trend: Record<string, number>;
+  intensity_distribution: Record<string, number>;
+  tracks: { type: "FeatureCollection"; features: WindCycloneTrackFeature[] };
+  wind_zones?: { type: "FeatureCollection"; features: WindCycloneZoneFeature[] };
+  eye_points?: { type: "FeatureCollection"; features: WindCycloneEyePointFeature[] };
+  recommendationsReport?: SiteResilienceReportData;
+  recommendationsLoading?: boolean;
+  recommendationsError?: string | null;
+}
+
 export interface ModuleResult {
   score: number;
   severity: Severity;
@@ -182,6 +269,7 @@ export interface ModuleResult {
   data_source?: string;
   solar?: SolarData;
   wind?: WindData;
+  windCyclone?: WindCycloneData;
   zoning?: ZoningData;
   amenityPoints?: AmenityPoint[];
   loading: boolean;
@@ -228,3 +316,52 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
   setSiteScore: (score) => set({ siteScore: score }),
   resetAnalysis: () => set({ modules: {}, siteScore: null }),
 }));
+
+export interface SelectedStormInfo {
+  sid: string;
+  name: string;
+  season: number;
+  category?: string;
+  max_wind_ms: number;
+  max_wind_kmh: number;
+  min_pressure_hpa: number;
+  closest_distance_km: number;
+}
+
+interface WindCycloneUIState {
+  selectedStorm: SelectedStormInfo | null;
+  activeStormSid: string | null;
+  loadingSid: string | null;
+  fetchError: string | null;
+  windZoneMode: "buffer" | "regional";
+  isDockedMinimized: boolean;
+
+  setSelectedStorm: (storm: SelectedStormInfo | null) => void;
+  setActiveStormSid: (sid: string | null) => void;
+  setLoadingSid: (sid: string | null) => void;
+  setFetchError: (error: string | null) => void;
+  setWindZoneMode: (mode: "buffer" | "regional") => void;
+  setIsDockedMinimized: (minimized: boolean | ((prev: boolean) => boolean)) => void;
+  toggleDockedMinimized: () => void;
+}
+
+export const useWindCycloneUIStore = create<WindCycloneUIState>((set) => ({
+  selectedStorm: null,
+  activeStormSid: null,
+  loadingSid: null,
+  fetchError: null,
+  windZoneMode: "buffer",
+  isDockedMinimized: false,
+
+  setSelectedStorm: (storm) => set({ selectedStorm: storm, fetchError: null }),
+  setActiveStormSid: (sid) => set({ activeStormSid: sid }),
+  setLoadingSid: (sid) => set({ loadingSid: sid }),
+  setFetchError: (error) => set({ fetchError: error }),
+  setWindZoneMode: (mode) => set({ windZoneMode: mode }),
+  setIsDockedMinimized: (minimized) =>
+    set((s) => ({
+      isDockedMinimized: typeof minimized === "function" ? minimized(s.isDockedMinimized) : minimized,
+    })),
+  toggleDockedMinimized: () => set((s) => ({ isDockedMinimized: !s.isDockedMinimized })),
+}));
+

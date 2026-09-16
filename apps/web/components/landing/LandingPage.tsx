@@ -5,9 +5,9 @@ import styles from "./landing.module.css";
 
 const $ = styles as Record<string, string>;
 
-// Landing renders on qnit.in only; auth lives on qnit.site (different registrable
-// domain → no shared session cookie). CTAs must point at the absolute tool URL.
-const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL ?? "https://qnit.site/login";
+// Use a local-safe default for the tool entry point. In production teams can
+// override with NEXT_PUBLIC_LOGIN_URL, but local dev should not hardcode qnit domains.
+const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL ?? "/login";
 
 export function LandingPage() {
   return (

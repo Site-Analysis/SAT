@@ -101,3 +101,25 @@ body {
   color: var(--color-text-secondary);
   opacity: 0.85;
 }
+
+/* Leaflet-velocity overlay non-blocking pointer events */
+canvas.velocity-overlay,
+.leaflet-overlay-pane canvas {
+  pointer-events: none !important;
+}
+
+/* Instantly hide the wind canvas during map drag/pan */
+.leaflet-dragging .leaflet-overlay-pane canvas {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+/* Instantly hide the wind canvas during zoom animations */
+.leaflet-zoom-anim .leaflet-overlay-pane canvas {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+

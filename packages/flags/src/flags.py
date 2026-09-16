@@ -21,6 +21,7 @@ class FeatureFlag(StrEnum):
     SUNPATH_DIAGRAM = "feature.sunpath.diagram"
     SUNPATH_SOLAR_DAY = "feature.sunpath.solar-day"
     WIND_ANALYSIS = "feature.wind.analysis"
+    WIND_CYCLONE_HAZARD = "feature.wind.cyclone-hazard"
     RAINFALL_ARCHIVE = "feature.rainfall.archive"
     RAINFALL_SUMMARY = "feature.rainfall.summary"
     RAINFALL_CLIMATE_PROFILE = "feature.rainfall.climate-profile"

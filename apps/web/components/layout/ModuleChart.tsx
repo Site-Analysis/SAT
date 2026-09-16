@@ -83,6 +83,16 @@ export function ModuleChart({ chart, height = 132, animate = true }: { chart: Mo
                 />
               ))}
             </AreaChart>
+          ) : kind === "horizontal-bar" ? (
+            <BarChart data={points} layout="vertical" margin={{ top: 4, right: 16, bottom: 0, left: 110 }}>
+              <CartesianGrid stroke="#CFD6C4" horizontal={false} />
+              <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+              <YAxis type="category" dataKey="label" tick={{ ...AXIS_TICK, fontSize: 8 }} axisLine={false} tickLine={false} width={110} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: "rgba(148,163,184,0.08)" }} />
+              {series.map((s) => (
+                <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[0, 3, 3, 0]} isAnimationActive={animate} />
+              ))}
+            </BarChart>
           ) : (
             <BarChart data={points} margin={{ top: 4, right: 6, bottom: 0, left: -22 }}>
               <CartesianGrid stroke="#CFD6C4" vertical={false} />

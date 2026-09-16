@@ -1,19 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Two domains, one deployment (see deployment-plan.md "Domain Map").
+// Two production domains, one deployment (see deployment-plan.md "Domain Map").
 //   qnit.in   = marketing landing only. All auth lives on qnit.site.
 //   qnit.site = the tool: login + dashboard + analysis.
 // `.in` and `.site` are different registrable domains, so a Supabase session
 // cookie set on one is NOT readable on the other — every authenticated route
-// must resolve on qnit.site. This middleware only branches on host; the actual
-// auth gating stays client-side (localStorage session, see lib/supabase/client.ts).
+// must resolve on qnit.site. Local development should stay on localhost instead.
 const TOOL_HOST = "qnit.site";
 const LANDING_HOST = "qnit.in";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export function proxy(request: NextRequest) {
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
   const { pathname, search } = request.nextUrl;
+
+  // Local development: keep requests on localhost and route root to the login screen.
+  if (LOCAL_HOSTS.has(host)) {
+    if (pathname === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url, 307);
+    }
+    return NextResponse.next();
+  }
 
   // Landing domain: only the marketing page (`/`) belongs here. Anything else is
   // a deep link into the tool — bounce it to qnit.site so auth lands on the right domain.

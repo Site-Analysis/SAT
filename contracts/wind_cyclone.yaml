@@ -1,0 +1,224 @@
+openapi: "3.1.0"
+info:
+  title: Wind Hazard & Cyclone Frequency Analysis Service
+  version: "1.0.0"
+  description: >
+    Provides statutory basic design wind speed (Vb per IS 875 Part 3: 2015), 10 km
+    coastal penalty validation, multi-height terrain wind profiles (Global Wind Atlas 250m),
+    historical North Indian Ocean cyclone tracks (NOAA IBTrACS v4), decadal/intensity aggregations,
+    and AI-driven structural safety & mitigation recommendations for India.
+
+servers:
+  - url: http://localhost:8003
+    description: Local dev (Wind service)
+
+paths:
+  /api/v1/wind-cyclone/health:
+    get:
+      operationId: windCycloneHealth
+      summary: Health check
+      responses:
+        "200":
+          description: Service running
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "wind-cyclone"
+
+  /api/v1/wind-cyclone/analyze:
+    post:
+      operationId: analyzeWindCyclone
+      summary: Perform wind hazard and cyclone frequency analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WindCycloneRequest"
+      responses:
+        "200":
+          description: Wind hazard and cyclone frequency analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WindCycloneAnalysis"
+        "400":
+          description: Out of bounds coordinate (outside India)
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+  /api/v1/wind-cyclone/recommendations:
+    post:
+      operationId: getWindCycloneRecommendations
+      summary: Stubbed endpoint returning structured AI structural resilience report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WindCycloneRequest"
+      responses:
+        "200":
+          description: Structured site resilience report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteResilienceReport"
+        "403":
+          description: Feature flag disabled
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    WindCycloneRequest:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: float
+          description: Site latitude in decimal degrees
+        longitude:
+          type: number
+          format: float
+          description: Site longitude in decimal degrees
+        buffer_radius_km:
+          type: number
+          format: float
+          default: 100.0
+          enum: [50.0, 100.0, 250.0]
+          description: Search buffer radius in kilometers
+
+    TerrainWindProfile:
+      type: object
+      required: ["10m", "50m", "100m", "150m", "200m"]
+      properties:
+        "10m":
+          type: number
+          format: float
+        "50m":
+          type: number
+          format: float
+        "100m":
+          type: number
+          format: float
+        "150m":
+          type: number
+          format: float
+        "200m":
+          type: number
+          format: float
+
+    SummaryMetrics:
+      type: object
+      required: [total_historical_events, annual_rate_50yr, max_recorded_wind_speed_ms, max_recorded_wind_speed_kmh, closest_recorded_distance_km]
+      properties:
+        total_historical_events:
+          type: integer
+        annual_rate_50yr:
+          type: number
+          format: float
+        max_recorded_wind_speed_ms:
+          type: number
+          format: float
+        max_recorded_wind_speed_kmh:
+          type: number
+          format: float
+        closest_recorded_distance_km:
+          type: number
+          format: float
+
+    WindCycloneAnalysis:
+      type: object
+      required:
+        - is_within_india
+        - statutory_v_b_ms
+        - damage_risk_category
+        - is_coastal_buffer
+        - coastal_penalty_applied
+        - terrain_wind_profile
+        - metrics
+        - decadal_trend
+        - intensity_distribution
+        - tracks
+      properties:
+        is_within_india:
+          type: boolean
+        statutory_v_b_ms:
+          type: number
+          format: float
+        damage_risk_category:
+          type: string
+        is_coastal_buffer:
+          type: boolean
+        coastal_penalty_applied:
+          type: boolean
+        terrain_wind_profile:
+          $ref: "#/components/schemas/TerrainWindProfile"
+        metrics:
+          $ref: "#/components/schemas/SummaryMetrics"
+        decadal_trend:
+          type: object
+          additionalProperties:
+            type: integer
+        intensity_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        tracks:
+          type: object
+          description: GeoJSON FeatureCollection containing LineString cyclone track features
+
+    PrioritizedMitigation:
+      type: object
+      required: [priority, category, standard_reference, recommendation_text]
+      properties:
+        priority:
+          type: string
+          enum: [CRITICAL, HIGH, ADVISORY]
+        category:
+          type: string
+        standard_reference:
+          type: string
+        recommendation_text:
+          type: string
+
+    SiteResilienceReport:
+      type: object
+      required:
+        - recommended_design_wind_speed_ms
+        - statutory_wind_speed_ms
+        - is_design_speed_elevated
+        - elevation_reason
+        - prioritized_mitigations
+        - early_warning_checklist
+      properties:
+        recommended_design_wind_speed_ms:
+          type: number
+          format: float
+        statutory_wind_speed_ms:
+          type: number
+          format: float
+        is_design_speed_elevated:
+          type: boolean
+        elevation_reason:
+          type: string
+        prioritized_mitigations:
+          type: array
+          items:
+            $ref: "#/components/schemas/PrioritizedMitigation"
+        early_warning_checklist:
+          type: array
+          items:
+            type: string

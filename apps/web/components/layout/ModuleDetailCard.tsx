@@ -31,6 +31,7 @@ const REGULATORY: Partial<Record<ModuleId, { title: string; text: string }>> = {
   sunpath:          { title: "NBC 2016 · Part 8 §3.5",                      text: "Minimum 2 hrs direct sunlight on habitable rooms at winter solstice." },
   temperature:      { title: "NBC 2016 · Part 8 §4.1.2",                    text: "Thermal comfort: U-value for walls ≤ 0.4 W/m²K in hot-dry climate zones." },
   wind:             { title: "IS 875 Part 3 : 2015",                        text: "Basic wind speed Zone III (Bengaluru): 33 m/s. Design wind speed = Vb × k₁ × k₂ × k₃. Structures must be designed for 1.5× basic wind pressure." },
+  windCyclone:      { title: "IS 875 (Part 3): 2015 · NBC 2016",           text: "Basic wind speed Vb zones (33–55 m/s) and mandatory 10 km coastal penalty rule (Vb ≥ 39 m/s). Historical cyclone gust elevation check required for coastal belts." },
   rainfall:         { title: "NBC 2016 · Part 9 §3.4.1",                    text: "Roof drainage: design for 60 mm/hr intensity. Minimum slope 1:50 towards outlets." },
   zone:             { title: "BDA CDP 2031 · Zoning Regulations",           text: "Zone classification determines permissible use, FAR, ground coverage, height, and setbacks. Obtain the official BDA/BBMP zoning extract before design or investment." },
   planning:         { title: "NBC 2016 · Part 3 §4.2 + DGCA ANO Series X", text: "FAR per NBC Table 15 subject to BDA/BBMP amendments. Airport height clearance per DGCA ANO Series X — file NOC with AAI if site falls within Obstacle Limitation Surface." },
@@ -42,11 +43,12 @@ const REGULATORY: Partial<Record<ModuleId, { title: string; text: string }>> = {
   amenities:        { title: "OSM · Amenity coverage within 5km radius",    text: "Amenity proximity data from OpenStreetMap. Coverage quality varies — verify key facilities on-site before design decisions." },
 };
 
-const MODULES_WITH_MAP_LAYERS = new Set<ModuleId>(["flood", "wind", "rainfall", "temperature", "sunpath"]);
+const MODULES_WITH_MAP_LAYERS = new Set<ModuleId>(["flood", "wind", "windCyclone", "rainfall", "temperature", "sunpath"]);
 
 const MODULE_SUFFIX: Partial<Record<ModuleId, string>> = {
   flood:            "Risk",
   wind:             "Risk",
+  windCyclone:      "Analysis",
   rainfall:         "Risk",
   temperature:      "Analysis",
   sunpath:          "Analysis",
@@ -62,6 +64,11 @@ const MODULE_SUFFIX: Partial<Record<ModuleId, string>> = {
 };
 
 const SOURCES: Partial<Record<ModuleId, { icon: string; name: string; detail: string }[]>> = {
+  windCyclone: [
+    { icon: "📜", name: "BIS IS 875 (Part 3): 2015",         detail: "Bureau of Indian Standards basic design wind speed Vb digitized zones (33–55 m/s) and 10 km coastal penalty rule" },
+    { icon: "🌀", name: "NOAA NCEI IBTrACS v4",               detail: "International Best Track Archive for Climate Stewardship · North Indian Ocean basin historical cyclone tracks (1970s–2020s)" },
+    { icon: "🌬", name: "Global Wind Atlas 250m",              detail: "World Bank / DTU 250m microscale multi-height terrain vertical wind profile model (10m–200m)" },
+  ],
   flood: [
     { icon: "🌍", name: "Open-Meteo · SRTM Elevation",    detail: "NASA SRTM v3 · ~90 m resolution · Single-point elevation" },
     { icon: "🌧", name: "Open-Meteo Archive · ERA5",       detail: "ECMWF ERA5 reanalysis · Daily precipitation · 5-year record · ~25 km" },

@@ -111,13 +111,6 @@ export function MapSearch({ topOffset = 72 }: { topOffset?: number }) {
     else if (e.key === "Escape") { setResults([]); setActive(-1); }
   }
 
-  const glass: React.CSSProperties = {
-    background: "rgba(253,252,251,0.55)",
-    backdropFilter: "blur(14px) saturate(160%)",
-    WebkitBackdropFilter: "blur(14px) saturate(160%)",
-    border: "1px solid rgba(255,255,255,0.6)",
-  };
-
   const bar = (
     <form
       ref={boxRef}
@@ -132,8 +125,10 @@ export function MapSearch({ topOffset = 72 }: { topOffset?: number }) {
     >
       <div style={{
         display: "flex", alignItems: "center", gap: 8,
-        padding: "9px 14px", borderRadius: 999, ...glass,
-        boxShadow: "0 6px 26px rgba(58,63,59,0.18), inset 0 1px 0 rgba(255,255,255,0.45)",
+        padding: "8px 14px", borderRadius: 999,
+        background: "#FFFFFF",
+        border: "1px solid #CFD6C4",
+        boxShadow: "0 2px 10px rgba(58,63,59,0.10)",
       }}>
         {loading
           ? <Loader2 size={16} color="#306223" className="animate-spin" aria-hidden />
@@ -166,8 +161,9 @@ export function MapSearch({ topOffset = 72 }: { topOffset?: number }) {
       {/* Suggestions dropdown */}
       {results.length > 0 && (
         <div style={{
-          ...glass, borderRadius: 12, overflow: "hidden",
-          boxShadow: "0 8px 28px rgba(58,63,59,0.20)", maxHeight: 240, overflowY: "auto",
+          background: "#FFFFFF", borderRadius: 12, overflow: "hidden",
+          border: "1px solid #CFD6C4",
+          boxShadow: "0 4px 16px rgba(58,63,59,0.12)", maxHeight: 240, overflowY: "auto",
         }}>
           {results.map((r, i) => (
             <button
@@ -193,7 +189,8 @@ export function MapSearch({ topOffset = 72 }: { topOffset?: number }) {
       {error && (
         <div style={{
           alignSelf: "center", fontSize: 11, fontWeight: 500, color: "#C46A6A",
-          ...glass, borderRadius: 8, padding: "3px 10px",
+          background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 8, padding: "3px 10px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
         }}>
           {error}
         </div>

@@ -8,7 +8,11 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+import pyproj
+os.environ["PROJ_DATA"] = pyproj.datadir.get_data_dir()
+
 from app.routers.wind import wind_router
+from app.routers.wind_cyclone import wind_cyclone_router
 from app.settings import WindSettings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +47,7 @@ async def lifespan(app: FastAPI):
 
 settings = WindSettings()
 app = FastAPI(title="SAT-Platform Backend", lifespan=lifespan)
+app.include_router(wind_cyclone_router)
 
 # CORS middleware (open for development; restrict in production)
 cors_origins = _parse_cors_origins(settings.cors_origins)

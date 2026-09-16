@@ -1,6 +1,14 @@
 # Contract Changelog
 
-## 2.1.0 — 2026-06-20
+## 3.1.0 — 2026-08-31
+
+### Added — wind_cyclone.yaml (new module, SAT-WIND-01 Wind Hazard & Cyclone Frequency Analysis)
+- `wind_cyclone.yaml` (v1.0.0) added under `services/wind` for endpoints `/api/v1/wind-cyclone/*`:
+  - `GET /api/v1/wind-cyclone/health` → Health status
+  - `POST /api/v1/wind-cyclone/analyze` → `WindCycloneAnalysis` (IS 875 Vb, coastal buffer penalty, Global Wind Atlas multi-height profile, summary metrics, decadal frequency, IMD intensity distribution, GeoJSON cyclone LineStrings).
+  - `POST /api/v1/wind-cyclone/recommendations` → `SiteResilienceReport` (stubbed AI structural recommendations, design speed elevation check, prioritized mitigations, early-warning checklist).
+- Gated by `feature.wind.cyclone-hazard` (403 when disabled).
+
 
 ### Added — planning.yaml (new service, SAT-10 build-capacity)
 - New `services/planning` in the monorepo; `planning.yaml` (v1.0.0) documents:

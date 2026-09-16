@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sun, Waves, Thermometer, Wind, CloudRain, Scale } from "lucide-react";
+import { Sun, Waves, Thermometer, Wind, CloudRain, Scale, ShieldAlert } from "lucide-react";
 import { TopNav } from "@/components/layout/TopNav";
 import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
@@ -43,12 +43,13 @@ const MapSearch = dynamic(
 // TODO GH#55: boundary is a 200 m circle — replace with /api/geo/site-boundary when confirmed
 
 const ANALYSIS_MODULES: { id: ModuleId; name: string; color: string; icon: React.ReactNode; desc: string }[] = [
-  { id: "sunpath",     name: "Sun Path",          color: "#F59E0B", icon: <Sun size={15} />,         desc: "Solar access, shadows, daylight" },
-  { id: "flood",       name: "Risks",             color: "#2563EB", icon: <Waves size={15} />,       desc: "Risk, terrain, hydrology" },
-  { id: "temperature", name: "Temperature",       color: "#EF4444", icon: <Thermometer size={15} />, desc: "Thermal profile, comfort" },
-  { id: "wind",        name: "Wind",              color: "#06B6D4", icon: <Wind size={15} />,         desc: "Speed, ventilation, gusts" },
-  { id: "rainfall",    name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={15} />,    desc: "Annual totals, wet days" },
-  { id: "zoning",      name: "Zoning",            color: "#B45309", icon: <Scale size={15} />,        desc: "Zone, LULC, FAR, NA order, DGCA" },
+  { id: "sunpath",     name: "Sun Path",              color: "#F59E0B", icon: <Sun size={15} />,         desc: "Solar access, shadows, daylight" },
+  { id: "flood",       name: "Risks",                 color: "#2563EB", icon: <Waves size={15} />,       desc: "Risk, terrain, hydrology" },
+  { id: "temperature", name: "Temperature",           color: "#EF4444", icon: <Thermometer size={15} />, desc: "Thermal profile, comfort" },
+  { id: "wind",        name: "Wind",                  color: "#06B6D4", icon: <Wind size={15} />,         desc: "Speed, ventilation, gusts" },
+  { id: "windCyclone", name: "Wind Hazard & Cyclone", color: "#0284C7", icon: <ShieldAlert size={15} />, desc: "IS 875 design wind speed, cyclone tracks, risk analytics" },
+  { id: "rainfall",    name: "Rainfall",              color: "#1D4ED8", icon: <CloudRain size={15} />,    desc: "Annual totals, wet days" },
+  { id: "zoning",      name: "Zoning",                color: "#B45309", icon: <Scale size={15} />,        desc: "Zone, LULC, FAR, NA order, DGCA" },
 ];
 
 // ─── Floating module selector ─────────────────────────────────────────────────
@@ -79,7 +80,7 @@ function ModuleSelector({
       }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#3A3F3B" }}>Analyses to run</div>
-          <div style={{ fontSize: 11, color: "#7B8F83", marginTop: 1 }}>{selected.size} of 5 selected</div>
+          <div style={{ fontSize: 11, color: "#7B8F83", marginTop: 1 }}>{selected.size} of {ANALYSIS_MODULES.length} selected</div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={onAll}  style={pillBtn}>All</button>

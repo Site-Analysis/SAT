@@ -17,6 +17,8 @@ import { FloodRiskPanel } from "@/components/layout/FloodRiskPanel";
 import { FloodZoneOverlay } from "@/components/map/FloodZoneOverlay";
 import WindPanel from "@/components/layout/WindPanel";
 import { WindOverlay } from "@/components/map/WindOverlay";
+import { WindCyclonePanel } from "@/components/layout/WindCyclonePanel";
+import { WindCycloneOverlay } from "@/components/map/WindCycloneOverlay";
 import { RainfallPanel } from "@/components/layout/RainfallPanel";
 import { TemperaturePanel } from "@/components/layout/TemperaturePanel";
 import { LandRecordsPanel } from "@/components/layout/LandRecordsPanel";
@@ -24,6 +26,7 @@ import { TemperatureOverlay } from "@/components/map/TemperatureOverlay";
 import { SunOverlay } from "@/components/map/SunOverlay";
 import { RainfallOverlay } from "@/components/map/RainfallOverlay";
 import { MapCompass } from "@/components/map/MapCompass";
+import { ShieldAlert as ShieldIcon } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
 import { useProjectStore } from "@/lib/stores/project";
@@ -36,6 +39,7 @@ import {
   getRainfallAnalysis,
   getSunpathAnalysis,
   getWindAnalysis,
+  getWindCycloneAnalysis,
   getTemperatureAnalysis,
   getZoneAnalysis,
   getPlanningAnalysis,
@@ -79,6 +83,10 @@ const WindRose = dynamic(
   () => import("@/components/map/WindRose").then((m) => m.WindRose),
   { ssr: false }
 );
+const CycloneTrackPaths = dynamic(
+  () => import("@/components/map/CycloneTrackPaths").then((m) => m.WindCycloneTracks),
+  { ssr: false }
+);
 const ThermalField = dynamic(
   () => import("@/components/map/ThermalField").then((m) => m.ThermalField),
   { ssr: false }
@@ -120,14 +128,12 @@ const ClimateContextHUD = dynamic(
   { ssr: false }
 );
 
-// TODO GH#53: all 5 analysis endpoints unconfirmed — responses are mapped via defensive guesses
-
 const SEVERITY_VERDICT: Record<string, string> = {
   none: "Optimal", low: "Low risk", moderate: "Moderate risk", high: "High risk",
 };
 
 const MODULE_ABBREV: Record<ModuleId, string> = {
-  sunpath: "SUN", flood: "FLOOD", temperature: "TEMP", wind: "WIND", rainfall: "RAIN",
+  sunpath: "SUN", flood: "FLOOD", temperature: "TEMP", wind: "WIND", windCyclone: "CYC", rainfall: "RAIN",
   zone: "ZONE", planning: "FAR", zoning: "ZONING", infrastructure: "INFRA", soil: "SOIL",
   waterConstraints: "WATER", growth: "GROWTH", land: "TITLE", amenities: "AMENITY",
 };
@@ -138,20 +144,21 @@ const MODULE_META: {
   color: string;
   icon: React.ReactNode;
 }[] = [
-  { id: "sunpath",          name: "Sun Path",          color: "#F59E0B", icon: <Sun size={14} />          },
-  { id: "flood",            name: "Flood",             color: "#2563EB", icon: <Waves size={14} />        },
-  { id: "temperature",      name: "Temperature",       color: "#EF4444", icon: <Thermometer size={14} />  },
-  { id: "wind",             name: "Wind",              color: "#06B6D4", icon: <Wind size={14} />         },
-  { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={14} />    },
-  { id: "zoning",           name: "Zoning",            color: "#B45309", icon: <Scale size={14} />        },
-  { id: "zone",             name: "Zone & Land Use",   color: "#10B981", icon: <MapPin size={14} />       },
-  { id: "planning",         name: "Site Capacity",     color: "#F97316", icon: <Building2 size={14} />    },
-  { id: "infrastructure",   name: "Connectivity",      color: "#0EA5E9", icon: <Wifi size={14} />         },
-  { id: "soil",             name: "Soil Profile",      color: "#92400E", icon: <Layers size={14} />       },
-  { id: "waterConstraints", name: "Water Constraints", color: "#1D4ED8", icon: <Droplets size={14} />     },
-  { id: "growth",           name: "Growth Context",    color: "#16A34A", icon: <TrendingUp size={14} />   },
-  { id: "land",             name: "Title & Documents", color: "#6B21A8", icon: <FileText size={14} />     },
-  { id: "amenities",        name: "Amenities",         color: "#059669", icon: <MapPin size={14} />        },
+  { id: "sunpath",          name: "Sun Path",                    color: "#F59E0B", icon: <Sun size={14} />          },
+  { id: "flood",            name: "Flood",                       color: "#2563EB", icon: <Waves size={14} />        },
+  { id: "temperature",      name: "Temperature",                 color: "#EF4444", icon: <Thermometer size={14} />  },
+  { id: "wind",             name: "Wind",                        color: "#06B6D4", icon: <Wind size={14} />         },
+  { id: "windCyclone",      name: "Wind Hazard & Cyclone Risk", color: "#0284C7", icon: <ShieldIcon size={14} />     },
+  { id: "rainfall",         name: "Rainfall",                    color: "#1D4ED8", icon: <CloudRain size={14} />    },
+  { id: "zoning",           name: "Zoning",                      color: "#B45309", icon: <Scale size={14} />        },
+  { id: "zone",             name: "Zone & Land Use",             color: "#10B981", icon: <MapPin size={14} />       },
+  { id: "planning",         name: "Site Capacity",               color: "#F97316", icon: <Building2 size={14} />    },
+  { id: "infrastructure",   name: "Connectivity",                color: "#0EA5E9", icon: <Wifi size={14} />         },
+  { id: "soil",             name: "Soil Profile",                color: "#92400E", icon: <Layers size={14} />       },
+  { id: "waterConstraints", name: "Water Constraints",           color: "#1D4ED8", icon: <Droplets size={14} />     },
+  { id: "growth",           name: "Growth Context",              color: "#16A34A", icon: <TrendingUp size={14} />   },
+  { id: "land",             name: "Title & Documents",           color: "#6B21A8", icon: <FileText size={14} />     },
+  { id: "amenities",        name: "Amenities",                   color: "#059669", icon: <MapPin size={14} />        },
 ];
 
 function getInitials(user: { email?: string; user_metadata?: { full_name?: string } }) {
@@ -221,10 +228,20 @@ export default function ProjectPage() {
     ? dayRange(dayPoints)
     : solar ? dayRange(solar.equinox) : { start: 6, end: 18 };
   const [expanded,     setExpanded]     = useState<Record<ModuleId, boolean>>({
-    flood: true, sunpath: false, wind: false, temperature: false, rainfall: false,
+    flood: true, sunpath: false, wind: false, windCyclone: false, temperature: false, rainfall: false,
     zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
     waterConstraints: false, growth: false, land: false, amenities: false,
   });
+
+  const [windCycloneLayers, setWindCycloneLayers] = useState({
+    tracks: true,
+    windZones: false,
+    eyePoints: false,
+  });
+
+  const handleToggleWindCycloneLayer = (key: "windZones" | "tracks" | "eyePoints", enabled: boolean) => {
+    setWindCycloneLayers((prev) => ({ ...prev, [key]: enabled }));
+  };
 
   useEffect(() => {
     if (!user) { router.replace("/login"); return; }
@@ -239,9 +256,6 @@ export default function ProjectPage() {
       setProject(p);
       setCurrentProject(p);
 
-      // Extract analysis centre from the GeoJSON boundary, fall back to Bangalore.
-      // Point → that point; Polygon (drawn rect/freehand) → centroid + keep the
-      // ring so the map shows the actual drawn area instead of a marker/circle.
       let lat = 12.9716, lng = 77.5946;
       if (p.boundary?.type === "Point" && Array.isArray(p.boundary.coordinates)) {
         lng = p.boundary.coordinates[0] as number;
@@ -249,8 +263,8 @@ export default function ProjectPage() {
         setBoundaryPolygon(null);
         setShowSiteCircle(true);
       } else if (p.boundary?.type === "Polygon" && Array.isArray(p.boundary.coordinates)) {
-        const ring = (p.boundary.coordinates[0] as [number, number][]).slice(0, -1); // drop closing dup
-        const pts: [number, number][] = ring.map(([lo, la]) => [la, lo]); // [lat,lng]
+        const ring = (p.boundary.coordinates[0] as [number, number][]).slice(0, -1);
+        const pts: [number, number][] = ring.map(([lo, la]) => [la, lo]);
         if (pts.length >= 3) {
           lat = pts.reduce((s, q) => s + q[0], 0) / pts.length;
           lng = pts.reduce((s, q) => s + q[1], 0) / pts.length;
@@ -262,16 +276,14 @@ export default function ProjectPage() {
       setAnalysisCoords(coords);
       climateRequestedRef.current = false;
 
-      // Only run the modules the user selected at creation (default: all 5).
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
-      // The zoning map overlay renders amenity pins, so amenities must run whenever
-      // zoning does — even if the project's modules_run didn't list it explicitly.
       if (run.has("zoning")) run.add("amenities");
       const allFetchers: [ModuleId, () => Promise<unknown>][] = [
         ["flood",             () => getFloodAnalysis(coords)],
         ["rainfall",          () => getRainfallAnalysis(coords)],
         ["sunpath",           () => getSunpathAnalysis(coords)],
         ["wind",              () => getWindAnalysis(coords)],
+        ["windCyclone",       () => getWindCycloneAnalysis(coords)],
         ["temperature",       () => getTemperatureAnalysis(coords)],
         ["zone",              () => getZoneAnalysis(lat, lng)],
         ["planning",          () => getPlanningAnalysis(lat, lng)],
@@ -283,11 +295,10 @@ export default function ProjectPage() {
         ["amenities",         () => getAmenitiesAnalysis(lat, lng)],
       ];
 
-      // Open the first selected module in canonical order.
       const firstSelected = MODULE_META.find((m) => run.has(m.id))?.id;
       if (firstSelected) {
         setExpanded({
-          flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+          flood: false, sunpath: false, wind: false, windCyclone: false, temperature: false, rainfall: false,
           zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
           waterConstraints: false, growth: false, land: false, amenities: false,
           [firstSelected]: true,
@@ -348,7 +359,7 @@ export default function ProjectPage() {
 
   function toggleModule(moduleId: ModuleId) {
     setExpanded((prev) => ({
-      flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+      flood: false, sunpath: false, wind: false, windCyclone: false, temperature: false, rainfall: false,
       zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
       waterConstraints: false, growth: false, land: false, amenities: false,
       [moduleId]: !prev[moduleId],
@@ -504,6 +515,9 @@ export default function ProjectPage() {
                   {detailModule === "wind" && result && !result.loading && !result.error && (
                     <WindRose center={center} {...windRoseProps(result)} />
                   )}
+                  {detailModule === "windCyclone" && result && !result.loading && !result.error && (
+                    <CycloneTrackPaths center={center} result={result} layers={windCycloneLayers} />
+                  )}
                   {detailModule === "rainfall" && result && !result.loading && !result.error && (
                     <RainfallOverlay result={result} />
                   )}
@@ -535,6 +549,9 @@ export default function ProjectPage() {
                 )}
                 {detailModule === "wind" && result && !result.loading && !result.error && (
                   <WindOverlay result={result} />
+                )}
+                {detailModule === "windCyclone" && result && !result.loading && !result.error && (
+                  <WindCycloneOverlay result={result} layers={windCycloneLayers} onToggleLayer={handleToggleWindCycloneLayer} />
                 )}
                 {detailModule === "temperature" && result && !result.loading && !result.error && (
                   <TemperatureOverlay result={result} />
@@ -807,6 +824,9 @@ export default function ProjectPage() {
                     {expanded.wind && modules.wind && !modules.wind.loading && !modules.wind.error && (
                       <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
+                    {expanded.windCyclone && modules.windCyclone && !modules.windCyclone.loading && !modules.windCyclone.error && (
+                      <CycloneTrackPaths center={center} result={modules.windCyclone} layers={windCycloneLayers} />
+                    )}
                     {expanded.rainfall && modules.rainfall && !modules.rainfall.loading && !modules.rainfall.error && (
                       <RainfallOverlay result={modules.rainfall} />
                     )}
@@ -837,6 +857,9 @@ export default function ProjectPage() {
                   )}
                   {expanded.wind && modules.wind && !modules.wind.loading && !modules.wind.error && (
                     <WindOverlay result={modules.wind} />
+                  )}
+                  {expanded.windCyclone && modules.windCyclone && !modules.windCyclone.loading && !modules.windCyclone.error && (
+                    <WindCycloneOverlay result={modules.windCyclone} layers={windCycloneLayers} onToggleLayer={handleToggleWindCycloneLayer} />
                   )}
                   {expanded.temperature && modules.temperature && !modules.temperature.loading && !modules.temperature.error && (
                     <TemperatureOverlay result={modules.temperature} />
@@ -899,6 +922,7 @@ export default function ProjectPage() {
                       moduleId === "sunpath" ? <SunPanel result={result} /> :
                       moduleId === "flood"   ? <FloodRiskPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} activeSeason={windSeason} onSeasonChange={setWindSeason} /> :
+                      moduleId === "windCyclone" ? <WindCyclonePanel result={result} severity={result?.severity ?? "none"} lat={analysisCoords?.lat} lng={analysisCoords?.lng} onReRunAnalysis={(radiusKm) => { if (analysisCoords) { setModuleLoading("windCyclone"); getWindCycloneAnalysis(analysisCoords, radiusKm).then((res) => setModuleResult("windCyclone", res as never)).catch((err) => setModuleError("windCyclone", err instanceof Error ? err.message : "Failed")); } }} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {

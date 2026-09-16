@@ -120,7 +120,7 @@ function csvCell(v: string | number | undefined): string {
 }
 
 const MODULE_LABEL: Record<ModuleId, string> = {
-  sunpath: "Sun Path", flood: "Flood", temperature: "Temperature", wind: "Wind", rainfall: "Rainfall",
+  sunpath: "Sun Path", flood: "Flood", temperature: "Temperature", wind: "Wind", windCyclone: "Wind Hazard & Cyclone Risk", rainfall: "Rainfall",
   zone: "Zone & Land Use", planning: "Site Capacity", zoning: "Zoning Compliance",
   infrastructure: "Connectivity",
   soil: "Soil Profile", waterConstraints: "Water Constraints", growth: "Growth Context", land: "Title & Documents",

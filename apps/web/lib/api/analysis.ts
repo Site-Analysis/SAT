@@ -14,13 +14,13 @@
 //   rainfall    (8004): feature.rainfall.summary
 
 import type {
-  ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone, WindSeason,
+  ModuleId, ModuleResult, SiteScore, Severity, QualitativeTone, WindSeason, WindCycloneData, SiteResilienceReportData,
 } from "../stores/analysis";
 
 // Per-module accent colours (match the rest of the UI).
 const COLOR = {
   flood: "#2563EB", sunpath: "#F59E0B", temperature: "#EF4444",
-  wind: "#06B6D4", rainfall: "#1D4ED8",
+  wind: "#06B6D4", windCyclone: "#0284C7", rainfall: "#1D4ED8",
 } as const;
 
 function comfortTone(v: string): QualitativeTone {
@@ -41,6 +41,7 @@ const SVC = {
   flood:          process.env.NEXT_PUBLIC_FLOOD_API_URL          ?? "http://localhost:8002",
   sunpath:        process.env.NEXT_PUBLIC_SUNPATH_API_URL        ?? "http://localhost:8001",
   wind:           process.env.NEXT_PUBLIC_WIND_API_URL           ?? "http://localhost:8003",
+  windCyclone:    process.env.NEXT_PUBLIC_WIND_API_URL           ?? "http://localhost:8003",
   temperature:    process.env.NEXT_PUBLIC_TEMPERATURE_API_URL    ?? "http://localhost:8000",
   rainfall:       process.env.NEXT_PUBLIC_RAINFALL_API_URL       ?? "http://localhost:8004",
   zone:           process.env.NEXT_PUBLIC_GEO_API_URL            ?? "http://localhost:8005",
@@ -347,6 +348,236 @@ export async function getWindAnalysis(coords: AnalysisCoords): Promise<ModuleRes
     error: null,
   };
 }
+
+// ─── Wind Cyclone — POST /api/v1/wind-cyclone/analyze & /recommendations ──────
+
+interface RawWindCycloneAnalysis {
+  is_within_india: boolean;
+  statutory_v_b_ms: number;
+  damage_risk_category: string;
+  is_coastal_buffer: boolean;
+  coastal_penalty_applied: boolean;
+  terrain_wind_profile: Record<string, number>;
+  metrics: {
+    total_historical_events: number;
+    annual_rate_50yr: number;
+    max_recorded_wind_speed_ms: number;
+    max_recorded_wind_speed_kmh: number;
+    closest_recorded_distance_km: number;
+  };
+  decadal_trend: Record<string, number>;
+  intensity_distribution: Record<string, number>;
+  tracks: { type: "FeatureCollection"; features: import("../stores/analysis").WindCycloneTrackFeature[] };
+  wind_zones?: { type: "FeatureCollection"; features: import("../stores/analysis").WindCycloneZoneFeature[] };
+  eye_points?: { type: "FeatureCollection"; features: import("../stores/analysis").WindCycloneEyePointFeature[] };
+}
+
+const windCycloneAnalysisCache = new Map<string, { data: ModuleResult; timestamp: number }>();
+const windCycloneRecommendationsCache = new Map<string, { data: SiteResilienceReportData; timestamp: number }>();
+const CACHE_STALE_TIME_MS = 30 * 60 * 1000; // 30 minutes
+
+export async function getWindCycloneAnalysis(
+  coords: AnalysisCoords,
+  bufferRadiusKm = 100.0
+): Promise<ModuleResult> {
+  const siteId = coords.projectId || "site";
+  const cacheKey = [
+    "wind-cyclone-analysis",
+    siteId,
+    coords.lat.toFixed(4),
+    coords.lng.toFixed(4),
+    bufferRadiusKm,
+  ].join(":");
+
+  const cached = windCycloneAnalysisCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_STALE_TIME_MS) {
+    return cached.data;
+  }
+
+  const raw = await svcFetch<RawWindCycloneAnalysis>(SVC.windCyclone, "/api/v1/wind-cyclone/analyze", {
+    method: "POST",
+    body: JSON.stringify({
+      latitude: coords.lat,
+      longitude: coords.lng,
+      buffer_radius_km: bufferRadiusKm,
+    }),
+  });
+
+  if (!raw.is_within_india) {
+    throw new Error("Cyclone frequency and IS 875 wind hazard data is currently available only for locations within India.");
+  }
+
+  const vb = num(raw.statutory_v_b_ms);
+  const m = raw.metrics ?? {} as RawWindCycloneAnalysis["metrics"];
+  const totalStorms = num(m.total_historical_events);
+  const annualRate = num(m.annual_rate_50yr);
+  const maxGust = num(m.max_recorded_wind_speed_ms);
+  const closestDist = num(m.closest_recorded_distance_km);
+
+  const score = clampScore(100 - (vb - 33) * 2.5 - Math.min(annualRate * 35, 40));
+
+  let severity: Severity = "low";
+  if (vb >= 50 || maxGust >= 50 || annualRate > 0.5) {
+    severity = "high";
+  } else if (vb >= 44 || annualRate > 0.2) {
+    severity = "moderate";
+  }
+
+  const decadalPoints = Object.entries(raw.decadal_trend ?? {}).map(([decade, count]) => ({
+    label: `${decade}s`,
+    value: num(count),
+  }));
+
+  const IMD_ROWS_CONFIG = [
+    { key: "Super Cyclonic Storm (>=62 m/s)", label: "Super Cyclonic (SuCS)" },
+    { key: "Extremely Severe Cyclonic Storm (47-61 m/s)", label: "Extremely Severe (ESCS)" },
+    { key: "Very Severe Cyclonic Storm (33-46 m/s)", label: "Very Severe (VSCS)" },
+    { key: "Severe Cyclonic Storm (25-32 m/s)", label: "Severe Cyclonic (SCS)" },
+    { key: "Cyclonic Storm (17-24 m/s)", label: "Cyclonic Storm (CS)" },
+    { key: "Depression / Deep Depression (<17 m/s)", label: "Depression (D/DD)" },
+  ];
+
+  const intensityPoints = IMD_ROWS_CONFIG.map((row) => ({
+    label: row.label,
+    value: num(raw.intensity_distribution?.[row.key] ?? 0),
+  }));
+
+  const profilePoints = Object.entries(raw.terrain_wind_profile ?? {}).map(([h, speed]) => ({
+    label: h,
+    value: num(speed),
+  }));
+
+  const windCycloneData: WindCycloneData = {
+    is_within_india: true,
+    statutory_v_b_ms: vb,
+    damage_risk_category: raw.damage_risk_category ?? "Standard",
+    is_coastal_buffer: Boolean(raw.is_coastal_buffer),
+    coastal_penalty_applied: Boolean(raw.coastal_penalty_applied),
+    terrain_wind_profile: raw.terrain_wind_profile ?? {},
+    metrics: {
+      total_historical_events: totalStorms,
+      annual_rate_50yr: annualRate,
+      max_recorded_wind_speed_ms: maxGust,
+      max_recorded_wind_speed_kmh: num(m.max_recorded_wind_speed_kmh),
+      closest_recorded_distance_km: closestDist,
+    },
+    decadal_trend: raw.decadal_trend ?? {},
+    intensity_distribution: raw.intensity_distribution ?? {},
+    tracks: raw.tracks ?? { type: "FeatureCollection", features: [] },
+    wind_zones: raw.wind_zones ?? { type: "FeatureCollection", features: [] },
+    eye_points: raw.eye_points ?? { type: "FeatureCollection", features: [] },
+  };
+
+  const result: ModuleResult = {
+    score,
+    severity,
+    summary: `Statutory Vb ${vb.toFixed(1)} m/s (${raw.damage_risk_category}). ${totalStorms} storms in ${bufferRadiusKm} km buffer (50-yr rate ${annualRate.toFixed(2)}/yr).`,
+    data_source: "BIS IS 875 (Part 3): 2015 · NOAA NCEI IBTrACS v4 · Global Wind Atlas 250m",
+    windCyclone: windCycloneData,
+    indicators: [
+      { label: "Vb (Basic Design Wind Speed)", value: vb.toFixed(1), unit: "m/s", barFraction: clamp01((vb - 30) / 30), citation: "IS 875 Part 3: 2015" },
+      { label: "50-Year annual rate", value: annualRate.toFixed(2), unit: "storms/yr", barFraction: clamp01(annualRate / 1.0), citation: "NOAA IBTrACS v4" },
+      { label: "Max historical gust", value: maxGust > 0 ? maxGust.toFixed(1) : "N/A", unit: maxGust > 0 ? "m/s" : "", barFraction: clamp01(maxGust / 75), citation: "IBTrACS Reconnaissance" },
+      { label: "Closest approach", value: closestDist > 0 ? closestDist.toFixed(1) : "—", unit: closestDist > 0 ? "km" : "", barFraction: clamp01(1 - Math.min(closestDist, 500) / 500), citation: "Track Geometry" },
+    ],
+    chart_data: decadalPoints,
+    charts: [
+      {
+        title: "Decadal storm frequency",
+        kind: "bar",
+        unit: "storms",
+        series: [{ key: "value", label: "Storm count", color: "#0284C7" }],
+        points: decadalPoints,
+      },
+      {
+        title: "IMD intensity distribution",
+        kind: "horizontal-bar",
+        unit: "storms",
+        series: [{ key: "value", label: "Storms", color: "#0284C7" }],
+        points: intensityPoints,
+      },
+      {
+        title: "Terrain vertical wind profile",
+        kind: "line",
+        unit: "m/s",
+        series: [{ key: "value", label: "Mean speed", color: "#06B6D4" }],
+        points: profilePoints,
+      },
+    ],
+    qualitative: [
+      { label: "Damage risk tier", value: raw.damage_risk_category ?? "—", tone: riskTone(raw.damage_risk_category) },
+      { label: "Coastal 10 km penalty", value: raw.coastal_penalty_applied ? "Active (Vb ≥ 39 m/s)" : (raw.is_coastal_buffer ? "Coastal zone active" : "Inland"), tone: raw.coastal_penalty_applied ? "warn" : "neutral" },
+      { label: "50-Year storm count", value: `${totalStorms} storms in ${bufferRadiusKm} km`, tone: totalStorms > 50 ? "bad" : (totalStorms > 10 ? "warn" : "good") },
+      { label: "Closest storm track", value: closestDist > 0 ? `${closestDist.toFixed(1)} km from site` : "—", tone: closestDist > 0 && closestDist < 20 ? "bad" : "neutral" },
+    ],
+    detailMetrics: [
+      {
+        group: "Statutory Baseline",
+        rows: [
+          { label: "Vb (Basic Design Wind Speed)", value: vb.toFixed(1), unit: "m/s" },
+          { label: "Equivalent design speed", value: (vb * 3.6).toFixed(0), unit: "km/h" },
+          { label: "Damage risk classification", value: raw.damage_risk_category ?? "—" },
+          { label: "Coastal 10 km buffer penalty", value: raw.coastal_penalty_applied ? "Applied (Raised to 39 m/s)" : "Not required" },
+        ],
+      },
+      {
+        group: "Historical Cyclone Risk",
+        rows: [
+          { label: "Total events in buffer", value: String(totalStorms) },
+          { label: "50-Yr annual recurrence rate", value: annualRate.toFixed(2), unit: "storms/yr" },
+          { label: "Max recorded wind speed", value: maxGust.toFixed(1), unit: "m/s" },
+          { label: "Closest recorded approach", value: closestDist > 0 ? closestDist.toFixed(1) : "—", unit: closestDist > 0 ? "km" : "" },
+        ],
+      },
+    ],
+    recommendations: [
+      `Design primary frame for IS 875 Part 3 basic wind speed Vb = ${vb.toFixed(1)} m/s.`,
+      raw.coastal_penalty_applied ? "Site is within 10 km coastal buffer — IS 875 mandatory 39 m/s floor applied." : "Standard structural wind bracing required.",
+      totalStorms > 0 ? `Historical record logs ${totalStorms} cyclones passing within ${bufferRadiusKm} km of site.` : "No historical cyclone tracks recorded within selected buffer.",
+    ],
+    loading: false,
+    error: null,
+  };
+
+  windCycloneAnalysisCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
+}
+
+export async function getWindCycloneRecommendations(
+  coords: AnalysisCoords,
+  bufferRadiusKm = 100.0
+): Promise<SiteResilienceReportData> {
+  const siteId = coords.projectId || "site";
+  const cacheKey = [
+    "wind-cyclone-recommendations",
+    siteId,
+    coords.lat.toFixed(4),
+    coords.lng.toFixed(4),
+    bufferRadiusKm,
+  ].join(":");
+
+  const cached = windCycloneRecommendationsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_STALE_TIME_MS) {
+    return cached.data;
+  }
+
+  const res = await svcFetch<SiteResilienceReportData>(
+    SVC.windCyclone,
+    "/api/v1/wind-cyclone/recommendations",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        latitude: coords.lat,
+        longitude: coords.lng,
+        buffer_radius_km: bufferRadiusKm,
+      }),
+    }
+  );
+
+  windCycloneRecommendationsCache.set(cacheKey, { data: res, timestamp: Date.now() });
+  return res;
+}
+
 
 // ─── Temperature — GET /weather/thermal-profile → ClimateReport ───────────────
 // NOT /weather/climate-archive — that is a raw Open-Meteo proxy requiring a
@@ -1545,7 +1776,7 @@ export async function getAmenitiesAnalysis(lat: number, lon: number, radiusM = 2
 
 const SEVERITY_RANK: Record<Severity, number> = { none: 0, low: 1, moderate: 2, high: 3 };
 const MODULE_LABEL: Record<ModuleId, string> = {
-  flood: "Flood", sunpath: "Sun path", wind: "Wind", temperature: "Temperature", rainfall: "Rainfall",
+  flood: "Flood", sunpath: "Sun path", wind: "Wind", windCyclone: "Wind Hazard & Cyclone Risk", temperature: "Temperature", rainfall: "Rainfall",
   zone: "Zone & Land Use", planning: "Site Capacity", zoning: "Zoning Compliance",
   infrastructure: "Connectivity",
   soil: "Soil Profile", waterConstraints: "Water Constraints", growth: "Growth Context", land: "Title & Documents",
