@@ -189,6 +189,7 @@ export interface WindCycloneTrackFeature {
 export interface WindCycloneMetrics {
   total_historical_events: number;
   annual_rate_50yr: number;
+  period_years?: number;
   max_recorded_wind_speed_ms: number;
   max_recorded_wind_speed_kmh: number;
   closest_recorded_distance_km: number;

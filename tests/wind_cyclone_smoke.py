@@ -78,11 +78,53 @@ def test_analyze_chennai_coastal(monkeypatch):
     metrics = body["metrics"]
     assert metrics["total_historical_events"] > 0
     assert metrics["annual_rate_50yr"] > 0
+    assert metrics["period_years"] == 50
     assert metrics["max_recorded_wind_speed_ms"] > 0
     assert "decadal_trend" in body
     assert "intensity_distribution" in body
     assert body["tracks"]["type"] == "FeatureCollection"
     assert len(body["tracks"]["features"]) > 0
+
+
+@skip_no_app
+def test_analyze_dynamic_date_range(monkeypatch):
+    monkeypatch.setenv("FLAGS", "feature.wind.cyclone-hazard")
+    # Test 10-year span 2010 to 2020
+    resp = CLIENT.post(
+        "/api/v1/wind-cyclone/analyze",
+        json={
+            "latitude": 13.0827,
+            "longitude": 80.2707,
+            "buffer_radius_km": 100.0,
+            "start_date": "2010-01-01",
+            "end_date": "2020-12-31",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    metrics = body["metrics"]
+    assert metrics["period_years"] == 10
+    assert metrics["annual_rate_50yr"] == round(metrics["total_historical_events"] / 10.0, 2)
+    # Check that all returned tracks are within 2010-2020
+    for feat in body["tracks"]["features"]:
+        season = feat["properties"]["season"]
+        assert 2010 <= season <= 2020
+
+    # Test single-year span (period_years minimum 1)
+    resp_1yr = CLIENT.post(
+        "/api/v1/wind-cyclone/analyze",
+        json={
+            "latitude": 13.0827,
+            "longitude": 80.2707,
+            "buffer_radius_km": 100.0,
+            "start_date": "2020-01-01",
+            "end_date": "2020-12-31",
+        },
+    )
+    assert resp_1yr.status_code == 200
+    metrics_1yr = resp_1yr.json()["metrics"]
+    assert metrics_1yr["period_years"] == 1
+    assert metrics_1yr["annual_rate_50yr"] == round(metrics_1yr["total_historical_events"] / 1.0, 2)
 
 
 @skip_no_app

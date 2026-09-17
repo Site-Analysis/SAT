@@ -361,6 +361,7 @@ interface RawWindCycloneAnalysis {
   metrics: {
     total_historical_events: number;
     annual_rate_50yr: number;
+    period_years?: number;
     max_recorded_wind_speed_ms: number;
     max_recorded_wind_speed_kmh: number;
     closest_recorded_distance_km: number;
@@ -381,12 +382,16 @@ export async function getWindCycloneAnalysis(
   bufferRadiusKm = 100.0
 ): Promise<ModuleResult> {
   const siteId = coords.projectId || "site";
+  const startDate = coords.startDate;
+  const endDate = coords.endDate;
   const cacheKey = [
     "wind-cyclone-analysis",
     siteId,
     coords.lat.toFixed(4),
     coords.lng.toFixed(4),
     bufferRadiusKm,
+    startDate || "",
+    endDate || "",
   ].join(":");
 
   const cached = windCycloneAnalysisCache.get(cacheKey);
@@ -394,16 +399,20 @@ export async function getWindCycloneAnalysis(
     return cached.data;
   }
 
+  const payload: Record<string, unknown> = {
+    latitude: coords.lat,
+    longitude: coords.lng,
+    buffer_radius_km: bufferRadiusKm,
+  };
+  if (startDate) payload.start_date = startDate;
+  if (endDate) payload.end_date = endDate;
+
   const raw = await svcFetch<RawWindCycloneAnalysis>(
     SVC.windCyclone,
     "/api/v1/wind-cyclone/analyze",
     {
       method: "POST",
-      body: JSON.stringify({
-        latitude: coords.lat,
-        longitude: coords.lng,
-        buffer_radius_km: bufferRadiusKm,
-      }),
+      body: JSON.stringify(payload),
     },
     60_000
   );
@@ -416,6 +425,7 @@ export async function getWindCycloneAnalysis(
   const m = raw.metrics ?? {} as RawWindCycloneAnalysis["metrics"];
   const totalStorms = num(m.total_historical_events);
   const annualRate = num(m.annual_rate_50yr);
+  const periodYears = num(m.period_years, 50);
   const maxGust = num(m.max_recorded_wind_speed_ms);
   const closestDist = num(m.closest_recorded_distance_km);
 
@@ -462,6 +472,7 @@ export async function getWindCycloneAnalysis(
     metrics: {
       total_historical_events: totalStorms,
       annual_rate_50yr: annualRate,
+      period_years: periodYears,
       max_recorded_wind_speed_ms: maxGust,
       max_recorded_wind_speed_kmh: num(m.max_recorded_wind_speed_kmh),
       closest_recorded_distance_km: closestDist,
@@ -476,12 +487,12 @@ export async function getWindCycloneAnalysis(
   const result: ModuleResult = {
     score,
     severity,
-    summary: `Statutory Vb ${vb.toFixed(1)} m/s (${raw.damage_risk_category}). ${totalStorms} storms in ${bufferRadiusKm} km buffer (50-yr rate ${annualRate.toFixed(2)}/yr).`,
+    summary: `Statutory Vb ${vb.toFixed(1)} m/s (${raw.damage_risk_category}). ${totalStorms} storms in ${bufferRadiusKm} km buffer (${periodYears}-yr rate ${annualRate.toFixed(2)}/yr).`,
     data_source: "BIS IS 875 (Part 3): 2015 · NOAA NCEI IBTrACS v4 · Global Wind Atlas 250m",
     windCyclone: windCycloneData,
     indicators: [
       { label: "Vb (Basic Design Wind Speed)", value: vb.toFixed(1), unit: "m/s", barFraction: clamp01((vb - 30) / 30), citation: "IS 875 Part 3: 2015" },
-      { label: "50-Year annual rate", value: annualRate.toFixed(2), unit: "storms/yr", barFraction: clamp01(annualRate / 1.0), citation: "NOAA IBTrACS v4" },
+      { label: `${periodYears}-Year annual rate`, value: annualRate.toFixed(2), unit: "storms/yr", barFraction: clamp01(annualRate / 1.0), citation: "NOAA IBTrACS v4" },
       { label: "Max historical gust", value: maxGust > 0 ? maxGust.toFixed(1) : "N/A", unit: maxGust > 0 ? "m/s" : "", barFraction: clamp01(maxGust / 75), citation: "IBTrACS Reconnaissance" },
       { label: "Closest approach", value: closestDist > 0 ? closestDist.toFixed(1) : "—", unit: closestDist > 0 ? "km" : "", barFraction: clamp01(1 - Math.min(closestDist, 500) / 500), citation: "Track Geometry" },
     ],
@@ -512,7 +523,7 @@ export async function getWindCycloneAnalysis(
     qualitative: [
       { label: "Damage risk tier", value: raw.damage_risk_category ?? "—", tone: riskTone(raw.damage_risk_category) },
       { label: "Coastal 10 km penalty", value: raw.coastal_penalty_applied ? "Active (Vb ≥ 39 m/s)" : (raw.is_coastal_buffer ? "Coastal zone active" : "Inland"), tone: raw.coastal_penalty_applied ? "warn" : "neutral" },
-      { label: "50-Year storm count", value: `${totalStorms} storms in ${bufferRadiusKm} km`, tone: totalStorms > 50 ? "bad" : (totalStorms > 10 ? "warn" : "good") },
+      { label: `${periodYears}-Year storm count`, value: `${totalStorms} storms in ${bufferRadiusKm} km`, tone: totalStorms > 50 ? "bad" : (totalStorms > 10 ? "warn" : "good") },
       { label: "Closest storm track", value: closestDist > 0 ? `${closestDist.toFixed(1)} km from site` : "—", tone: closestDist > 0 && closestDist < 20 ? "bad" : "neutral" },
     ],
     detailMetrics: [
@@ -529,7 +540,7 @@ export async function getWindCycloneAnalysis(
         group: "Historical Cyclone Risk",
         rows: [
           { label: "Total events in buffer", value: String(totalStorms) },
-          { label: "50-Yr annual recurrence rate", value: annualRate.toFixed(2), unit: "storms/yr" },
+          { label: `${periodYears}-Yr annual recurrence rate`, value: annualRate.toFixed(2), unit: "storms/yr" },
           { label: "Max recorded wind speed", value: maxGust.toFixed(1), unit: "m/s" },
           { label: "Closest recorded approach", value: closestDist > 0 ? closestDist.toFixed(1) : "—", unit: closestDist > 0 ? "km" : "" },
         ],

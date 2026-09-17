@@ -936,6 +936,8 @@ export default function ProjectPage() {
                           severity={result?.severity ?? "none"}
                           lat={analysisCoords?.lat}
                           lng={analysisCoords?.lng}
+                          startDate={analysisCoords?.startDate}
+                          endDate={analysisCoords?.endDate}
                           onBufferChange={(radiusKm) => setWindCycloneBufferKm(radiusKm)}
                           onReRunAnalysis={(radiusKm) => setWindCycloneBufferKm(radiusKm)}
                         />

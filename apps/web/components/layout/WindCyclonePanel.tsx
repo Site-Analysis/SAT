@@ -24,6 +24,7 @@ import type {
   PrioritizedMitigationItem,
 } from "@/lib/stores/analysis";
 import { useAnalysisStore } from "@/lib/stores/analysis";
+import { useConfigStore } from "@/lib/stores/config";
 import { getWindCycloneRecommendations, getWindCycloneAnalysis } from "@/lib/api/analysis";
 
 interface WindCyclonePanelProps {
@@ -31,13 +32,15 @@ interface WindCyclonePanelProps {
   severity: Severity;
   lat?: number;
   lng?: number;
+  startDate?: string;
+  endDate?: string;
   onBufferChange?: (bufferKm: number) => void;
   onReRunAnalysis?: (bufferKm: number) => void;
 }
 
 const TOOLTIPS = {
   vb: "The 3-second peak gust wind speed at 10m height above ground in open terrain with a 50-year return period, as mandated by IS 875 (Part 3): 2015 for structural design calculations.",
-  annualRate: "The average number of tropical cyclones passing within your selected buffer per year over the last 50 years. Used to evaluate empirical recurrence intervals.",
+  annualRate: "The average number of tropical cyclones passing within your selected buffer per year over the analyzed period. Used to evaluate empirical recurrence intervals.",
   maxGust: "The highest sustained 1-minute or 3-second wind speed recorded by meteorological reconnaissance (IBTrACS) inside this site's buffer zone.",
   closestDist: "Minimum distance a historical cyclone eye passed relative to the project site centroid.",
   coastalPenalty: "IS 875 Part 3 mandates that any site within 10 km of the coastline must not use a design wind speed less than the coastal threshold (Vb ≥ 39 m/s).",
@@ -86,9 +89,15 @@ export function WindCyclonePanel({
   severity,
   lat = 13.0827,
   lng = 80.2707,
+  startDate: propStartDate,
+  endDate: propEndDate,
   onBufferChange,
   onReRunAnalysis,
 }: WindCyclonePanelProps) {
+  const config = useConfigStore();
+  const startDate = propStartDate || config.startDate;
+  const endDate = propEndDate || config.endDate;
+
   const [selectedBuffer, setSelectedBuffer] = useState<BufferRadius>(100);
 
   // 1. Local Cache keyed by buffer radius: { 50: null, 100: null, 250: null }
@@ -102,6 +111,12 @@ export function WindCyclonePanel({
     100: null,
     250: null,
   });
+
+  // Clear cache if analysis date range changes
+  useEffect(() => {
+    cacheRef.current = { 50: null, 100: null, 250: null };
+    setCacheState({ 50: null, 100: null, 250: null });
+  }, [startDate, endDate]);
 
   // Track background in-flight API requests to avoid duplicate fetches
   const fetchingRef = useRef<Record<BufferRadius, boolean>>({
@@ -143,7 +158,7 @@ export function WindCyclonePanel({
     prefetchRadii.forEach((radius) => {
       if (!cacheRef.current[radius] && !fetchingRef.current[radius]) {
         fetchingRef.current[radius] = true;
-        getWindCycloneAnalysis({ lat, lng }, radius)
+        getWindCycloneAnalysis({ lat, lng, startDate, endDate }, radius)
           .then((res) => {
             cacheRef.current[radius] = res;
             setCacheState((prev) => ({ ...prev, [radius]: res }));
@@ -214,7 +229,7 @@ export function WindCyclonePanel({
 
     if (!fetchingRef.current[radiusKm] && lat && lng) {
       fetchingRef.current[radiusKm] = true;
-      getWindCycloneAnalysis({ lat, lng }, radiusKm)
+      getWindCycloneAnalysis({ lat, lng, startDate, endDate }, radiusKm)
         .then((res) => {
           cacheRef.current[radiusKm] = res;
           setCacheState((prev) => ({ ...prev, [radiusKm]: res }));
@@ -347,7 +362,7 @@ export function WindCyclonePanel({
       <div className="grid grid-cols-2 gap-2">
         <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 space-y-1">
           <div className="flex items-center justify-between text-[10px] font-medium text-neutral-500">
-            <span>Total Storms ({selectedBuffer}km)</span>
+            <span>Total Storms ({selectedBuffer}km, {metrics.period_years ?? 50} Years)</span>
           </div>
           <div className="text-lg font-bold text-neutral-900">
             {metrics.total_historical_events}{" "}
@@ -357,7 +372,7 @@ export function WindCyclonePanel({
 
         <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 space-y-1">
           <div className="flex items-center justify-between text-[10px] font-medium text-neutral-500">
-            <span>50-Yr Annual Rate</span>
+            <span>Annual Rate ({metrics.period_years ?? 50} Yrs)</span>
             <HelpTooltip text={TOOLTIPS.annualRate} />
           </div>
           <div className="text-lg font-bold text-neutral-900">

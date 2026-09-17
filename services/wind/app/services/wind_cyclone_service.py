@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import math
 import os
+import re
 import pyproj
 
 # Ensure PROJ_DATA environment variable is safely resolved to avoid Windows PROJ version conflicts
@@ -12,6 +14,21 @@ os.environ["PROJ_DATA"] = pyproj.datadir.get_data_dir()
 
 from typing import Any
 from shapely.geometry import Point, shape
+
+
+def _parse_year(val: str | None) -> int | None:
+    """Extract 4-digit year integer from date string or ISO timestamp."""
+    if not val or not str(val).strip():
+        return None
+    val_str = str(val).strip()
+    try:
+        return datetime.fromisoformat(val_str.replace("Z", "+00:00")).year
+    except Exception:
+        pass
+    match = re.search(r"\b(19\d\d|20\d\d)\b", val_str)
+    if match:
+        return int(match.group(1))
+    return None
 from app.data.cyclone_dataset import cyclone_index, haversine_distance_km
 from app.models.wind_cyclone import (
     PrioritizedMitigation,
@@ -225,6 +242,26 @@ class WindCycloneService:
         lon = request.longitude
         radius_km = request.buffer_radius_km
 
+        # Dynamic Analysis Period resolution (defaults to 50-year lookback if omitted)
+        current_year = datetime.now().year
+        parsed_start = _parse_year(request.start_date)
+        parsed_end = _parse_year(request.end_date)
+
+        if parsed_end is None:
+            end_year = current_year
+        else:
+            end_year = parsed_end
+
+        if parsed_start is None:
+            start_year = end_year - 50
+        else:
+            start_year = parsed_start
+
+        if start_year > end_year:
+            start_year, end_year = end_year, start_year
+
+        period_years = max(1, end_year - start_year)
+
         in_bounds = is_within_india_bounds(lat, lon)
         if not in_bounds:
             # Return out-of-bounds structure
@@ -238,6 +275,7 @@ class WindCycloneService:
                 metrics=SummaryMetrics(
                     total_historical_events=0,
                     annual_rate_50yr=0.0,
+                    period_years=period_years,
                     max_recorded_wind_speed_ms=0.0,
                     max_recorded_wind_speed_kmh=0.0,
                     closest_recorded_distance_km=0.0,
@@ -286,10 +324,11 @@ class WindCycloneService:
             "200m": profile_200m,
         }
 
-        # 3. Spatial Query for Historical Storms & Unconditional Nearest Neighbor (NN)
-        storms = cyclone_index.query_radius(lat, lon, radius_km)
+        # 3. Spatial Query for Historical Storms & Dynamic Year Range Filtering
+        raw_storms = cyclone_index.query_radius(lat, lon, radius_km)
+        storms = [s for s in raw_storms if start_year <= s["season"] <= end_year]
         total_events = len(storms)
-        annual_rate = round(total_events / 50.0, 2)
+        annual_rate = round(total_events / float(period_years), 2)
 
         max_wind_ms = max((s["max_wind_ms"] for s in storms), default=0.0)
         max_wind_kmh = round(max_wind_ms * 3.6, 1)
@@ -298,6 +337,7 @@ class WindCycloneService:
         metrics = SummaryMetrics(
             total_historical_events=total_events,
             annual_rate_50yr=annual_rate,
+            period_years=period_years,
             max_recorded_wind_speed_ms=max_wind_ms,
             max_recorded_wind_speed_kmh=max_wind_kmh,
             closest_recorded_distance_km=closest_dist,

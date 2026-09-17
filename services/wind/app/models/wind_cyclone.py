@@ -5,29 +5,31 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class WindCycloneRequest(BaseModel):
     latitude: float = Field(..., description="Latitude in decimal degrees")
     longitude: float = Field(..., description="Longitude in decimal degrees")
     buffer_radius_km: float = Field(100.0, description="Buffer search radius in km (50, 100, 250)")
+    start_date: str | None = Field(None, description="Start date for historical storm analysis (e.g. YYYY-MM-DD or YYYY)")
+    end_date: str | None = Field(None, description="End date for historical storm analysis (e.g. YYYY-MM-DD or YYYY)")
 
 
 class TerrainWindProfile(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     profile_10m: float = Field(..., alias="10m")
     profile_50m: float = Field(..., alias="50m")
     profile_100m: float = Field(..., alias="100m")
     profile_150m: float = Field(..., alias="150m")
     profile_200m: float = Field(..., alias="200m")
 
-    class Config:
-        populate_by_name = True
-
 
 class SummaryMetrics(BaseModel):
     total_historical_events: int
     annual_rate_50yr: float
+    period_years: int = Field(50, description="Number of years in the dynamic analysis window")
     max_recorded_wind_speed_ms: float
     max_recorded_wind_speed_kmh: float
     closest_recorded_distance_km: float

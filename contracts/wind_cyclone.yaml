@@ -99,6 +99,12 @@ components:
           default: 100.0
           enum: [50.0, 100.0, 250.0]
           description: Search buffer radius in kilometers
+        start_date:
+          type: string
+          description: Start date (YYYY-MM-DD or YYYY) for dynamic historical storm period
+        end_date:
+          type: string
+          description: End date (YYYY-MM-DD or YYYY) for dynamic historical storm period
 
     TerrainWindProfile:
       type: object
@@ -122,13 +128,16 @@ components:
 
     SummaryMetrics:
       type: object
-      required: [total_historical_events, annual_rate_50yr, max_recorded_wind_speed_ms, max_recorded_wind_speed_kmh, closest_recorded_distance_km]
+      required: [total_historical_events, annual_rate_50yr, period_years, max_recorded_wind_speed_ms, max_recorded_wind_speed_kmh, closest_recorded_distance_km]
       properties:
         total_historical_events:
           type: integer
         annual_rate_50yr:
           type: number
           format: float
+        period_years:
+          type: integer
+          description: Number of years in dynamic analysis period
         max_recorded_wind_speed_ms:
           type: number
           format: float
