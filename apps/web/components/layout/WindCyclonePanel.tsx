@@ -3,7 +3,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Wind,
   ShieldAlert,
@@ -23,7 +23,8 @@ import type {
   SiteResilienceReportData,
   PrioritizedMitigationItem,
 } from "@/lib/stores/analysis";
-import { getWindCycloneRecommendations } from "@/lib/api/analysis";
+import { useAnalysisStore } from "@/lib/stores/analysis";
+import { getWindCycloneRecommendations, getWindCycloneAnalysis } from "@/lib/api/analysis";
 
 interface WindCyclonePanelProps {
   result?: ModuleResult;
@@ -78,6 +79,8 @@ function HelpTooltip({ text }: { text: string }) {
   );
 }
 
+type BufferRadius = 50 | 100 | 250;
+
 export function WindCyclonePanel({
   result,
   severity,
@@ -86,7 +89,31 @@ export function WindCyclonePanel({
   onBufferChange,
   onReRunAnalysis,
 }: WindCyclonePanelProps) {
-  const [selectedBuffer, setSelectedBuffer] = useState<number>(100);
+  const [selectedBuffer, setSelectedBuffer] = useState<BufferRadius>(100);
+
+  // 1. Local Cache keyed by buffer radius: { 50: null, 100: null, 250: null }
+  const cacheRef = useRef<Record<BufferRadius, ModuleResult | null>>({
+    50: null,
+    100: null,
+    250: null,
+  });
+  const [, setCacheState] = useState<Record<BufferRadius, ModuleResult | null>>({
+    50: null,
+    100: null,
+    250: null,
+  });
+
+  // Track background in-flight API requests to avoid duplicate fetches
+  const fetchingRef = useRef<Record<BufferRadius, boolean>>({
+    50: false,
+    100: false,
+    250: false,
+  });
+
+  // Localized loading spinner state for button when a requested radius is still loading
+  const [loadingRadius, setLoadingRadius] = useState<BufferRadius | null>(null);
+  const pendingRadiusRef = useRef<BufferRadius | null>(null);
+
   const [report, setReport] = useState<SiteResilienceReportData | null>(null);
   const [reportLoading, setReportLoading] = useState<boolean>(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -95,9 +122,53 @@ export function WindCyclonePanel({
     1: true,
   });
 
-  const data = result?.windCyclone;
+  // Active result derived from cache or incoming props
+  const activeResult = cacheRef.current[selectedBuffer] ?? result;
+  const data = activeResult?.windCyclone;
   const hasData = Boolean(data);
 
+  // 2. Background Pre-fetching:
+  // When user initiates analysis, default 100km radius is fetched first and rendered immediately.
+  // Once 100km data is successfully received and the UI is unblocked, silently trigger 50km and 250km in background.
+  useEffect(() => {
+    if (!hasData || !lat || !lng) return;
+
+    // Cache initial 100km data if not already cached
+    if (result && !cacheRef.current[100]) {
+      cacheRef.current[100] = result;
+      setCacheState((prev) => ({ ...prev, 100: result }));
+    }
+
+    const prefetchRadii: (50 | 250)[] = [50, 250];
+    prefetchRadii.forEach((radius) => {
+      if (!cacheRef.current[radius] && !fetchingRef.current[radius]) {
+        fetchingRef.current[radius] = true;
+        getWindCycloneAnalysis({ lat, lng }, radius)
+          .then((res) => {
+            cacheRef.current[radius] = res;
+            setCacheState((prev) => ({ ...prev, [radius]: res }));
+            // If user clicked this radius while background fetch was in progress:
+            if (pendingRadiusRef.current === radius) {
+              pendingRadiusRef.current = null;
+              setLoadingRadius(null);
+              applyBufferSelection(radius, res);
+            }
+          })
+          .catch((err) => {
+            console.warn(`[WindCyclone] Background pre-fetch failed for ${radius}km:`, err);
+            if (pendingRadiusRef.current === radius) {
+              pendingRadiusRef.current = null;
+              setLoadingRadius(null);
+            }
+          })
+          .finally(() => {
+            fetchingRef.current[radius] = false;
+          });
+      }
+    });
+  }, [hasData, lat, lng, result]);
+
+  // Recommendations report fetch for selected buffer
   useEffect(() => {
     if (!hasData || !lat || !lng) return;
     setReportLoading(true);
@@ -113,10 +184,55 @@ export function WindCyclonePanel({
       });
   }, [hasData, lat, lng, selectedBuffer]);
 
-  const handleBufferSelect = (radiusKm: number) => {
+  // Apply buffer data to local state, global analysis store (map), and callbacks
+  const applyBufferSelection = (radiusKm: BufferRadius, bufferData: ModuleResult) => {
     setSelectedBuffer(radiusKm);
+    useAnalysisStore.getState().setModuleResult("windCyclone", bufferData);
     if (onBufferChange) onBufferChange(radiusKm);
     if (onReRunAnalysis) onReRunAnalysis(radiusKm);
+  };
+
+  // 3. Instant Cache Retrieval:
+  // Check if requested radius data already exists in cache.
+  // - If exists: instantly update map and UI state with cached data.
+  // - If does not exist: show localized loading spinner on button until background fetch completes.
+  const handleBufferSelect = (radiusKm: BufferRadius) => {
+    if (selectedBuffer === radiusKm) return;
+
+    const cachedData = cacheRef.current[radiusKm];
+    if (cachedData) {
+      // Instant cache retrieval: no loading spinner, immediate state & map update
+      setLoadingRadius(null);
+      pendingRadiusRef.current = null;
+      applyBufferSelection(radiusKm, cachedData);
+      return;
+    }
+
+    // Cache miss or still in-flight: show localized loading spinner on button
+    setLoadingRadius(radiusKm);
+    pendingRadiusRef.current = radiusKm;
+
+    if (!fetchingRef.current[radiusKm] && lat && lng) {
+      fetchingRef.current[radiusKm] = true;
+      getWindCycloneAnalysis({ lat, lng }, radiusKm)
+        .then((res) => {
+          cacheRef.current[radiusKm] = res;
+          setCacheState((prev) => ({ ...prev, [radiusKm]: res }));
+          if (pendingRadiusRef.current === radiusKm) {
+            pendingRadiusRef.current = null;
+            setLoadingRadius(null);
+            applyBufferSelection(radiusKm, res);
+          }
+        })
+        .catch((err) => {
+          console.error(`[WindCyclone] Failed to load ${radiusKm}km analysis:`, err);
+          setLoadingRadius(null);
+          pendingRadiusRef.current = null;
+        })
+        .finally(() => {
+          fetchingRef.current[radiusKm] = false;
+        });
+    }
   };
 
   const toggleMitigation = (idx: number) => {
@@ -156,20 +272,36 @@ export function WindCyclonePanel({
           </span>
         </div>
         <div className="grid grid-cols-3 gap-1.5">
-          {[50, 100, 250].map((r) => {
+          {([50, 100, 250] as const).map((r) => {
             const active = selectedBuffer === r;
+            const isLoading = loadingRadius === r;
             return (
               <button
                 key={r}
                 type="button"
                 onClick={() => handleBufferSelect(r)}
-                className={`py-1.5 px-2 text-xs font-medium rounded-md border transition-all ${
+                disabled={isLoading}
+                className={`py-1.5 px-2 text-xs font-medium rounded-md border transition-all flex items-center justify-center gap-1.5 ${
                   active
                     ? "bg-sky-600 text-white border-sky-600 shadow-sm font-semibold"
                     : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-100"
-                }`}
+                } ${isLoading ? "opacity-80 cursor-wait" : ""}`}
               >
-                {r} km {r === 100 && "(Default)"}
+                {isLoading ? (
+                  <>
+                    <span
+                      className={`animate-spin inline-block w-3 h-3 border-2 rounded-full border-t-transparent ${
+                        active ? "border-white" : "border-sky-600"
+                      }`}
+                    />
+                    <span>{r} km</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{r} km</span>
+                    {r === 100 && <span className="text-[10px] opacity-80">(Default)</span>}
+                  </>
+                )}
               </button>
             );
           })}

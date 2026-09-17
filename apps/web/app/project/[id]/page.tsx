@@ -238,6 +238,7 @@ export default function ProjectPage() {
     windZones: false,
     eyePoints: false,
   });
+  const [windCycloneBufferKm, setWindCycloneBufferKm] = useState<number>(100);
 
   const handleToggleWindCycloneLayer = (key: "windZones" | "tracks" | "eyePoints", enabled: boolean) => {
     setWindCycloneLayers((prev) => ({ ...prev, [key]: enabled }));
@@ -309,7 +310,14 @@ export default function ProjectPage() {
         if (!run.has(moduleId)) continue;
         setModuleLoading(moduleId);
         fetcher()
-          .then((result) => setModuleResult(moduleId, result as never))
+          .then((result) => {
+            setModuleResult(moduleId, result as never);
+            if (moduleId === "windCyclone") {
+              // Silently pre-fetch 50km and 250km in background as soon as default 100km completes
+              getWindCycloneAnalysis(coords, 50).catch(() => {});
+              getWindCycloneAnalysis(coords, 250).catch(() => {});
+            }
+          })
           .catch((err) => setModuleError(moduleId, err instanceof Error ? err.message : "Failed"));
       }
     }).catch(console.error);
@@ -825,7 +833,7 @@ export default function ProjectPage() {
                       <WindRose center={center} {...windRoseProps(modules.wind)} />
                     )}
                     {expanded.windCyclone && modules.windCyclone && !modules.windCyclone.loading && !modules.windCyclone.error && (
-                      <CycloneTrackPaths center={center} result={modules.windCyclone} layers={windCycloneLayers} />
+                      <CycloneTrackPaths center={center} result={modules.windCyclone} bufferM={windCycloneBufferKm * 1000} layers={windCycloneLayers} />
                     )}
                     {expanded.rainfall && modules.rainfall && !modules.rainfall.loading && !modules.rainfall.error && (
                       <RainfallOverlay result={modules.rainfall} />
@@ -922,7 +930,16 @@ export default function ProjectPage() {
                       moduleId === "sunpath" ? <SunPanel result={result} /> :
                       moduleId === "flood"   ? <FloodRiskPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} activeSeason={windSeason} onSeasonChange={setWindSeason} /> :
-                      moduleId === "windCyclone" ? <WindCyclonePanel result={result} severity={result?.severity ?? "none"} lat={analysisCoords?.lat} lng={analysisCoords?.lng} onReRunAnalysis={(radiusKm) => { if (analysisCoords) { setModuleLoading("windCyclone"); getWindCycloneAnalysis(analysisCoords, radiusKm).then((res) => setModuleResult("windCyclone", res as never)).catch((err) => setModuleError("windCyclone", err instanceof Error ? err.message : "Failed")); } }} /> :
+                      moduleId === "windCyclone" ? (
+                        <WindCyclonePanel
+                          result={result}
+                          severity={result?.severity ?? "none"}
+                          lat={analysisCoords?.lat}
+                          lng={analysisCoords?.lng}
+                          onBufferChange={(radiusKm) => setWindCycloneBufferKm(radiusKm)}
+                          onReRunAnalysis={(radiusKm) => setWindCycloneBufferKm(radiusKm)}
+                        />
+                      ) :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {
