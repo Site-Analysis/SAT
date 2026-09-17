@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from "react";
 import type { ModuleResult } from "@/lib/stores/analysis";
 import { Eye, Shield, Wind, ChevronDown, ChevronUp, X, Play, Square } from "lucide-react";
 import { useWindCycloneUIStore } from "@/lib/stores/analysis";
+import { checkStormGridAvailability, isStormAnimationUnavailable } from "@/lib/cycloneUtils";
 
 interface WindCycloneOverlayProps {
   result: ModuleResult;
@@ -23,10 +24,10 @@ interface WindCycloneOverlayProps {
 const IMD_LEGEND = [
   { color: "#7E22CE", label: "Super Cyclonic Storm (≥ 62 m/s / ≥ 222 km/h)" },
   { color: "#EF4444", label: "Extremely Severe (47–61 m/s / 167–221 km/h)" },
-  { color: "#F97316", label: "Very Severe (33–46 m/s / 118–166 km/h)" },
-  { color: "#FBBF24", label: "Severe Cyclonic Storm (25–32 m/s / 89–117 km/h)" },
+  { color: "#F97316", label: "Very Severe (33–46 m/s / 119–166 km/h)" },
+  { color: "#FBBF24", label: "Severe (25–32 m/s / 89–118 km/h)" },
   { color: "#34D399", label: "Cyclonic Storm (17–24 m/s / 62–88 km/h)" },
-  { color: "#60A5FA", label: "Depression / Deep Dep. (< 17 m/s / < 62 km/h)" },
+  { color: "#60A5FA", label: "Depression (< 17 m/s / < 62 km/h)" },
 ];
 
 const IS875_LEGEND = [
@@ -62,10 +63,26 @@ export function WindCycloneOverlay({
     fetchError,
     windZoneMode: storeWindZoneMode,
     isDockedMinimized,
+    animationAvailability,
     setSelectedStorm,
     setWindZoneMode: setStoreWindZoneMode,
     toggleDockedMinimized,
+    setAnimationAvailability,
   } = useWindCycloneUIStore();
+
+  useEffect(() => {
+    if (!selectedStorm?.sid) return;
+    const sid = selectedStorm.sid;
+    if (animationAvailability[sid] !== undefined) return;
+
+    checkStormGridAvailability(selectedStorm).then((avail) => {
+      setAnimationAvailability(sid, avail);
+    });
+  }, [selectedStorm, animationAvailability, setAnimationAvailability]);
+
+  const isAnimUnavailable = selectedStorm
+    ? isStormAnimationUnavailable(selectedStorm, animationAvailability)
+    : false;
 
   const windZoneMode = controlledWindZoneMode || storeWindZoneMode;
 
@@ -274,9 +291,15 @@ export function WindCycloneOverlay({
                 <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "#64748B" }}>Max Wind Speed:</span>
-                    <span style={{ fontWeight: 700, color: "#E11D48" }}>
-                      {selectedStorm.max_wind_ms} m/s ({selectedStorm.max_wind_kmh} km/h)
-                    </span>
+                    {selectedStorm.max_wind_ms && selectedStorm.max_wind_ms > 0 ? (
+                      <span style={{ fontWeight: 700, color: "#E11D48" }}>
+                        {selectedStorm.max_wind_ms} m/s ({selectedStorm.max_wind_kmh ?? Math.round(selectedStorm.max_wind_ms * 3.6)} km/h)
+                      </span>
+                    ) : (
+                      <span style={{ fontWeight: 500, color: "#64748B" }}>
+                        No data available
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "#64748B" }}>Min Pressure:</span>
@@ -322,12 +345,17 @@ export function WindCycloneOverlay({
                     <button
                       type="button"
                       onClick={() => handleAnimateFromDocked(selectedStorm.sid, selectedStorm.name)}
-                      disabled={loadingSid === selectedStorm.sid}
+                      disabled={loadingSid === selectedStorm.sid || isAnimUnavailable}
                       style={{
                         width: "100%",
                         padding: "5px 8px",
-                        background: loadingSid === selectedStorm.sid ? "#94A3B8" : "#0284C7",
-                        color: "#FFFFFF",
+                        background:
+                          loadingSid === selectedStorm.sid
+                            ? "#94A3B8"
+                            : isAnimUnavailable
+                            ? "#CBD5E1"
+                            : "#0284C7",
+                        color: isAnimUnavailable ? "#64748B" : "#FFFFFF",
                         border: "none",
                         borderRadius: 6,
                         fontSize: 10.5,
@@ -336,8 +364,12 @@ export function WindCycloneOverlay({
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 6,
-                        cursor: loadingSid === selectedStorm.sid ? "not-allowed" : "pointer",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                        cursor:
+                          loadingSid === selectedStorm.sid || isAnimUnavailable
+                            ? "not-allowed"
+                            : "pointer",
+                        boxShadow: isAnimUnavailable ? "none" : "0 1px 3px rgba(0,0,0,0.1)",
+                        opacity: isAnimUnavailable ? 0.8 : 1,
                       }}
                     >
                       {loadingSid === selectedStorm.sid ? (
@@ -353,19 +385,40 @@ export function WindCycloneOverlay({
                       )}
                     </button>
                   )}
-                  {fetchError && (
+                  {isAnimUnavailable && (
+                    <div
+                      style={{
+                        marginTop: 5,
+                        fontSize: 9.5,
+                        color: "#475569",
+                        background: "#F1F5F9",
+                        border: "1px solid #E2E8F0",
+                        padding: "5px 8px",
+                        borderRadius: 6,
+                        lineHeight: 1.3,
+                        textAlign: "center",
+                        fontWeight: 500,
+                      }}
+                    >
+                      No storm animation available for this historical track
+                    </div>
+                  )}
+                  {fetchError && !isAnimUnavailable && (
                     <div
                       style={{
                         marginTop: 4,
-                        fontSize: 9,
-                        color: "#BE123C",
-                        background: "#FFE4E6",
+                        fontSize: 9.5,
+                        color: "#475569",
+                        background: "#F1F5F9",
+                        border: "1px solid #E2E8F0",
                         padding: "4px 6px",
                         borderRadius: 4,
                         lineHeight: 1.2,
+                        textAlign: "center",
+                        fontWeight: 500,
                       }}
                     >
-                      {fetchError}
+                      No storm animation available for this historical track
                     </div>
                   )}
                 </div>
@@ -381,9 +434,15 @@ export function WindCycloneOverlay({
                   fontSize: 9.5,
                 }}
               >
-                <span style={{ color: "#E11D48", fontWeight: 700 }}>
-                  {selectedStorm.max_wind_ms} m/s
-                </span>
+                {selectedStorm.max_wind_ms && selectedStorm.max_wind_ms > 0 ? (
+                  <span style={{ color: "#E11D48", fontWeight: 700 }}>
+                    {selectedStorm.max_wind_ms} m/s
+                  </span>
+                ) : (
+                  <span style={{ color: "#64748B", fontWeight: 500 }}>
+                    N/A
+                  </span>
+                )}
                 <span style={{ color: "#64748B" }}>
                   {selectedStorm.closest_distance_km} km to site
                 </span>

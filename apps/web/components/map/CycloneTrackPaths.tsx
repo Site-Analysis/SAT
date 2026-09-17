@@ -10,6 +10,7 @@ import { Play, Square, Wind } from "lucide-react";
 import * as turf from "@turf/turf";
 import type { ModuleResult, WindCycloneZoneFeature } from "@/lib/stores/analysis";
 import { useWindCycloneUIStore } from "@/lib/stores/analysis";
+import { checkStormGridAvailability, isStormAnimationUnavailable } from "@/lib/cycloneUtils";
 import "leaflet-velocity/dist/leaflet-velocity.css";
 
 interface WindCycloneTracksProps {
@@ -45,10 +46,12 @@ export function WindCycloneTracks({
   // Connect to global wind cyclone UI store
   const {
     windZoneMode,
+    animationAvailability,
     setSelectedStorm,
     setActiveStormSid: setStoreActiveStormSid,
     setLoadingSid: setStoreLoadingSid,
     setFetchError: setStoreFetchError,
+    setAnimationAvailability,
   } = useWindCycloneUIStore();
 
   // Native Leaflet Velocity layer state and ref
@@ -98,13 +101,11 @@ export function WindCycloneTracks({
       // 2. Fetch pre-cached wind grid from MinIO
       const res = await fetch(`http://localhost:9000/cyclone-wind-grids/${sid}.json`);
       if (!res.ok) {
-        throw new Error(
-          `Pre-cached grid not found (HTTP ${res.status}). Run: python scripts/fetch_era5_storm_grids.py --storm-id ${sid}`
-        );
+        throw new Error("No storm animation available for this historical track");
       }
       const fetchedData = await res.json();
       if (!Array.isArray(fetchedData) || fetchedData.length < 2 || !fetchedData[0]?.header || !fetchedData[0]?.data) {
-        throw new Error("Invalid wind-js format returned from MinIO server.");
+        throw new Error("No storm animation available for this historical track");
       }
 
       // 3. Ensure native leaflet-velocity is initialized on L
@@ -190,11 +191,12 @@ export function WindCycloneTracks({
       if (totalFrames > 1) {
         animationTimerRef.current = setTimeout(runAnimationLoop, 1000);
       }
-    } catch (err: any) {
-      const errMsg = err?.message || "Failed to fetch storm wind grid from MinIO";
+    } catch {
+      const errMsg = "No storm animation available for this historical track";
       setFetchError(errMsg);
       setStoreFetchError(errMsg);
       setFetchErrorSid(sid);
+      setAnimationAvailability(sid, false);
     } finally {
       setLoadingSid(null);
       setStoreLoadingSid(null);
@@ -419,16 +421,29 @@ export function WindCycloneTracks({
   }, [showWindZones, windZoneMode, bufferM, center, scopedWindZoneFeatures, data]);
 
   const handleSelectTrack = (props: any) => {
-    setSelectedStorm({
+    const rawWind = props.max_wind_ms ?? props.max_wind_speed;
+    const windNum = rawWind != null && !isNaN(Number(rawWind)) ? Number(rawWind) : null;
+    const validWind = windNum && windNum > 0 ? windNum : null;
+
+    const stormInfo = {
       sid: props.sid,
       name: props.name,
       season: Number(props.season) || 2020,
       category: props.category,
-      max_wind_ms: Number(props.max_wind_ms) || 0,
-      max_wind_kmh: Number(props.max_wind_kmh) || Math.round((Number(props.max_wind_ms) || 0) * 3.6),
+      max_wind_ms: validWind,
+      max_wind_kmh: validWind ? Math.round(validWind * 3.6) : null,
       min_pressure_hpa: Number(props.min_pressure_hpa) || 1000,
       closest_distance_km: Number(props.closest_distance_km) || 0,
-    });
+      has_animation: props.has_animation,
+    };
+
+    setSelectedStorm(stormInfo);
+
+    if (animationAvailability[props.sid] === undefined) {
+      checkStormGridAvailability(stormInfo).then((avail) => {
+        setAnimationAvailability(props.sid, avail);
+      });
+    }
   };
 
   // Chunked progressive rendering when tracks count > 50 to prevent freezing browser main thread
@@ -670,9 +685,15 @@ export function WindCycloneTracks({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-500">Max Wind Speed:</span>
-                        <span className="font-semibold text-rose-600">
-                          {props.max_wind_ms} m/s ({props.max_wind_kmh} km/h)
-                        </span>
+                        {props.max_wind_ms && Number(props.max_wind_ms) > 0 ? (
+                          <span className="font-semibold text-rose-600">
+                            {props.max_wind_ms} m/s ({props.max_wind_kmh || Math.round(Number(props.max_wind_ms) * 3.6)} km/h)
+                          </span>
+                        ) : (
+                          <span className="font-medium text-neutral-400">
+                            No data available
+                          </span>
+                        )}
                       </div>
                       <div className="flex justify-between">
                         <span className="text-neutral-500">Min Barometric Pressure:</span>
@@ -705,8 +726,8 @@ export function WindCycloneTracks({
                             e.stopPropagation();
                             handleAnimateStorm(props.sid, props.name);
                           }}
-                          disabled={loadingSid === props.sid}
-                          className="w-full py-1.5 px-2 bg-sky-600 hover:bg-sky-700 disabled:bg-neutral-300 text-white rounded text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                          disabled={loadingSid === props.sid || isStormAnimationUnavailable(props, animationAvailability)}
+                          className="w-full py-1.5 px-2 bg-sky-600 hover:bg-sky-700 disabled:bg-neutral-200 disabled:text-neutral-400 text-white rounded text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed"
                         >
                           {loadingSid === props.sid ? (
                             <>
@@ -721,9 +742,14 @@ export function WindCycloneTracks({
                           )}
                         </button>
                       )}
-                      {fetchError && fetchErrorSid === props.sid && (
-                        <div className="mt-1.5 text-[10px] text-rose-700 bg-rose-50 p-1.5 rounded border border-rose-200 leading-tight">
-                          {fetchError}
+                      {isStormAnimationUnavailable(props, animationAvailability) && (
+                        <div className="mt-1.5 text-[10px] text-neutral-500 bg-neutral-100 p-1.5 rounded border border-neutral-200 leading-tight text-center font-medium">
+                          No storm animation available for this historical track
+                        </div>
+                      )}
+                      {fetchError && fetchErrorSid === props.sid && !isStormAnimationUnavailable(props, animationAvailability) && (
+                        <div className="mt-1.5 text-[10px] text-neutral-500 bg-neutral-100 p-1.5 rounded border border-neutral-200 leading-tight text-center font-medium">
+                          No storm animation available for this historical track
                         </div>
                       )}
                     </div>
@@ -778,9 +804,13 @@ export function WindCycloneTracks({
                   {props.category && (
                     <div className="text-sky-700 font-semibold">{props.category.split(" (")[0]}</div>
                   )}
-                  {props.wind_ms && (
+                  {props.wind_ms && Number(props.wind_ms) > 0 ? (
                     <div className="text-rose-600 font-medium">
-                      Wind: {props.wind_ms} m/s ({Math.round(props.wind_ms * 3.6)} km/h)
+                      Wind: {props.wind_ms} m/s ({Math.round(Number(props.wind_ms) * 3.6)} km/h)
+                    </div>
+                  ) : (
+                    <div className="text-neutral-400 font-medium">
+                      Wind: No data available
                     </div>
                   )}
 
@@ -805,8 +835,8 @@ export function WindCycloneTracks({
                           e.stopPropagation();
                           handleAnimateStorm(props.sid, props.name);
                         }}
-                        disabled={loadingSid === props.sid}
-                        className="w-full py-1 px-2 bg-sky-600 hover:bg-sky-700 disabled:bg-neutral-300 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                        disabled={loadingSid === props.sid || isStormAnimationUnavailable(props, animationAvailability)}
+                        className="w-full py-1 px-2 bg-sky-600 hover:bg-sky-700 disabled:bg-neutral-200 disabled:text-neutral-400 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed"
                       >
                         {loadingSid === props.sid ? (
                           <>
@@ -820,6 +850,11 @@ export function WindCycloneTracks({
                           </>
                         )}
                       </button>
+                    )}
+                    {isStormAnimationUnavailable(props, animationAvailability) && (
+                      <div className="mt-1.5 text-[9.5px] text-neutral-500 bg-neutral-100 p-1 rounded border border-neutral-200 leading-tight text-center font-medium">
+                        No storm animation available for this historical track
+                      </div>
                     )}
                   </div>
                 </div>

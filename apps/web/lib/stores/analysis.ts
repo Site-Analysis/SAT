@@ -322,10 +322,11 @@ export interface SelectedStormInfo {
   name: string;
   season: number;
   category?: string;
-  max_wind_ms: number;
-  max_wind_kmh: number;
+  max_wind_ms: number | null;
+  max_wind_kmh: number | null;
   min_pressure_hpa: number;
   closest_distance_km: number;
+  has_animation?: boolean;
 }
 
 interface WindCycloneUIState {
@@ -335,6 +336,7 @@ interface WindCycloneUIState {
   fetchError: string | null;
   windZoneMode: "buffer" | "regional" | "all";
   isDockedMinimized: boolean;
+  animationAvailability: Record<string, boolean>;
 
   setSelectedStorm: (storm: SelectedStormInfo | null) => void;
   setActiveStormSid: (sid: string | null) => void;
@@ -343,6 +345,7 @@ interface WindCycloneUIState {
   setWindZoneMode: (mode: "buffer" | "regional" | "all") => void;
   setIsDockedMinimized: (minimized: boolean | ((prev: boolean) => boolean)) => void;
   toggleDockedMinimized: () => void;
+  setAnimationAvailability: (sid: string, available: boolean) => void;
 }
 
 export const useWindCycloneUIStore = create<WindCycloneUIState>((set) => ({
@@ -352,6 +355,7 @@ export const useWindCycloneUIStore = create<WindCycloneUIState>((set) => ({
   fetchError: null,
   windZoneMode: "buffer",
   isDockedMinimized: false,
+  animationAvailability: {},
 
   setSelectedStorm: (storm) => set({ selectedStorm: storm, fetchError: null }),
   setActiveStormSid: (sid) => set({ activeStormSid: sid }),
@@ -363,5 +367,9 @@ export const useWindCycloneUIStore = create<WindCycloneUIState>((set) => ({
       isDockedMinimized: typeof minimized === "function" ? minimized(s.isDockedMinimized) : minimized,
     })),
   toggleDockedMinimized: () => set((s) => ({ isDockedMinimized: !s.isDockedMinimized })),
+  setAnimationAvailability: (sid, available) =>
+    set((s) => ({
+      animationAvailability: { ...s.animationAvailability, [sid]: available },
+    })),
 }));
 
