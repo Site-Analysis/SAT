@@ -55,12 +55,18 @@ export function WindCycloneTracks({
   const velocityLayerRef = useRef<any>(null);
   const animationTimerRef = useRef<any>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const frameIndexRef = useRef<number>(0);
+
+  // Animation state and frame counter strictly decoupled from map movement/zoom events
+  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [currentFrame, setCurrentFrame] = useState<number>(0);
   const [activeStormSid, setActiveStormSid] = useState<string | null>(null);
   const [loadingSid, setLoadingSid] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchErrorSid, setFetchErrorSid] = useState<string | null>(null);
 
-  const setIsAnimating = (animating: boolean) => {
+  const handleSetIsAnimating = (animating: boolean) => {
+    setIsAnimating(animating);
     if (!animating) {
       handleStopAnimation();
     }
@@ -138,54 +144,51 @@ export function WindCycloneTracks({
 
       layer.addTo(map);
       velocityLayerRef.current = layer;
+      setIsAnimating(true);
       setActiveStormSid(sid);
       setStoreActiveStormSid(sid);
 
-      // 5. Target the canvas & strip hardware-acceleration animation classes immediately
+      // Ensure canvas is visible
       const velocityCanvas = document.querySelector(".leaflet-overlay-pane canvas") as HTMLCanvasElement | null;
       if (velocityCanvas) {
-        // Prevent Leaflet from hardware-stretching the canvas
-        velocityCanvas.classList.remove("leaflet-zoom-animated");
-        // Ensure transitions don't delay the hide effect
-        velocityCanvas.style.transition = "opacity 0.1s ease-out";
+        velocityCanvas.style.opacity = "1";
       }
 
-      // 6. Animation loop & auto-reset when reaching the final frame of the storm data array
+      // 5. Animation loop & auto-reset only when reaching the final frame of the storm data array
       const stormDataArray: any[] = Array.isArray(fetchedData[0])
         ? fetchedData
         : Array.isArray(fetchedData) && fetchedData.length > 2
         ? fetchedData
         : [fetchedData];
 
-      let currentFrameIndex = 0;
       const totalFrames = stormDataArray.length;
+      frameIndexRef.current = 0;
+      setCurrentFrame(0);
 
       const runAnimationLoop = () => {
-        // Boundary check: when the animation reaches the final frame of the storm data array, automatically reset state
-        if (currentFrameIndex >= totalFrames - 1) {
-          setIsAnimating(false);
+        // Boundary check: when the animation reaches the final frame of the storm data array, stop
+        if (frameIndexRef.current >= totalFrames - 1) {
+          handleStopAnimation();
           return;
         }
 
-        currentFrameIndex++;
+        frameIndexRef.current++;
+        setCurrentFrame(frameIndexRef.current);
 
         // Update layer data if multi-frame wind dataset
-        if (velocityLayerRef.current && stormDataArray[currentFrameIndex]) {
+        if (velocityLayerRef.current && stormDataArray[frameIndexRef.current]) {
           if (typeof velocityLayerRef.current.setData === "function") {
-            velocityLayerRef.current.setData(stormDataArray[currentFrameIndex]);
+            velocityLayerRef.current.setData(stormDataArray[frameIndexRef.current]);
           }
         }
 
         animationTimerRef.current = setTimeout(runAnimationLoop, 1000);
       };
 
+      // Only multi-frame storm data loops through discrete frames; static single-peak playback
+      // remains continuously active until explicitly stopped by the user.
       if (totalFrames > 1) {
         animationTimerRef.current = setTimeout(runAnimationLoop, 1000);
-      } else {
-        // For static single-peak storm grid playback, auto-reset when natural playback concludes (8s duration)
-        animationTimerRef.current = setTimeout(() => {
-          setIsAnimating(false);
-        }, 8000);
       }
     } catch (err: any) {
       const errMsg = err?.message || "Failed to fetch storm wind grid from MinIO";
@@ -212,6 +215,9 @@ export function WindCycloneTracks({
       map.removeLayer(velocityLayerRef.current);
       velocityLayerRef.current = null;
     }
+    setIsAnimating(false);
+    frameIndexRef.current = 0;
+    setCurrentFrame(0);
     setActiveStormSid(null);
     setStoreActiveStormSid(null);
     setFetchError(null);
@@ -241,58 +247,25 @@ export function WindCycloneTracks({
   }, [map]);
 
 
-  // Raw DOM listeners for zero-latency hiding on physical hardware interaction
+  // Ensure velocity canvas stays visible and decoupled from map movement/zoom events
   useEffect(() => {
     if (!activeStormSid) return;
 
-    const mapContainer = map.getContainer();
-    const getCanvas = (): HTMLCanvasElement | null => {
-      return (
+    const ensureCanvasVisible = () => {
+      const velocityCanvas =
         velocityLayerRef.current?._canvasLayer?._canvas ||
-        (document.querySelector(".leaflet-overlay-pane canvas") as HTMLCanvasElement | null)
-      );
-    };
-
-    const hideWind = () => {
-      const velocityCanvas = getCanvas();
+        (document.querySelector(".leaflet-overlay-pane canvas") as HTMLCanvasElement | null);
       if (velocityCanvas) {
-        velocityCanvas.classList.remove("leaflet-zoom-animated");
-        velocityCanvas.style.opacity = "0";
-      }
-    };
-
-    const showWind = () => {
-      const velocityCanvas = getCanvas();
-      if (velocityCanvas) {
-        velocityCanvas.classList.remove("leaflet-zoom-animated");
         velocityCanvas.style.opacity = "1";
       }
     };
 
-    const handleMouseUp = () => {
-      // Restore on mouseup after short delay if no drag movement triggered moveend
-      setTimeout(showWind, 60);
-    };
-
-    // Trigger instantly on physical hardware interaction
-    mapContainer.addEventListener("mousedown", hideWind);
-    mapContainer.addEventListener("wheel", hideWind, { passive: true });
-    mapContainer.addEventListener("touchstart", hideWind, { passive: true });
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("touchend", handleMouseUp);
-
-    // Restore only when the map has completely stopped moving and vectors recalculated
-    map.on("moveend", showWind);
-    map.on("zoomend", showWind);
+    map.on("moveend", ensureCanvasVisible);
+    map.on("zoomend", ensureCanvasVisible);
 
     return () => {
-      mapContainer.removeEventListener("mousedown", hideWind);
-      mapContainer.removeEventListener("wheel", hideWind);
-      mapContainer.removeEventListener("touchstart", hideWind);
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("touchend", handleMouseUp);
-      map.off("moveend", showWind);
-      map.off("zoomend", showWind);
+      map.off("moveend", ensureCanvasVisible);
+      map.off("zoomend", ensureCanvasVisible);
     };
   }, [map, activeStormSid]);
 
@@ -856,28 +829,6 @@ export function WindCycloneTracks({
         })}
 
 
-      {/* Floating Stop Animation control when velocity layer is active */}
-      {activeStormSid && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-            pointerEvents: "auto",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleStopAnimation}
-            className="flex items-center gap-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full text-xs font-semibold shadow-lg transition-all cursor-pointer"
-          >
-            <Square size={13} className="fill-current" />
-            <span>Stop Wind Animation</span>
-          </button>
-        </div>
-      )}
     </>
   );
 }
