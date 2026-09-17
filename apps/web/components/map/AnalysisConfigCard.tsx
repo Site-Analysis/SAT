@@ -112,7 +112,7 @@ export function AnalysisConfigCard() {
               />
             </div>
           </div>
-          <div style={hintStyle}>rainfall · temperature year</div>
+          <div style={hintStyle}>rainfall · temperature · wind cyclone</div>
         </div>
 
       </div>
