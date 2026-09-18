@@ -107,6 +107,26 @@ function getStormWeight(category?: string, windSpeedMs?: number): number {
   return 0.20;
 }
 
+function getEyeRadius(category?: string, windSpeedMs?: number): number {
+  if (windSpeedMs != null && !isNaN(windSpeedMs) && windSpeedMs > 0) {
+    if (windSpeedMs >= 62) return 10.0; // Super Cyclonic Storm
+    if (windSpeedMs >= 47) return 8.0;  // Extremely Severe
+    if (windSpeedMs >= 33) return 6.5;  // Very Severe
+    if (windSpeedMs >= 25) return 5.0;  // Severe
+    if (windSpeedMs >= 17) return 3.5;  // Cyclonic Storm
+    return 2.0;                         // Depression / Low intensity
+  }
+  if (!category) return 3.0;
+  const c = category.toLowerCase();
+  if (c.includes("super")) return 10.0;
+  if (c.includes("extremely")) return 8.0;
+  if (c.includes("very severe")) return 6.5;
+  if (c.includes("severe")) return 5.0;
+  if (c.includes("cyclonic storm")) return 3.5;
+  if (c.includes("depression")) return 2.0;
+  return 3.0;
+}
+
 export function WindCycloneTracks({
   center,
   result,
@@ -120,6 +140,7 @@ export function WindCycloneTracks({
   // Connect to global wind cyclone UI store
   const {
     windZoneMode,
+    selectedZoneSpeed,
     animationAvailability,
     setSelectedStorm,
     setActiveStormSid: setStoreActiveStormSid,
@@ -794,35 +815,41 @@ export function WindCycloneTracks({
       {showWindZones && (
         windZoneMode === "buffer" ? (
           // BUFFER FOCUS: fill strictly restricted to circular buffer, clean solid borders (no dotted lines)
-          bufferFocusedPolygons.map((zone, idx) => (
-            <Polygon
-              key={`buffer-zone-${zone.zoneId}-${idx}`}
-              positions={zone.positions}
-              pathOptions={{
-                color: zone.color,
-                fillColor: zone.fillColor,
-                fillOpacity: 0.28,
-                weight: 1.5,
-              }}
-            >
-              <Popup>
-                <div className="p-1 font-sans space-y-1 text-xs">
-                  <div className="flex items-center gap-1.5 border-b border-neutral-200 pb-1">
-                    <span className="font-bold text-neutral-900">{zone.name}</span>
-                    <span className="text-[9px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">
-                      Buffer Focus
-                    </span>
+          bufferFocusedPolygons.map((zone, idx) => {
+            const isSelected = selectedZoneSpeed === zone.speed;
+            const isDimmed = selectedZoneSpeed !== null && !isSelected;
+
+            return (
+              <Polygon
+                key={`buffer-zone-${zone.zoneId}-${idx}`}
+                positions={zone.positions}
+                pathOptions={{
+                  color: isDimmed ? "#94A3B8" : zone.color,
+                  fillColor: zone.fillColor,
+                  fillOpacity: isSelected ? 0.55 : isDimmed ? 0.04 : 0.28,
+                  weight: isSelected ? 3.0 : isDimmed ? 0.8 : 1.5,
+                  opacity: isDimmed ? 0.3 : 1.0,
+                }}
+              >
+                <Popup>
+                  <div className="p-1 font-sans space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 border-b border-neutral-200 pb-1">
+                      <span className="font-bold text-neutral-900">{zone.name}</span>
+                      <span className="text-[9px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200">
+                        Buffer Focus
+                      </span>
+                    </div>
+                    <div className="text-sky-700 font-semibold">
+                      Basic Design Wind Speed Vb: {zone.speed} m/s
+                    </div>
+                    <div className="text-[10px] text-neutral-500">
+                      Bureau of Indian Standards · IS 875 (Part 3): 2015
+                    </div>
                   </div>
-                  <div className="text-sky-700 font-semibold">
-                    Basic Design Wind Speed Vb: {zone.speed} m/s
-                  </div>
-                  <div className="text-[10px] text-neutral-500">
-                    Bureau of Indian Standards · IS 875 (Part 3): 2015
-                  </div>
-                </div>
-              </Popup>
-            </Polygon>
-          ))
+                </Popup>
+              </Polygon>
+            );
+          })
         ) : windZoneMode === "regional" ? (
           // REGIONAL: render zone containing the site with clean solid borders (no dotted lines)
           scopedWindZoneFeatures.map((zone, idx) => {
@@ -833,16 +860,19 @@ export function WindCycloneTracks({
             const positions: [number, number][][] = rawRings.map((ring) =>
               ring.map(([lon, lat]) => [lat, lon] as [number, number])
             );
+            const isSelected = selectedZoneSpeed === speed;
+            const isDimmed = selectedZoneSpeed !== null && !isSelected;
 
             return (
               <Polygon
                 key={`windzone-regional-${props.zone_id}-${idx}`}
                 positions={positions}
                 pathOptions={{
-                  color: strokeColor,
+                  color: isDimmed ? "#94A3B8" : strokeColor,
                   fillColor: fillColor,
-                  fillOpacity: 0.20,
-                  weight: 1.5,
+                  fillOpacity: isSelected ? 0.50 : isDimmed ? 0.04 : 0.20,
+                  weight: isSelected ? 3.0 : isDimmed ? 0.8 : 1.5,
+                  opacity: isDimmed ? 0.3 : 1.0,
                 }}
               >
                 <Popup>
@@ -874,16 +904,19 @@ export function WindCycloneTracks({
             const positions: [number, number][][] = rawRings.map((ring) =>
               ring.map(([lon, lat]) => [lat, lon] as [number, number])
             );
+            const isSelected = selectedZoneSpeed === speed;
+            const isDimmed = selectedZoneSpeed !== null && !isSelected;
 
             return (
               <Polygon
                 key={`windzone-all-${props.zone_id}-${idx}`}
                 positions={positions}
                 pathOptions={{
-                  color: strokeColor,
+                  color: isDimmed ? "#94A3B8" : strokeColor,
                   fillColor: fillColor,
-                  fillOpacity: 0.20,
-                  weight: 1.5,
+                  fillOpacity: isSelected ? 0.50 : isDimmed ? 0.04 : 0.20,
+                  weight: isSelected ? 3.0 : isDimmed ? 0.8 : 1.5,
+                  opacity: isDimmed ? 0.3 : 1.0,
                 }}
               >
                 <Popup>
@@ -1051,15 +1084,18 @@ export function WindCycloneTracks({
         eyePointFeatures.map((pt, idx) => {
           const [lon, lat] = pt.geometry.coordinates;
           const props = pt.properties;
+          const rawWind = "wind_ms" in props ? props.wind_ms : ("max_wind_ms" in props ? (props as any).max_wind_ms : undefined);
+          const windSpeed = rawWind != null ? Number(rawWind) : undefined;
+          const eyeRadius = getEyeRadius(props.category, windSpeed);
 
           return (
             <CircleMarker
               key={`eyept-${props.sid}-${idx}`}
               center={[lat, lon]}
-              radius={5.5}
+              radius={eyeRadius}
               pathOptions={{
                 color: "#ffffff",
-                weight: 1.5,
+                weight: eyeRadius <= 3.0 ? 0.8 : 1.5,
                 fillColor: ("stroke" in props && props.stroke) ? props.stroke : "#0284C7",
                 fillOpacity: 0.95,
               }}

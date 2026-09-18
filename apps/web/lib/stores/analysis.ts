@@ -339,6 +339,9 @@ interface WindCycloneUIState {
   isDockedMinimized: boolean;
   animationAvailability: Record<string, boolean>;
 
+  selectedZoneSpeed: number | null;
+  setSelectedZoneSpeed: (speed: number | null) => void;
+
   setSelectedStorm: (storm: SelectedStormInfo | null) => void;
   setActiveStormSid: (sid: string | null) => void;
   setLoadingSid: (sid: string | null) => void;
@@ -355,9 +358,11 @@ export const useWindCycloneUIStore = create<WindCycloneUIState>((set) => ({
   loadingSid: null,
   fetchError: null,
   windZoneMode: "buffer",
+  selectedZoneSpeed: null,
   isDockedMinimized: false,
   animationAvailability: {},
 
+  setSelectedZoneSpeed: (speed) => set({ selectedZoneSpeed: speed }),
   setSelectedStorm: (storm) => set({ selectedStorm: storm, fetchError: null }),
   setActiveStormSid: (sid) => set({ activeStormSid: sid }),
   setLoadingSid: (sid) => set({ loadingSid: sid }),

@@ -32,12 +32,12 @@ const IMD_LEGEND = [
 ];
 
 const IS875_LEGEND = [
-  { color: "#7E22CE", label: "Zone VI: 55 m/s (Very High Wind Hazard)" },
-  { color: "#EF4444", label: "Zone V: 50 m/s (Very High Wind Hazard)" },
-  { color: "#F97316", label: "Zone IV: 47 m/s (High Wind Hazard)" },
-  { color: "#FBBF24", label: "Zone III: 44 m/s (Moderate Wind Hazard)" },
-  { color: "#34D399", label: "Zone II: 39 m/s (Moderate Wind Hazard)" },
-  { color: "#60A5FA", label: "Zone I: 33 m/s (Low Wind Hazard)" },
+  { speed: 55, color: "#7E22CE", label: "Zone VI: 55 m/s (Very High Wind Hazard)" },
+  { speed: 50, color: "#EF4444", label: "Zone V: 50 m/s (Very High Wind Hazard)" },
+  { speed: 47, color: "#F97316", label: "Zone IV: 47 m/s (High Wind Hazard)" },
+  { speed: 44, color: "#FBBF24", label: "Zone III: 44 m/s (Moderate Wind Hazard)" },
+  { speed: 39, color: "#34D399", label: "Zone II: 39 m/s (Moderate Wind Hazard)" },
+  { speed: 33, color: "#60A5FA", label: "Zone I: 33 m/s (Low Wind Hazard)" },
 ];
 
 export function WindCycloneOverlay({
@@ -57,6 +57,8 @@ export function WindCycloneOverlay({
 
   const layers = controlledLayers || internalLayers;
 
+  const [isWindZoneLegendMinimized, setIsWindZoneLegendMinimized] = useState(false);
+
   // Store connection for docked storm widget and wind zone mode
   const {
     selectedStorm,
@@ -64,8 +66,10 @@ export function WindCycloneOverlay({
     loadingSid,
     fetchError,
     windZoneMode: storeWindZoneMode,
+    selectedZoneSpeed,
     isDockedMinimized,
     animationAvailability,
+    setSelectedZoneSpeed,
     setSelectedStorm,
     setWindZoneMode: setStoreWindZoneMode,
     toggleDockedMinimized,
@@ -560,51 +564,139 @@ export function WindCycloneOverlay({
             <span>IS 875 Wind Zones ({layers.windZones ? "ON" : "OFF"})</span>
           </button>
 
-          {/* 3-Way Segmented Control for Wind Zones when ON */}
+          {/* 3-Way Segmented Control & Velocity Sub-Toggles for Wind Zones when ON */}
           {layers.windZones && (
-            <div
-              style={{
-                marginLeft: 18,
-                marginTop: 4,
-                display: "flex",
-                background: "#F1F5F9",
-                borderRadius: 5,
-                padding: 2,
-                gap: 2,
-              }}
-            >
-              {(
-                [
-                  { id: "buffer", label: "Buffer Focus" },
-                  { id: "regional", label: "Regional" },
-                  { id: "all", label: "All Zones" },
-                ] as const
-              ).map((tab) => {
-                const active = windZoneMode === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleWindZoneModeChange(tab.id)}
-                    style={{
-                      flex: 1,
-                      fontSize: 8.5,
-                      fontWeight: 700,
-                      padding: "2.5px 4px",
-                      borderRadius: 3,
-                      border: "none",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      background: active ? "#FFFFFF" : "transparent",
-                      color: active ? "#0284C7" : "#64748B",
-                      boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
+            <div style={{ marginLeft: 18, marginTop: 4, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div
+                style={{
+                  display: "flex",
+                  background: "#F1F5F9",
+                  borderRadius: 5,
+                  padding: 2,
+                  gap: 2,
+                }}
+              >
+                {(
+                  [
+                    { id: "buffer", label: "Buffer Focus" },
+                    { id: "regional", label: "Regional" },
+                    { id: "all", label: "All Zones" },
+                  ] as const
+                ).map((tab) => {
+                  const active = windZoneMode === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleWindZoneModeChange(tab.id)}
+                      style={{
+                        flex: 1,
+                        fontSize: 8.5,
+                        fontWeight: 700,
+                        padding: "2.5px 4px",
+                        borderRadius: 3,
+                        border: "none",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        background: active ? "#FFFFFF" : "transparent",
+                        color: active ? "#0284C7" : "#64748B",
+                        boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Velocity Zone Filter Sub-Toggles */}
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    fontSize: 8,
+                    fontWeight: 700,
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    marginBottom: 3,
+                  }}
+                >
+                  <span>Filter Velocity</span>
+                  {selectedZoneSpeed !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedZoneSpeed(null)}
+                      style={{
+                        fontSize: 8,
+                        color: "#0284C7",
+                        fontWeight: 600,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      Show All
+                    </button>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 3,
+                  }}
+                >
+                  {[
+                    { speed: 33, color: "#60A5FA", label: "33 m/s" },
+                    { speed: 39, color: "#34D399", label: "39 m/s" },
+                    { speed: 44, color: "#FBBF24", label: "44 m/s" },
+                    { speed: 47, color: "#F97316", label: "47 m/s" },
+                    { speed: 50, color: "#EF4444", label: "50 m/s" },
+                    { speed: 55, color: "#7E22CE", label: "55 m/s" },
+                  ].map(({ speed, color, label }) => {
+                    const isSelected = selectedZoneSpeed === speed;
+                    return (
+                      <button
+                        key={speed}
+                        type="button"
+                        onClick={() => setSelectedZoneSpeed(isSelected ? null : speed)}
+                        style={{
+                          fontSize: 8.5,
+                          fontWeight: isSelected ? 700 : 500,
+                          padding: "2px 4px",
+                          borderRadius: 4,
+                          border: isSelected ? `1.5px solid ${color}` : "1px solid #E2E8F0",
+                          background: isSelected ? "#F8FAFC" : "#FFFFFF",
+                          color: isSelected ? "#0F172A" : "#475569",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 3.5,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: color,
+                            display: "inline-block",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span>{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -790,26 +882,29 @@ export function WindCycloneOverlay({
             </div>
           )}
 
-          {/* 2. IS 875 Wind Zones Legend (Faint Slate/Tinted Card) */}
+          {/* 2. IS 875 Wind Zones Legend (Faint Slate/Tinted Card with Minimize/Expand Toggle) */}
           {layers.windZones && (
             <div
               style={{
                 background: "rgba(248, 250, 252, 0.98)", // Slate-50 background for distinct color delineation
                 borderRadius: 10,
-                padding: "9px 12px",
+                padding: isWindZoneLegendMinimized ? "7px 12px" : "9px 12px",
                 boxShadow: "0 3px 14px rgba(0,0,0,0.09)",
                 border: "1px solid #CBD5E1", // Distinct border treatment
                 transition: "all 0.2s ease-in-out",
               }}
             >
               <div
+                onClick={() => setIsWindZoneLegendMinimized((prev) => !prev)}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: 6,
-                  borderBottom: "1px solid #E2E8F0",
-                  paddingBottom: 4,
+                  marginBottom: isWindZoneLegendMinimized ? 0 : 6,
+                  borderBottom: isWindZoneLegendMinimized ? "none" : "1px solid #E2E8F0",
+                  paddingBottom: isWindZoneLegendMinimized ? 0 : 4,
+                  cursor: "pointer",
+                  userSelect: "none",
                 }}
               >
                 <span
@@ -827,37 +922,87 @@ export function WindCycloneOverlay({
                   <Shield size={11} className="text-slate-700" />
                   IS 875 Wind Zones
                 </span>
-                <span
-                  style={{
-                    fontSize: 8.5,
-                    color: "#64748B",
-                    fontWeight: 600,
-                  }}
-                >
-                  Vb Baseline
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 8.5,
+                      color: "#64748B",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Vb Baseline
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsWindZoneLegendMinimized((prev) => !prev);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 1,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#64748B",
+                    }}
+                    title={isWindZoneLegendMinimized ? "Expand Wind Zone Legend" : "Minimize Wind Zone Legend"}
+                  >
+                    {isWindZoneLegendMinimized ? (
+                      <ChevronDown size={13} />
+                    ) : (
+                      <ChevronUp size={13} />
+                    )}
+                  </button>
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
-                {IS875_LEGEND.map(({ color, label }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 2,
-                        background: color,
-                        opacity: 0.85,
-                        border: "1px solid rgba(0,0,0,0.2)",
-                        flexShrink: 0,
-                        display: "inline-block",
-                      }}
-                    />
-                    <span style={{ fontSize: 8.5, color: "#334155", fontWeight: 500, lineHeight: 1.2 }}>
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {!isWindZoneLegendMinimized && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+                  {IS875_LEGEND.map(({ speed, color, label }) => {
+                    const isSelected = selectedZoneSpeed === speed;
+                    return (
+                      <div
+                        key={label}
+                        onClick={() => setSelectedZoneSpeed(isSelected ? null : speed)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "2px 4px",
+                          borderRadius: 4,
+                          cursor: "pointer",
+                          background: isSelected ? "#E2E8F0" : "transparent",
+                          transition: "background 0.15s ease",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 2,
+                            background: color,
+                            opacity: isSelected ? 1 : 0.85,
+                            border: isSelected ? "1.5px solid #0F172A" : "1px solid rgba(0,0,0,0.2)",
+                            flexShrink: 0,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: 8.5,
+                            color: isSelected ? "#0F172A" : "#334155",
+                            fontWeight: isSelected ? 700 : 500,
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
