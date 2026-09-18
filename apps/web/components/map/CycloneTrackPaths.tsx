@@ -24,13 +24,86 @@ interface WindCycloneTracksProps {
   };
 }
 
-async function ensureLeafletVelocity() {
+async function ensureLeafletPlugins() {
   if (typeof window !== "undefined") {
     (window as any).L = L;
     if (!(L as any).velocityLayer) {
       await import("leaflet-velocity");
     }
+    if (!(L as any).heatLayer) {
+      await import("leaflet.heat");
+    }
+    if (!(L as any).polylineDecorator) {
+      await import("leaflet-polylinedecorator");
+    }
+    if (!(L as any).Symbol) {
+      (L as any).Symbol = {};
+    }
+    if (!(L as any).Symbol.arrowHead) {
+      const ArrowHead = (L.Class as any).extend({
+        options: {
+          polygon: false,
+          pixelSize: 8,
+          headAngle: 45,
+          pathOptions: { stroke: true, weight: 1.2 },
+        },
+        initialize: function (options: any) {
+          L.Util.setOptions(this, options);
+          if (!this.options.pathOptions) this.options.pathOptions = {};
+          this.options.pathOptions.clickable = false;
+        },
+        buildSymbol: function (dirPoint: any, _latLngs: any, map: any) {
+          const d2r = Math.PI / 180;
+          const tipPoint = map.project(dirPoint.latLng);
+          const direction = (-(dirPoint.heading - 90)) * d2r;
+          const radianArrowAngle = (this.options.headAngle / 2) * d2r;
+
+          const headAngle1 = direction + radianArrowAngle;
+          const headAngle2 = direction - radianArrowAngle;
+          const arrowHead1 = L.point(
+            tipPoint.x - this.options.pixelSize * Math.cos(headAngle1),
+            tipPoint.y + this.options.pixelSize * Math.sin(headAngle1)
+          );
+          const arrowHead2 = L.point(
+            tipPoint.x - this.options.pixelSize * Math.cos(headAngle2),
+            tipPoint.y + this.options.pixelSize * Math.sin(headAngle2)
+          );
+
+          const pts = [
+            map.unproject(arrowHead1),
+            dirPoint.latLng,
+            map.unproject(arrowHead2),
+          ];
+          return this.options.polygon
+            ? L.polygon(pts, this.options.pathOptions)
+            : L.polyline(pts, this.options.pathOptions);
+        },
+      });
+      (L as any).Symbol.arrowHead = function (options: any) {
+        return new ArrowHead(options);
+      };
+    }
   }
+}
+
+function getStormWeight(category?: string, windSpeedMs?: number): number {
+  if (windSpeedMs != null && !isNaN(windSpeedMs) && windSpeedMs > 0) {
+    if (windSpeedMs >= 62) return 1.0;
+    if (windSpeedMs >= 47) return 0.85;
+    if (windSpeedMs >= 33) return 0.70;
+    if (windSpeedMs >= 25) return 0.50;
+    if (windSpeedMs >= 17) return 0.35;
+    return 0.20;
+  }
+  if (!category) return 0.20;
+  const c = category.toLowerCase();
+  if (c.includes("super")) return 1.0;
+  if (c.includes("extremely")) return 0.85;
+  if (c.includes("very severe")) return 0.70;
+  if (c.includes("severe")) return 0.50;
+  if (c.includes("cyclonic storm")) return 0.35;
+  if (c.includes("depression")) return 0.20;
+  return 0.20;
 }
 
 export function WindCycloneTracks({
@@ -109,7 +182,7 @@ export function WindCycloneTracks({
       }
 
       // 3. Ensure native leaflet-velocity is initialized on L
-      await ensureLeafletVelocity();
+      await ensureLeafletPlugins();
 
       if (!(L as any).velocityLayer) {
         throw new Error("leaflet-velocity plugin could not be initialized.");
@@ -503,6 +576,178 @@ export function WindCycloneTracks({
     });
   }, [data?.eye_points, visibleTracks]);
 
+  // Extract coordinates and map IMD category/wind intensity to weights (0.1 to 1.0)
+  const heatPoints = useMemo(() => {
+    if (!data?.tracks?.features) return [];
+    const points: [number, number, number][] = [];
+    for (const feature of data.tracks.features) {
+      if (feature.geometry?.type !== "LineString") continue;
+      const props = feature.properties;
+      const weight = getStormWeight(props?.category, props?.max_wind_ms);
+      const coords = feature.geometry.coordinates;
+      if (Array.isArray(coords)) {
+        for (const coord of coords) {
+          if (Array.isArray(coord) && coord.length >= 2) {
+            const [lon, lat] = coord;
+            if (typeof lat === "number" && typeof lon === "number") {
+              // Leaflet heat requires [lat, lng, intensity]
+              points.push([lat, lon, weight]);
+            }
+          }
+        }
+      }
+    }
+    return points;
+  }, [data?.tracks?.features]);
+
+  // Client-Side Heatmap Base (Thermal Glow Layer)
+  const heatLayerRef = useRef<any>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!showTracks || heatPoints.length === 0) {
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+      return;
+    }
+
+    let cleanupMapEvents: (() => void) | undefined;
+
+    const initHeatmap = async () => {
+      await ensureLeafletPlugins();
+      if (isCancelled || !(L as any).heatLayer) return;
+
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+
+      // Smooth, glowing meteorological thermal density cloud
+      const layer = (L as any).heatLayer(heatPoints, {
+        radius: 35,
+        blur: 25,
+        maxZoom: 17,
+        max: 1.0,
+        minOpacity: 0.05,
+        gradient: {
+          0.2: "#0284C7", // Sky/Blue
+          0.4: "#10B981", // Emerald/Green
+          0.6: "#FBBF24", // Amber/Yellow
+          0.8: "#F97316", // Orange
+          1.0: "#EF4444", // Hot Red
+        },
+      });
+
+      layer.addTo(map);
+      heatLayerRef.current = layer;
+
+      // Ensure canvas is positioned below vector SVG layers in overlayPane
+      const sendCanvasToBack = () => {
+        const canvas = (layer as any)._canvas;
+        if (canvas && canvas.parentElement && canvas.parentElement.firstChild !== canvas) {
+          canvas.parentElement.insertBefore(canvas, canvas.parentElement.firstChild);
+        }
+      };
+
+      sendCanvasToBack();
+      map.on("moveend", sendCanvasToBack);
+      map.on("zoomend", sendCanvasToBack);
+
+      cleanupMapEvents = () => {
+        map.off("moveend", sendCanvasToBack);
+        map.off("zoomend", sendCanvasToBack);
+      };
+    };
+
+    initHeatmap();
+
+    return () => {
+      isCancelled = true;
+      if (cleanupMapEvents) cleanupMapEvents();
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+    };
+  }, [map, showTracks, heatPoints]);
+
+  // Directional Flow Arrows Layer (leaflet-polylinedecorator)
+  const decoratorGroupRef = useRef<any>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!showTracks || visibleTracks.length === 0) {
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+      return;
+    }
+
+    const initDecorators = async () => {
+      await ensureLeafletPlugins();
+      if (isCancelled || !(L as any).polylineDecorator) return;
+
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+
+      const group = L.layerGroup();
+
+      for (const feature of visibleTracks) {
+        const rawCoords = feature.geometry?.coordinates;
+        if (!rawCoords || rawCoords.length < 2) continue;
+        const positions: [number, number][] = rawCoords.map(([lon, lat]) => [lat, lon]);
+        const strokeColor = feature.properties?.stroke || "#0284C7";
+
+        try {
+          const decorator = (L as any).polylineDecorator(positions, {
+            patterns: [
+              {
+                offset: 30,
+                repeat: 80,
+                symbol: (L as any).Symbol.arrowHead({
+                  pixelSize: 8,
+                  headAngle: 45,
+                  polygon: false,
+                  pathOptions: {
+                    stroke: true,
+                    color: strokeColor,
+                    weight: 1.2,
+                    opacity: 0.5,
+                  },
+                }),
+              },
+            ],
+          });
+          group.addLayer(decorator);
+        } catch {
+          // Graceful handling of any geometry calculation edge cases
+        }
+      }
+
+      if (!isCancelled) {
+        group.addTo(map);
+        decoratorGroupRef.current = group;
+      }
+    };
+
+    initDecorators();
+
+    return () => {
+      isCancelled = true;
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+    };
+  }, [map, showTracks, visibleTracks]);
+
   if (!data) return null;
 
   return (
@@ -757,13 +1002,13 @@ export function WindCycloneTracks({
                 </Popup>
               </Polyline>
 
-              {/* Visible thin crisp track path on top */}
+              {/* Visible thin streamline track path (drastically reduced thickness to 1.2 and opacity to 0.4) */}
               <Polyline
                 positions={positions}
                 pathOptions={{
                   color: strokeColor,
-                  weight: strokeWidth,
-                  opacity: 0.85,
+                  weight: 1.2,
+                  opacity: 0.4,
                   lineCap: "round",
                   lineJoin: "round",
                   interactive: true,
