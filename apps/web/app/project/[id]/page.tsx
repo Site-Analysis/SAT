@@ -234,13 +234,14 @@ export default function ProjectPage() {
   });
 
   const [windCycloneLayers, setWindCycloneLayers] = useState({
-    tracks: true,
+    heatmap: true,
+    tracks: false,
     windZones: false,
     eyePoints: false,
   });
   const [windCycloneBufferKm, setWindCycloneBufferKm] = useState<number>(100);
 
-  const handleToggleWindCycloneLayer = (key: "windZones" | "tracks" | "eyePoints", enabled: boolean) => {
+  const handleToggleWindCycloneLayer = (key: "heatmap" | "windZones" | "tracks" | "eyePoints", enabled: boolean) => {
     setWindCycloneLayers((prev) => ({ ...prev, [key]: enabled }));
   };
 

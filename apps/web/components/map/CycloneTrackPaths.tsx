@@ -18,6 +18,7 @@ interface WindCycloneTracksProps {
   result: ModuleResult;
   bufferM?: number;
   layers?: {
+    heatmap?: boolean;
     tracks: boolean;
     windZones: boolean;
     eyePoints: boolean;
@@ -32,56 +33,6 @@ async function ensureLeafletPlugins() {
     }
     if (!(L as any).heatLayer) {
       await import("leaflet.heat");
-    }
-    if (!(L as any).polylineDecorator) {
-      await import("leaflet-polylinedecorator");
-    }
-    if (!(L as any).Symbol) {
-      (L as any).Symbol = {};
-    }
-    if (!(L as any).Symbol.arrowHead) {
-      const ArrowHead = (L.Class as any).extend({
-        options: {
-          polygon: false,
-          pixelSize: 8,
-          headAngle: 45,
-          pathOptions: { stroke: true, weight: 1.2 },
-        },
-        initialize: function (options: any) {
-          L.Util.setOptions(this, options);
-          if (!this.options.pathOptions) this.options.pathOptions = {};
-          this.options.pathOptions.clickable = false;
-        },
-        buildSymbol: function (dirPoint: any, _latLngs: any, map: any) {
-          const d2r = Math.PI / 180;
-          const tipPoint = map.project(dirPoint.latLng);
-          const direction = (-(dirPoint.heading - 90)) * d2r;
-          const radianArrowAngle = (this.options.headAngle / 2) * d2r;
-
-          const headAngle1 = direction + radianArrowAngle;
-          const headAngle2 = direction - radianArrowAngle;
-          const arrowHead1 = L.point(
-            tipPoint.x - this.options.pixelSize * Math.cos(headAngle1),
-            tipPoint.y + this.options.pixelSize * Math.sin(headAngle1)
-          );
-          const arrowHead2 = L.point(
-            tipPoint.x - this.options.pixelSize * Math.cos(headAngle2),
-            tipPoint.y + this.options.pixelSize * Math.sin(headAngle2)
-          );
-
-          const pts = [
-            map.unproject(arrowHead1),
-            dirPoint.latLng,
-            map.unproject(arrowHead2),
-          ];
-          return this.options.polygon
-            ? L.polygon(pts, this.options.pathOptions)
-            : L.polyline(pts, this.options.pathOptions);
-        },
-      });
-      (L as any).Symbol.arrowHead = function (options: any) {
-        return new ArrowHead(options);
-      };
     }
   }
 }
@@ -110,7 +61,7 @@ export function WindCycloneTracks({
   center,
   result,
   bufferM = 100000,
-  layers = { tracks: true, windZones: true, eyePoints: true },
+  layers = { heatmap: true, tracks: false, windZones: false, eyePoints: false },
 }: WindCycloneTracksProps) {
   const map = useMap();
   const data = result.windCyclone;
@@ -366,7 +317,8 @@ export function WindCycloneTracks({
     }
   }, [staticWindZones.length]);
 
-  const showTracks = layers.tracks ?? true;
+  const showHeatmap = layers.heatmap ?? true;
+  const showTracks = layers.tracks ?? false;
   const showWindZones = layers.windZones ?? false;
   const showEyePoints = layers.eyePoints ?? false;
 
@@ -577,6 +529,7 @@ export function WindCycloneTracks({
   }, [data?.eye_points, visibleTracks]);
 
   // Extract coordinates and map IMD category/wind intensity to weights (0.1 to 1.0)
+  // Interpolate along track segments to create a smooth, continuous meteorological risk swath (Windy-style)
   const heatPoints = useMemo(() => {
     if (!data?.tracks?.features) return [];
     const points: [number, number, number][] = [];
@@ -586,12 +539,33 @@ export function WindCycloneTracks({
       const weight = getStormWeight(props?.category, props?.max_wind_ms);
       const coords = feature.geometry.coordinates;
       if (Array.isArray(coords)) {
-        for (const coord of coords) {
+        for (let i = 0; i < coords.length; i++) {
+          const coord = coords[i];
           if (Array.isArray(coord) && coord.length >= 2) {
             const [lon, lat] = coord;
             if (typeof lat === "number" && typeof lon === "number") {
               // Leaflet heat requires [lat, lng, intensity]
               points.push([lat, lon, weight]);
+            }
+          }
+          // Segment interpolation to ensure a continuous meteorological risk field (Windy-style)
+          if (i < coords.length - 1) {
+            const nextCoord = coords[i + 1];
+            if (Array.isArray(nextCoord) && nextCoord.length >= 2) {
+              const [nextLon, nextLat] = nextCoord;
+              if (typeof nextLat === "number" && typeof nextLon === "number") {
+                const dist = Math.hypot(nextLon - coord[0], nextLat - coord[1]);
+                // Interpolate points every ~0.15 deg (~15km) to eliminate gaps between sparse track positions
+                if (dist > 0.15) {
+                  const steps = Math.ceil(dist / 0.15);
+                  for (let s = 1; s < steps; s++) {
+                    const t = s / steps;
+                    const interpLat = coord[1] + t * (nextLat - coord[1]);
+                    const interpLon = coord[0] + t * (nextLon - coord[0]);
+                    points.push([interpLat, interpLon, weight]);
+                  }
+                }
+              }
             }
           }
         }
@@ -600,13 +574,13 @@ export function WindCycloneTracks({
     return points;
   }, [data?.tracks?.features]);
 
-  // Client-Side Heatmap Base (Thermal Glow Layer)
+  // Client-Side Continuous Density Heatmap Layer (Windy-Style Risk Field)
   const heatLayerRef = useRef<any>(null);
 
   useEffect(() => {
     let isCancelled = false;
 
-    if (!showTracks || heatPoints.length === 0) {
+    if (!showHeatmap || heatPoints.length === 0) {
       if (heatLayerRef.current) {
         map.removeLayer(heatLayerRef.current);
         heatLayerRef.current = null;
@@ -625,19 +599,19 @@ export function WindCycloneTracks({
         heatLayerRef.current = null;
       }
 
-      // Smooth, glowing meteorological thermal density cloud
+      // Continuous Windy-style meteorological density cloud
       const layer = (L as any).heatLayer(heatPoints, {
-        radius: 35,
-        blur: 25,
-        maxZoom: 17,
+        radius: 30,
+        blur: 30,
+        maxZoom: 13,
         max: 1.0,
-        minOpacity: 0.05,
+        minOpacity: 0.1,
         gradient: {
-          0.2: "#0284C7", // Sky/Blue
-          0.4: "#10B981", // Emerald/Green
-          0.6: "#FBBF24", // Amber/Yellow
-          0.8: "#F97316", // Orange
-          1.0: "#EF4444", // Hot Red
+          0.2: "#0000ff",
+          0.4: "#00ff00",
+          0.6: "#ffff00",
+          0.8: "#ff8800",
+          1.0: "#ff0000",
         },
       });
 
@@ -672,81 +646,7 @@ export function WindCycloneTracks({
         heatLayerRef.current = null;
       }
     };
-  }, [map, showTracks, heatPoints]);
-
-  // Directional Flow Arrows Layer (leaflet-polylinedecorator)
-  const decoratorGroupRef = useRef<any>(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (!showTracks || visibleTracks.length === 0) {
-      if (decoratorGroupRef.current) {
-        map.removeLayer(decoratorGroupRef.current);
-        decoratorGroupRef.current = null;
-      }
-      return;
-    }
-
-    const initDecorators = async () => {
-      await ensureLeafletPlugins();
-      if (isCancelled || !(L as any).polylineDecorator) return;
-
-      if (decoratorGroupRef.current) {
-        map.removeLayer(decoratorGroupRef.current);
-        decoratorGroupRef.current = null;
-      }
-
-      const group = L.layerGroup();
-
-      for (const feature of visibleTracks) {
-        const rawCoords = feature.geometry?.coordinates;
-        if (!rawCoords || rawCoords.length < 2) continue;
-        const positions: [number, number][] = rawCoords.map(([lon, lat]) => [lat, lon]);
-        const strokeColor = feature.properties?.stroke || "#0284C7";
-
-        try {
-          const decorator = (L as any).polylineDecorator(positions, {
-            patterns: [
-              {
-                offset: 30,
-                repeat: 80,
-                symbol: (L as any).Symbol.arrowHead({
-                  pixelSize: 8,
-                  headAngle: 45,
-                  polygon: false,
-                  pathOptions: {
-                    stroke: true,
-                    color: strokeColor,
-                    weight: 1.2,
-                    opacity: 0.5,
-                  },
-                }),
-              },
-            ],
-          });
-          group.addLayer(decorator);
-        } catch {
-          // Graceful handling of any geometry calculation edge cases
-        }
-      }
-
-      if (!isCancelled) {
-        group.addTo(map);
-        decoratorGroupRef.current = group;
-      }
-    };
-
-    initDecorators();
-
-    return () => {
-      isCancelled = true;
-      if (decoratorGroupRef.current) {
-        map.removeLayer(decoratorGroupRef.current);
-        decoratorGroupRef.current = null;
-      }
-    };
-  }, [map, showTracks, visibleTracks]);
+  }, [map, showHeatmap, heatPoints]);
 
   if (!data) return null;
 
@@ -1002,13 +902,13 @@ export function WindCycloneTracks({
                 </Popup>
               </Polyline>
 
-              {/* Visible thin streamline track path (drastically reduced thickness to 1.2 and opacity to 0.4) */}
+              {/* Visible standard solid track path on top */}
               <Polyline
                 positions={positions}
                 pathOptions={{
                   color: strokeColor,
-                  weight: 1.2,
-                  opacity: 0.4,
+                  weight: strokeWidth,
+                  opacity: 0.85,
                   lineCap: "round",
                   lineJoin: "round",
                   interactive: true,

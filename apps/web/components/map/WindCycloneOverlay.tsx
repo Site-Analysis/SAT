@@ -5,18 +5,19 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import type { ModuleResult } from "@/lib/stores/analysis";
-import { Eye, Shield, Wind, ChevronDown, ChevronUp, X, Play, Square } from "lucide-react";
+import { Eye, Shield, Wind, ChevronDown, ChevronUp, X, Play, Square, Flame } from "lucide-react";
 import { useWindCycloneUIStore } from "@/lib/stores/analysis";
 import { checkStormGridAvailability, isStormAnimationUnavailable } from "@/lib/cycloneUtils";
 
 interface WindCycloneOverlayProps {
   result: ModuleResult;
   layers?: {
+    heatmap?: boolean;
     tracks: boolean;
     windZones: boolean;
     eyePoints: boolean;
   };
-  onToggleLayer?: (layerKey: "windZones" | "tracks" | "eyePoints", enabled: boolean) => void;
+  onToggleLayer?: (layerKey: "heatmap" | "windZones" | "tracks" | "eyePoints", enabled: boolean) => void;
   windZoneMode?: "buffer" | "regional" | "all";
   onWindZoneModeChange?: (mode: "buffer" | "regional" | "all") => void;
 }
@@ -48,8 +49,9 @@ export function WindCycloneOverlay({
 }: WindCycloneOverlayProps) {
   const data = result.windCyclone;
   const [internalLayers, setInternalLayers] = useState({
+    heatmap: true,
+    tracks: false,
     windZones: false,
-    tracks: true,
     eyePoints: false,
   });
 
@@ -91,7 +93,7 @@ export function WindCycloneOverlay({
     if (onWindZoneModeChange) onWindZoneModeChange(mode);
   };
 
-  const toggle = (key: "windZones" | "tracks" | "eyePoints") => {
+  const toggle = (key: "heatmap" | "windZones" | "tracks" | "eyePoints") => {
     const next = !layers[key];
     setInternalLayers((prev) => ({ ...prev, [key]: next }));
     if (onToggleLayer) onToggleLayer(key, next);
@@ -495,6 +497,27 @@ export function WindCycloneOverlay({
         </div>
         <button
           type="button"
+          onClick={() => toggle("heatmap")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 10,
+            fontWeight: 600,
+            color: layers.heatmap ? "#0284C7" : "#64748B",
+            background: layers.heatmap ? "#E0F2FE" : "transparent",
+            border: "none",
+            borderRadius: 5,
+            padding: "3px 7px",
+            cursor: "pointer",
+          }}
+        >
+          <Flame size={12} />
+          <span>Cyclone Heatmap ({layers.heatmap ? "ON" : "OFF"})</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => toggle("tracks")}
           style={{
             display: "flex",
@@ -609,8 +632,8 @@ export function WindCycloneOverlay({
       </div>
 
 
-      {/* Bottom-right Stacked Map Legends (Cyclone Tracks & IS 875 Wind Zones) */}
-      {(layers.tracks || layers.windZones) && (
+      {/* Bottom-right Stacked Map Legends (Cyclone Heatmap, Cyclone Tracks & IS 875 Wind Zones) */}
+      {(layers.heatmap || layers.tracks || layers.windZones) && (
         <div
           style={{
             position: "absolute",
@@ -625,6 +648,79 @@ export function WindCycloneOverlay({
             zIndex: 400,
           }}
         >
+          {/* Cyclone Heatmap Density Legend */}
+          {layers.heatmap && (
+            <div
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 10,
+                padding: "9px 12px",
+                boxShadow: "0 3px 14px rgba(0,0,0,0.09)",
+                border: "1px solid #E2E8F0",
+                transition: "all 0.2s ease-in-out",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                  borderBottom: "1px solid #F1F5F9",
+                  paddingBottom: 4,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.3px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Flame size={11} className="text-sky-600" />
+                  Cyclone Heatmap
+                </span>
+                <span
+                  style={{
+                    fontSize: 8.5,
+                    color: "#64748B",
+                    fontWeight: 600,
+                  }}
+                >
+                  Windy Density
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3.5 }}>
+                <div
+                  style={{
+                    height: 8,
+                    borderRadius: 4,
+                    background: "linear-gradient(to right, #0000ff, #00ff00, #ffff00, #ff8800, #ff0000)",
+                    width: "100%",
+                  }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 8.5,
+                    color: "#64748B",
+                    fontWeight: 500,
+                  }}
+                >
+                  <span>Low Risk</span>
+                  <span>Moderate</span>
+                  <span>Extreme</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 1. Cyclone Tracks Legend (Pure White Card) */}
           {layers.tracks && (
             <div
