@@ -465,7 +465,7 @@ export async function getWindCycloneAnalysis(
   const windCycloneData: WindCycloneData = {
     is_within_india: true,
     statutory_v_b_ms: vb,
-    damage_risk_category: raw.damage_risk_category ?? "Standard",
+    damage_risk_category: (raw.damage_risk_category ?? "Standard").replace(/Damage Risk/gi, "Wind Hazard"),
     is_coastal_buffer: Boolean(raw.is_coastal_buffer),
     coastal_penalty_applied: Boolean(raw.coastal_penalty_applied),
     terrain_wind_profile: raw.terrain_wind_profile ?? {},
@@ -484,10 +484,12 @@ export async function getWindCycloneAnalysis(
     eye_points: raw.eye_points ?? { type: "FeatureCollection", features: [] },
   };
 
+  const cleanCategory = (raw.damage_risk_category ?? "Standard").replace(/Damage Risk/gi, "Wind Hazard");
+
   const result: ModuleResult = {
     score,
     severity,
-    summary: `Statutory Vb ${vb.toFixed(1)} m/s (${raw.damage_risk_category}). ${totalStorms} storms in ${bufferRadiusKm} km buffer (${periodYears}-yr rate ${annualRate.toFixed(2)}/yr).`,
+    summary: `Statutory Vb ${vb.toFixed(1)} m/s (${cleanCategory}). ${totalStorms} storms in ${bufferRadiusKm} km buffer (${periodYears}-yr rate ${annualRate.toFixed(2)}/yr).`,
     data_source: "BIS IS 875 (Part 3): 2015 · NOAA NCEI IBTrACS v4 · Global Wind Atlas 250m",
     windCyclone: windCycloneData,
     indicators: [
@@ -521,7 +523,7 @@ export async function getWindCycloneAnalysis(
       },
     ],
     qualitative: [
-      { label: "Damage risk tier", value: raw.damage_risk_category ?? "—", tone: riskTone(raw.damage_risk_category) },
+      { label: "Wind hazard tier", value: cleanCategory, tone: riskTone(raw.damage_risk_category) },
       { label: "Coastal 10 km penalty", value: raw.coastal_penalty_applied ? "Active (Vb ≥ 39 m/s)" : (raw.is_coastal_buffer ? "Coastal zone active" : "Inland"), tone: raw.coastal_penalty_applied ? "warn" : "neutral" },
       { label: `${periodYears}-Year storm count`, value: `${totalStorms} storms in ${bufferRadiusKm} km`, tone: totalStorms > 50 ? "bad" : (totalStorms > 10 ? "warn" : "good") },
       { label: "Closest storm track", value: closestDist > 0 ? `${closestDist.toFixed(1)} km from site` : "—", tone: closestDist > 0 && closestDist < 20 ? "bad" : "neutral" },
@@ -532,7 +534,7 @@ export async function getWindCycloneAnalysis(
         rows: [
           { label: "Vb (Basic Design Wind Speed)", value: vb.toFixed(1), unit: "m/s" },
           { label: "Equivalent design speed", value: (vb * 3.6).toFixed(0), unit: "km/h" },
-          { label: "Damage risk classification", value: raw.damage_risk_category ?? "—" },
+          { label: "Wind hazard classification", value: cleanCategory },
           { label: "Coastal 10 km buffer penalty", value: raw.coastal_penalty_applied ? "Applied (Raised to 39 m/s)" : "Not required" },
         ],
       },

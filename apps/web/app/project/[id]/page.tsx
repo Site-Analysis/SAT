@@ -513,6 +513,7 @@ export default function ProjectPage() {
                       projectName={project.name}
                       coordinates={project.coordinates ?? ""}
                       area={project.area_sqm ? `${(project.area_sqm / 10000).toFixed(2)} ha` : "—"}
+                      areaHa={project.area_sqm ? project.area_sqm / 10000 : undefined}
                       date={new Date(project.created_at).toLocaleDateString("en-IN", {
                         day: "numeric", month: "short", year: "numeric",
                       })}
@@ -822,6 +823,7 @@ export default function ProjectPage() {
                         projectName={project.name}
                         coordinates={project.coordinates ?? ""}
                         area={project.area_sqm ? `${(project.area_sqm / 10000).toFixed(2)} ha` : "—"}
+                        areaHa={project.area_sqm ? project.area_sqm / 10000 : undefined}
                         date={new Date(project.created_at).toLocaleDateString("en-IN", {
                           day: "numeric", month: "short", year: "numeric",
                         })}

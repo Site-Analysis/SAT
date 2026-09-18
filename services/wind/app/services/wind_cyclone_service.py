@@ -83,7 +83,7 @@ def is_within_india_bounds(lat: float, lon: float) -> bool:
 
 
 IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
-    # Zone 1 (33 m/s) - Inland Southern Deccan Plateau (Bengaluru / Mysore / Tumkur / Kolar / Mandya)
+    # Zone 1 (33 m/s) - Inland Deccan & Southern Peninsula (Bengaluru / Mysore / Coimbatore / Hyderabad South)
     {
         "type": "Feature",
         "geometry": {
@@ -94,7 +94,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 1",
             "zone_speed": 33,
             "v_b_ms": 33.0,
-            "name": "Zone 1 (33 m/s) - Low Damage Risk",
+            "name": "Zone 1 (33 m/s) - Low Wind Hazard",
             "color": "#60A5FA",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -111,7 +111,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 6",
             "zone_speed": 55,
             "v_b_ms": 55.0,
-            "name": "Zone 6 (55 m/s) - Extreme Damage Risk",
+            "name": "Zone 6 (55 m/s) - Extreme Wind Hazard",
             "color": "#7E22CE",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -128,7 +128,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 5",
             "zone_speed": 50,
             "v_b_ms": 50.0,
-            "name": "Zone 5 (50 m/s) - Very High Damage Risk (East Coast)",
+            "name": "Zone 5 (50 m/s) - Very High Wind Hazard (East Coast)",
             "color": "#EF4444",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -145,7 +145,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 5",
             "zone_speed": 50,
             "v_b_ms": 50.0,
-            "name": "Zone 5 (50 m/s) - Very High Damage Risk (Gujarat Coast)",
+            "name": "Zone 5 (50 m/s) - Very High Wind Hazard (Gujarat Coast)",
             "color": "#EF4444",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -162,7 +162,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 3",
             "zone_speed": 44,
             "v_b_ms": 44.0,
-            "name": "Zone 3 (44 m/s) - High Damage Risk",
+            "name": "Zone 3 (44 m/s) - High Wind Hazard",
             "color": "#FBBF24",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -179,7 +179,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 4",
             "zone_speed": 47,
             "v_b_ms": 47.0,
-            "name": "Zone 4 (47 m/s) - High Damage Risk",
+            "name": "Zone 4 (47 m/s) - High Wind Hazard",
             "color": "#F97316",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -196,7 +196,7 @@ IS_875_WIND_ZONE_FEATURES: list[dict[str, Any]] = [
             "zone_id": "Zone 2",
             "zone_speed": 39,
             "v_b_ms": 39.0,
-            "name": "Zone 2 (39 m/s) - Moderate Damage Risk",
+            "name": "Zone 2 (39 m/s) - Moderate Wind Hazard",
             "color": "#34D399",
             "stroke": "#64748B",
             "fill_opacity": 0.18,
@@ -301,13 +301,13 @@ class WindCycloneService:
 
         # Risk Classification
         if statutory_vb >= 50.0:
-            risk_cat = f"Very High Damage Risk ({statutory_vb:.0f} m/s)"
+            risk_cat = f"Very High Wind Hazard ({statutory_vb:.0f} m/s)"
         elif statutory_vb >= 44.0:
-            risk_cat = f"High Damage Risk ({statutory_vb:.0f} m/s)"
+            risk_cat = f"High Wind Hazard ({statutory_vb:.0f} m/s)"
         elif statutory_vb >= 39.0:
-            risk_cat = f"Moderate Damage Risk ({statutory_vb:.0f} m/s)"
+            risk_cat = f"Moderate Wind Hazard ({statutory_vb:.0f} m/s)"
         else:
-            risk_cat = f"Low Damage Risk ({statutory_vb:.0f} m/s)"
+            risk_cat = f"Low Wind Hazard ({statutory_vb:.0f} m/s)"
 
         # 2. Multi-Height Terrain Wind Speed Profile (Global Wind Atlas 250m approximation)
         profile_10m = round(statutory_vb * 0.70, 1)

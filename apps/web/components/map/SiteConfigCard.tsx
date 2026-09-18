@@ -98,15 +98,22 @@ export function SiteConfigCard({ siteName, onSiteNameChange, lat, lng }: Props) 
       </div>
 
       {/* ── Lat / Long ────────────────────────────── */}
-      <div style={{ padding: "8px 14px", borderBottom: "1px solid rgba(207,214,196,0.35)", display: "flex", gap: 12 }}>
-        <div>
-          <div style={label}>Lat</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#3A3F3B", marginTop: 2 }}>{lat.toFixed(5)}</div>
+      <div style={{ padding: "8px 14px", borderBottom: "1px solid rgba(207,214,196,0.35)", display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div>
+            <div style={label}>Lat</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#3A3F3B", marginTop: 2 }}>{lat.toFixed(5)}</div>
+          </div>
+          <div>
+            <div style={label}>Long</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#3A3F3B", marginTop: 2 }}>{lng.toFixed(5)}</div>
+          </div>
         </div>
-        <div>
-          <div style={label}>Long</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#3A3F3B", marginTop: 2 }}>{lng.toFixed(5)}</div>
-        </div>
+        {hasMeasure && siteMeasurements.area / 10000 > 100 && (
+          <div style={{ fontSize: 10, color: "#7B8F83", fontStyle: "italic", marginTop: 2, lineHeight: 1.25 }}>
+            Note: Analysis for large sites is calculated based on the site centroid.
+          </div>
+        )}
       </div>
 
       {/* ── Measurements ──────────────────────────── */}

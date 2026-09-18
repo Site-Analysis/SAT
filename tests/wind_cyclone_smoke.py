@@ -70,7 +70,7 @@ def test_analyze_chennai_coastal(monkeypatch):
     body = resp.json()
     assert body["is_within_india"] is True
     assert body["statutory_v_b_ms"] == 50.0
-    assert "Very High Damage Risk" in body["damage_risk_category"]
+    assert "Very High Wind Hazard" in body["damage_risk_category"]
     assert body["is_coastal_buffer"] is True
     assert "terrain_wind_profile" in body
     assert "10m" in body["terrain_wind_profile"]

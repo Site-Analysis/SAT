@@ -486,7 +486,7 @@ export function WindCycloneTracks({
         positions: [circlePositions],
         color: strokeColor,
         fillColor,
-        name: data.damage_risk_category || "Statutory Site Zone",
+        name: (data.damage_risk_category || "Statutory Site Zone").replace(/Damage Risk/gi, "Wind Hazard"),
         speed,
         zoneId: "statutory-fallback",
       });

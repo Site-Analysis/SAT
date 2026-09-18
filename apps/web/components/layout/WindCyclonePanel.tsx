@@ -331,7 +331,7 @@ export function WindCyclonePanel({
             <HelpTooltip text={TOOLTIPS.vb} />
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
-            {data.damage_risk_category}
+            {data.damage_risk_category?.replace(/Damage Risk/gi, "Wind Hazard")}
           </span>
         </div>
 

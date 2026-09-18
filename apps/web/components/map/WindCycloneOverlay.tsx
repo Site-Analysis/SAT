@@ -32,12 +32,12 @@ const IMD_LEGEND = [
 ];
 
 const IS875_LEGEND = [
-  { color: "#7E22CE", label: "Zone VI: 55 m/s (Very High Damage Risk)" },
-  { color: "#EF4444", label: "Zone V: 50 m/s (Very High Damage Risk)" },
-  { color: "#F97316", label: "Zone IV: 47 m/s (High Damage Risk)" },
-  { color: "#FBBF24", label: "Zone III: 44 m/s (Moderate Damage Risk)" },
-  { color: "#34D399", label: "Zone II: 39 m/s (Moderate Damage Risk)" },
-  { color: "#60A5FA", label: "Zone I: 33 m/s (Low Damage Risk)" },
+  { color: "#7E22CE", label: "Zone VI: 55 m/s (Very High Wind Hazard)" },
+  { color: "#EF4444", label: "Zone V: 50 m/s (Very High Wind Hazard)" },
+  { color: "#F97316", label: "Zone IV: 47 m/s (High Wind Hazard)" },
+  { color: "#FBBF24", label: "Zone III: 44 m/s (Moderate Wind Hazard)" },
+  { color: "#34D399", label: "Zone II: 39 m/s (Moderate Wind Hazard)" },
+  { color: "#60A5FA", label: "Zone I: 33 m/s (Low Wind Hazard)" },
 ];
 
 export function WindCycloneOverlay({
@@ -168,7 +168,7 @@ export function WindCycloneOverlay({
             {vb.toFixed(1)} m/s
           </div>
           <div style={{ fontSize: 9.5, color: "#64748B", marginTop: 3, fontWeight: 500 }}>
-            {data.damage_risk_category}
+            {data.damage_risk_category?.replace(/Damage Risk/gi, "Wind Hazard")}
           </div>
           <div style={{ fontSize: 9, color: "#0284C7", marginTop: 4, fontWeight: 600 }}>
             {metrics.total_historical_events} storms in buffer · {metrics.annual_rate_50yr.toFixed(2)}/yr
