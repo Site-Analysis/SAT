@@ -34,6 +34,56 @@ async function ensureLeafletPlugins() {
     if (!(L as any).heatLayer) {
       await import("leaflet.heat");
     }
+    if (!(L as any).polylineDecorator) {
+      await import("leaflet-polylinedecorator");
+    }
+    if (!(L as any).Symbol) {
+      (L as any).Symbol = {};
+    }
+    if (!(L as any).Symbol.arrowHead) {
+      const ArrowHead = (L.Class as any).extend({
+        options: {
+          polygon: true,
+          pixelSize: 8,
+          headAngle: 45,
+          pathOptions: { stroke: true, weight: 1.2 },
+        },
+        initialize: function (options: any) {
+          L.Util.setOptions(this, options);
+          if (!this.options.pathOptions) this.options.pathOptions = {};
+          this.options.pathOptions.clickable = false;
+        },
+        buildSymbol: function (dirPoint: any, _latLngs: any, map: any) {
+          const d2r = Math.PI / 180;
+          const tipPoint = map.project(dirPoint.latLng);
+          const direction = (-(dirPoint.heading - 90)) * d2r;
+          const radianArrowAngle = (this.options.headAngle / 2) * d2r;
+
+          const headAngle1 = direction + radianArrowAngle;
+          const headAngle2 = direction - radianArrowAngle;
+          const arrowHead1 = L.point(
+            tipPoint.x - this.options.pixelSize * Math.cos(headAngle1),
+            tipPoint.y + this.options.pixelSize * Math.sin(headAngle1)
+          );
+          const arrowHead2 = L.point(
+            tipPoint.x - this.options.pixelSize * Math.cos(headAngle2),
+            tipPoint.y + this.options.pixelSize * Math.sin(headAngle2)
+          );
+
+          const pts = [
+            map.unproject(arrowHead1),
+            dirPoint.latLng,
+            map.unproject(arrowHead2),
+          ];
+          return this.options.polygon
+            ? L.polygon(pts, this.options.pathOptions)
+            : L.polyline(pts, this.options.pathOptions);
+        },
+      });
+      (L as any).Symbol.arrowHead = function (options: any) {
+        return new ArrowHead(options);
+      };
+    }
   }
 }
 
@@ -647,6 +697,81 @@ export function WindCycloneTracks({
       }
     };
   }, [map, showHeatmap, heatPoints]);
+
+  // Directional Flow Arrows Layer (leaflet-polylinedecorator)
+  const decoratorGroupRef = useRef<any>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!showTracks || visibleTracks.length === 0) {
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+      return;
+    }
+
+    const initDecorators = async () => {
+      await ensureLeafletPlugins();
+      if (isCancelled || !(L as any).polylineDecorator) return;
+
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+
+      const group = L.layerGroup();
+
+      for (const feature of visibleTracks) {
+        const rawCoords = feature.geometry?.coordinates;
+        if (!rawCoords || rawCoords.length < 2) continue;
+        const positions: [number, number][] = rawCoords.map(([lon, lat]) => [lat, lon]);
+        const strokeColor = feature.properties?.stroke || "#0284C7";
+
+        try {
+          const decorator = (L as any).polylineDecorator(positions, {
+            patterns: [
+              {
+                offset: 30,
+                repeat: 80,
+                symbol: (L as any).Symbol.arrowHead({
+                  pixelSize: 8,
+                  headAngle: 45,
+                  polygon: true,
+                  pathOptions: {
+                    stroke: true,
+                    color: strokeColor,
+                    fillColor: strokeColor,
+                    fillOpacity: 0.9,
+                    weight: 1.2,
+                  },
+                }),
+              },
+            ],
+          });
+          group.addLayer(decorator);
+        } catch {
+          // Graceful handling of any geometry calculation edge cases
+        }
+      }
+
+      if (!isCancelled) {
+        group.addTo(map);
+        decoratorGroupRef.current = group;
+      }
+    };
+
+    initDecorators();
+
+    return () => {
+      isCancelled = true;
+      if (decoratorGroupRef.current) {
+        map.removeLayer(decoratorGroupRef.current);
+        decoratorGroupRef.current = null;
+      }
+    };
+  }, [map, showTracks, visibleTracks]);
 
   if (!data) return null;
 
