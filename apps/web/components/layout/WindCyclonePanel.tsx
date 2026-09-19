@@ -16,6 +16,7 @@ import {
   Layers,
   Activity,
   BarChart2,
+  Sparkles,
 } from "lucide-react";
 import type {
   ModuleResult,
@@ -40,11 +41,12 @@ interface WindCyclonePanelProps {
 
 const TOOLTIPS = {
   vb: "The 3-second peak gust wind speed at 10m height above ground in open terrain with a 50-year return period, as mandated by IS 875 (Part 3): 2015 for structural design calculations.",
-  annualRate: "The average number of tropical cyclones passing within your selected buffer per year over the analyzed period. Used to evaluate empirical recurrence intervals.",
+  annualRate: "The estimated probability of a storm occurring within a 50-year building design lifespan, based on historical frequency.",
   maxGust: "The highest sustained 1-minute or 3-second wind speed recorded by meteorological reconnaissance (IBTrACS) inside this site's buffer zone.",
   closestDist: "Minimum distance a historical cyclone eye passed relative to the project site centroid.",
   coastalPenalty: "IS 875 Part 3 mandates that any site within 10 km of the coastline must not use a design wind speed less than the coastal threshold (Vb ≥ 39 m/s).",
   verticalProfile: "Shows how mean wind velocity accelerates with building height due to atmospheric boundary layer mechanics, assisting facade and high-rise structural engineers.",
+  fiftyYearValue: "The estimated probability of a storm occurring within a 50-year building design lifespan, based on historical frequency.",
 };
 
 const IMD_COLOR_MAP: Record<string, { color: string; abbrev: string }> = {
@@ -358,11 +360,67 @@ export function WindCyclonePanel({
         )}
       </div>
 
+      {/* AI Generated Insight: Meaning & Reasoning */}
+      <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+            <Sparkles size={13} className="text-purple-600 shrink-0" />
+            Meaning &amp; Reasoning
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+            ✨ AI Generated Insight
+          </span>
+        </div>
+        <p className="text-[11.5px] leading-relaxed text-purple-950/80">
+          Prominent winds arrive from the South-East due to historical monsoon depression tracks. For this site, a High Wind Hazard means the structure is likely to experience sustained wind pressures exceeding basic design limits at least once per decade.
+        </p>
+      </div>
+
+      {/* AI Generated Insight: Design Response */}
+      <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+            <Sparkles size={13} className="text-purple-600 shrink-0" />
+            Design Response
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+            ✨ AI Generated Insight
+          </span>
+        </div>
+        <ul className="space-y-1.5 text-[11px] leading-relaxed text-purple-950/85">
+          <li className="flex items-start gap-1.5">
+            <span className="text-purple-600 font-bold mt-0.5">•</span>
+            <span>
+              <strong className="font-semibold text-purple-900">Orientation:</strong> Align building narrow profiles parallel to prevailing South-East cyclone approach tracks to minimize windward surface drag and lateral shear loads.
+            </span>
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="text-purple-600 font-bold mt-0.5">•</span>
+            <span>
+              <strong className="font-semibold text-purple-900">Roof:</strong> Prioritize multi-hipped or low-pitch aerodynamic roof geometries (30°–40°) with reinforced tie-down anchorages and overhang limits under 450 mm to counter intense uplift forces.
+            </span>
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="text-purple-600 font-bold mt-0.5">•</span>
+            <span>
+              <strong className="font-semibold text-purple-900">Façade/Glazing:</strong> Install impact-resistant laminated glazing assemblies engineered for cyclic wind pressures; implement integrated structural storm shutter systems on windward envelopes.
+            </span>
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="text-purple-600 font-bold mt-0.5">•</span>
+            <span>
+              <strong className="font-semibold text-purple-900">Landscape:</strong> Form deep-rooting, salt-tolerant windbreak tree buffers along the South-East boundary to dissipate surface boundary-layer wind velocity and shelter primary entries.
+            </span>
+          </li>
+        </ul>
+      </div>
+
       {/* 4 Summary KPI Metric Cards */}
       <div className="grid grid-cols-2 gap-2">
         <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 space-y-1">
           <div className="flex items-center justify-between text-[10px] font-medium text-neutral-500">
             <span>Total Storms ({selectedBuffer}km, {metrics.period_years ?? 50} Years)</span>
+            <HelpTooltip text={TOOLTIPS.fiftyYearValue} />
           </div>
           <div className="text-lg font-bold text-neutral-900">
             {metrics.total_historical_events}{" "}
@@ -373,7 +431,7 @@ export function WindCyclonePanel({
         <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200 space-y-1">
           <div className="flex items-center justify-between text-[10px] font-medium text-neutral-500">
             <span>Annual Rate ({metrics.period_years ?? 50} Yrs)</span>
-            <HelpTooltip text={TOOLTIPS.annualRate} />
+            <HelpTooltip text={TOOLTIPS.fiftyYearValue} />
           </div>
           <div className="text-lg font-bold text-neutral-900">
             {metrics.annual_rate_50yr.toFixed(2)}{" "}
