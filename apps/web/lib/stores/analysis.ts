@@ -183,6 +183,7 @@ export interface WindCycloneTrackFeature {
     category: string;
     stroke: string;
     stroke_width: number;
+    node_winds_ms?: number[];
   };
 }
 
@@ -236,6 +237,7 @@ export interface WindCycloneEyePointFeature {
     stroke: string;
     color: string;
     point_index: number;
+    node_winds_ms?: number[];
   };
 }
 

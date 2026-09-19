@@ -382,12 +382,17 @@ class WindCycloneService:
                         "category": cat_name,
                         "stroke": color,
                         "stroke_width": stroke_w,
+                        "node_winds_ms": s.get("node_winds_ms", []),
                     },
                 }
             )
 
-            # Generate intermediate 6-hour storm eye point features
+            # Generate intermediate 6-hour storm eye point features with node-level wind intensity
+            node_winds = s.get("node_winds_ms", [])
             for p_idx, (lon_pt, lat_pt) in enumerate(s["coords"]):
+                has_node_wind = bool(node_winds and p_idx < len(node_winds) and node_winds[p_idx] > 0)
+                pt_wind = node_winds[p_idx] if has_node_wind else s["max_wind_ms"]
+                cat_name_pt, color_pt, _ = categorize_imd(pt_wind)
                 eye_features.append(
                     {
                         "type": "Feature",
@@ -399,11 +404,12 @@ class WindCycloneService:
                             "sid": s["sid"],
                             "name": s["name"],
                             "season": s["season"],
-                            "wind_ms": s["max_wind_ms"],
-                            "category": cat_name,
-                            "stroke": color,
-                            "color": color,
+                            "wind_ms": pt_wind,
+                            "category": cat_name_pt,
+                            "stroke": color_pt,
+                            "color": color_pt,
                             "point_index": p_idx,
+                            "node_winds_ms": node_winds if node_winds else None,
                         },
                     }
                 )

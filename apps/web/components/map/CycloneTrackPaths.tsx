@@ -127,6 +127,83 @@ function getEyeRadius(category?: string, windSpeedMs?: number): number {
   return 3.0;
 }
 
+function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's mean radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+interface DynamicEyeRadiusParams {
+  category?: string;
+  pointWindMs?: number;
+  maxWindMs?: number;
+  nodeWindsArray?: number[];
+  pointIndex?: number;
+  lat: number;
+  lon: number;
+  centerLat: number;
+  centerLon: number;
+}
+
+function calculateDynamicEyeRadius({
+  category,
+  pointWindMs,
+  maxWindMs,
+  nodeWindsArray,
+  pointIndex,
+  lat,
+  lon,
+  centerLat,
+  centerLon,
+}: DynamicEyeRadiusParams): number {
+  // 1. Check for Node Data:
+  // Check if GeoJSON properties contains an array of wind speeds corresponding to each coordinate index
+  if (Array.isArray(nodeWindsArray) && pointIndex != null && nodeWindsArray[pointIndex] != null) {
+    const nodeWind = Number(nodeWindsArray[pointIndex]);
+    if (!isNaN(nodeWind) && nodeWind > 0) {
+      // Map radius directly to that specific node's wind speed (e.g., coastal nodes get 8px, inland nodes get 2px)
+      return Math.max(2.0, getEyeRadius(undefined, nodeWind));
+    }
+  }
+
+  // Check if pointWindMs represents a specific node-level wind distinct from the storm's overall max_wind_ms
+  if (
+    pointWindMs != null &&
+    !isNaN(pointWindMs) &&
+    pointWindMs > 0 &&
+    maxWindMs != null &&
+    !isNaN(maxWindMs) &&
+    pointWindMs !== maxWindMs
+  ) {
+    return Math.max(2.0, getEyeRadius(category, pointWindMs));
+  }
+
+  // 2. Fallback (Proximity Decay):
+  // If node-level wind speeds are not available, calculate distance to project site centroid
+  const distKm = calculateHaversineDistanceKm(lat, lon, centerLat, centerLon);
+
+  // Baseline category size
+  const effectiveWind =
+    pointWindMs != null && !isNaN(pointWindMs) && pointWindMs > 0 ? pointWindMs : maxWindMs;
+  const baseRadius = getEyeRadius(category, effectiveWind);
+
+  // Scale down as distance increases:
+  // Points closest to the site (0km) render at 100% of category size; points 200km away shrink to 20% size
+  const decayFactor = Math.max(0.20, 1.0 - (Math.min(distKm, 200) / 200) * 0.80);
+  const decayedRadius = baseRadius * decayFactor;
+
+  // Ensure minimum radius never drops below 2.0px so track remains visible
+  return Math.max(2.0, Number(decayedRadius.toFixed(1)));
+}
+
 export function WindCycloneTracks({
   center,
   result,
@@ -578,12 +655,20 @@ export function WindCycloneTracks({
   }, [allTracks, renderedTrackCount]);
 
   // Derive Storm Eye Points from LineString coordinates (scoped to visible tracks)
+  // Ensure this logic only runs when the Storm Eye Points layer is toggled ON to preserve map performance
   const eyePointFeatures = useMemo(() => {
+    if (!showEyePoints) return [];
+
     if ((data?.eye_points?.features?.length ?? 0) > 0) {
       return data!.eye_points!.features;
     }
     return visibleTracks.flatMap((trackFeature) => {
       if (trackFeature.geometry.type !== "LineString") return [];
+      const nodeWinds =
+        (trackFeature.properties as any).node_winds_ms ||
+        (trackFeature.properties as any).wind_speeds_ms ||
+        (trackFeature.properties as any).wind_speeds;
+
       return trackFeature.geometry.coordinates.map((coord, idx) => ({
         type: "Feature" as const,
         geometry: {
@@ -592,12 +677,16 @@ export function WindCycloneTracks({
         },
         properties: {
           ...trackFeature.properties,
-          wind_ms: trackFeature.properties.max_wind_ms,
+          wind_ms:
+            Array.isArray(nodeWinds) && nodeWinds[idx] != null
+              ? nodeWinds[idx]
+              : trackFeature.properties.max_wind_ms,
+          node_winds_ms: nodeWinds,
           point_index: idx,
         },
       }));
     });
-  }, [data?.eye_points, visibleTracks]);
+  }, [showEyePoints, data?.eye_points, visibleTracks]);
 
   // Extract coordinates and map IMD category/wind intensity to weights (0.1 to 1.0)
   // Interpolate along track segments to create a smooth, continuous meteorological risk swath (Windy-style)
@@ -1084,9 +1173,32 @@ export function WindCycloneTracks({
         eyePointFeatures.map((pt, idx) => {
           const [lon, lat] = pt.geometry.coordinates;
           const props = pt.properties;
-          const rawWind = "wind_ms" in props ? props.wind_ms : ("max_wind_ms" in props ? (props as any).max_wind_ms : undefined);
-          const windSpeed = rawWind != null ? Number(rawWind) : undefined;
-          const eyeRadius = getEyeRadius(props.category, windSpeed);
+          const rawWind = "wind_ms" in props ? props.wind_ms : undefined;
+          const rawMaxWind = "max_wind_ms" in props ? (props as any).max_wind_ms : undefined;
+          const pointWindMs = rawWind != null ? Number(rawWind) : undefined;
+          const maxWindMs = rawMaxWind != null ? Number(rawMaxWind) : undefined;
+          const nodeWindsArray =
+            (props as any).node_winds_ms ||
+            (props as any).wind_speeds_ms ||
+            (props as any).wind_speeds;
+
+          const eyeRadius = calculateDynamicEyeRadius({
+            category: props.category,
+            pointWindMs,
+            maxWindMs,
+            nodeWindsArray,
+            pointIndex: props.point_index,
+            lat,
+            lon,
+            centerLat: center[0],
+            centerLon: center[1],
+          });
+
+          const distKm = calculateHaversineDistanceKm(lat, lon, center[0], center[1]);
+          const effectiveDisplayWind =
+            Array.isArray(nodeWindsArray) && props.point_index != null && nodeWindsArray[props.point_index] != null
+              ? Number(nodeWindsArray[props.point_index])
+              : pointWindMs;
 
           return (
             <CircleMarker
@@ -1106,13 +1218,15 @@ export function WindCycloneTracks({
               <Popup>
                 <div className="p-1 font-sans space-y-1 text-xs min-w-[190px]">
                   <div className="font-bold text-neutral-900">{props.name} ({props.season})</div>
-                  <div className="text-[10px] text-neutral-500">Eye Observation Point #{props.point_index + 1}</div>
+                  <div className="text-[10px] text-neutral-500">
+                    Observation #{props.point_index + 1} · {Math.round(distKm)} km to site
+                  </div>
                   {props.category && (
                     <div className="text-sky-700 font-semibold">{props.category.split(" (")[0]}</div>
                   )}
-                  {props.wind_ms && Number(props.wind_ms) > 0 ? (
+                  {effectiveDisplayWind && Number(effectiveDisplayWind) > 0 ? (
                     <div className="text-rose-600 font-medium">
-                      Wind: {props.wind_ms} m/s ({Math.round(Number(props.wind_ms) * 3.6)} km/h)
+                      Wind: {effectiveDisplayWind} m/s ({Math.round(Number(effectiveDisplayWind) * 3.6)} km/h)
                     </div>
                   ) : (
                     <div className="text-neutral-400 font-medium">

@@ -338,22 +338,34 @@ class CycloneSpatialIndex:
                 ]
             min_pressure_hpa = round(min(valid_mslp), 1) if valid_mslp else 1000.0
 
-            # Extract track coordinates in [lon, lat] format
+            # Extract track coordinates in [lon, lat] format and observation-level wind speeds
             lats = getattr(storm, "lat", [])
             lons = getattr(storm, "lon", [])
+            vmax_arr = getattr(storm, "vmax", None)
+            if vmax_arr is None:
+                vmax_arr = getattr(storm, "wmo_vmax", None)
+
             coords: list[list[float]] = []
-            for lo, la in zip(lons, lats):
+            node_winds_ms: list[float] = []
+            for idx, (lo, la) in enumerate(zip(lons, lats)):
                 if np.isnan(lo) or np.isnan(la):
                     continue
                 lo_val = round(float(lo), 3)
                 la_val = round(float(la), 3)
+                v_kt = 0.0
+                if vmax_arr is not None and idx < len(vmax_arr) and not np.isnan(vmax_arr[idx]) and float(vmax_arr[idx]) > 0:
+                    v_kt = float(vmax_arr[idx])
+                v_ms = round(v_kt * 0.514444, 1) if v_kt > 0 else max_wind_ms
+
                 if not coords or coords[-1] != [lo_val, la_val]:
                     coords.append([lo_val, la_val])
+                    node_winds_ms.append(v_ms)
 
             if len(coords) < 2:
                 # If only 1 observation point exists, create minimal segment
                 if coords:
                     coords.append([round(coords[0][0] + 0.01, 3), coords[0][1]])
+                    node_winds_ms.append(node_winds_ms[0] if node_winds_ms else max_wind_ms)
                 else:
                     continue
 
@@ -366,6 +378,7 @@ class CycloneSpatialIndex:
                     "min_pressure_hpa": min_pressure_hpa,
                     "closest_distance_km": round(float(dist_km), 1),
                     "coords": coords,
+                    "node_winds_ms": node_winds_ms,
                 }
             )
 
