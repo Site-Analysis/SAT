@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Contour Analysis Service
-  version: "1.1.0"
+  version: "1.2.0"
   description: >
     Contour analysis for polygon site boundaries using Copernicus DEM GLO-30
     2024_1 from Google Earth Engine. Produces contour lines, slope classes,
@@ -105,6 +105,15 @@ components:
           maximum: 60
           default: 20
           description: Contour interval in metres.
+        buffer_m:
+          type: number
+          minimum: 0
+          maximum: 500
+          default: 0
+          description: >
+            Offset distance in metres around the site polygon used for DEM and
+            contour context. Slope and buildability statistics remain computed
+            on the original polygon.
 
     TransectRequest:
       type: object
@@ -121,6 +130,14 @@ components:
             coordinates:
               - [77.581, 12.971]
               - [77.589, 12.979]
+        buffer_m:
+          type: number
+          minimum: 0
+          maximum: 500
+          default: 0
+          description: >
+            Same offset used for the parent contour analysis so a transect that
+            extends into the context ring can still sample DEM.
 
     DEMMetadata:
       type: object
@@ -144,6 +161,12 @@ components:
           type: string
           nullable: true
           example: Minimum reliable contour interval for Copernicus GLO-30 is 10m.
+        buffer_m:
+          type: number
+          minimum: 0
+          maximum: 500
+          default: 0
+          description: Offset in metres applied around the site polygon for DEM/contour context.
 
     SlopeStats:
       type: object

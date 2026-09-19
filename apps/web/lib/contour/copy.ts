@@ -30,32 +30,46 @@ export const copy = {
     minWarning: "Minimum reliable contour interval for Copernicus GLO-30 is 10m.",
   },
 
+  offset: {
+    label: "Analysis offset",
+    hint: "Extra distance around the polygon so surrounding contours show slope direction into the site.",
+    none: "Site only",
+  },
+
   run: {
     first: "Run analysis",
     again: (interval: number) => `Re-run at ${interval} m`,
     stale: (resultInterval: number, interval: number) =>
       `Showing ${resultInterval} m results — re-run to apply ${interval} m.`,
+    staleOffset: (resultOffset: number, offset: number) =>
+      `Showing ${resultOffset} m offset — re-run to apply ${offset} m.`,
     cancel: "Cancel",
     cancelled: "Analysis cancelled. Previous results are unchanged.",
   },
+
+  emptyContours:
+    "No contour lines pass through the selected area at this interval. Try a smaller contour interval or add an analysis offset around the polygon.",
 
   dem: {
     source: "DEM Source",
     resolution: "Resolution",
     rmse: "Vertical RMSE",
     interval: "Contour Interval",
+    offset: "Analysis offset",
     warning: "Warning",
+    rmseExplain:
+      "Vertical RMSE should be no more than one-third of the contour interval. With 4 m RMSE, the smallest reliable contour interval is about 12 m.",
   },
 
   slopeHelp: {
     mean: "Average terrain slope across the analyzed polygon. Useful for understanding the general grading burden of the site.",
     max: "Steepest sampled slope within the analyzed polygon. Useful for identifying localized terrain constraints.",
-    flat: "Share of the site with slope between 0-5%. Usually the most straightforward area for development.",
-    gentle: "Share of the site with slope between 5-10%. Often buildable, but may require grading or drainage attention.",
-    moderate: "Share of the site with slope between 10-15%. May affect road layout, foundation strategy, and stormwater movement.",
-    steep: "Share of the site with slope between 15-25%. Likely to need careful grading, retaining, or design constraints.",
-    verySteep: "Share of the site with slope between 25-33%. Typically highly constrained.",
-    hazard: "Share of the site with slope greater than 33%. Should be treated as hazard-prone or generally unsuitable without specialist review.",
+    flat: "Share of the site with slope between 0-5%. Low-gradient terrain.",
+    gentle: "Share of the site with slope between 5-10%. Mild slope; may need grading or drainage attention.",
+    moderate: "Share of the site with slope between 10-15%. Noticeable grade; may influence grading and drainage.",
+    steep: "Share of the site with slope between 15-25%. Construction-sensitive slope.",
+    verySteep: "Share of the site with slope between 25-33%. Unstable, high-constraint terrain.",
+    hazard: "Share of the site with slope greater than 33%. Hazard-prone steep terrain; specialist review recommended.",
   },
 
   slopeLabels: {
@@ -92,6 +106,8 @@ export const copy = {
   layers: {
     hillshade: "Hillshade",
     contours: "Contours",
+    contourLabels: "Elevation labels",
+    elevationHint: "Elevation in metres, from mean sea level (EGM2008).",
     slope: "Slope classes",
     buildability: "Buildability zones",
   },
@@ -108,16 +124,16 @@ export const copy = {
     empty: "No transect drawn yet.",
     running: "Sampling elevations along the transect…",
     interpolated: "Marker position is interpolated along the drawn line; start and end are exact.",
-    startLabel: "Start",
-    endLabel: "End",
+    startLabel: "A",
+    endLabel: "B",
     graphAria:
-      "Elevation profile along the drawn transect. Use left and right arrow keys to move along the profile.",
+      "Elevation profile along the drawn transect from A to B. Use left and right arrow keys to move along the profile.",
     length: "Total length",
     minElev: "Minimum elevation",
     maxElev: "Maximum elevation",
     relief: "Relief",
     samples: "Sampled points",
-    distance: "Distance from start",
+    distance: "Distance from A",
     elevation: "Elevation",
     slopePct: "Slope",
     slopeClass: "Slope class",
@@ -127,8 +143,8 @@ export const copy = {
   },
 
   legend: {
-    contours: (interval: number, index: number) =>
-      `Contours — ${interval} m interval. Bolder lines are index contours, every ${index} m.`,
+    contours: (interval: number) => `Contours — ${interval} m interval.`,
+    indexContour: "Bolder line is the index contour.",
     hillshade: (opacity: number) =>
       `Hillshade — shaded relief at ${opacity}% opacity, drawn beneath all other layers.`,
     slopeTitle: "Slope class",

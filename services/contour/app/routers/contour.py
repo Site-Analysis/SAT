@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 from fastapi import APIRouter, HTTPException
 from rasterio.transform import array_bounds
 from rasterio.warp import transform_bounds
@@ -46,7 +47,14 @@ def _hillshade_bounds(dem: dict) -> list[list[float]]:
     return [[float(south), float(west)], [float(north), float(east)]]
 
 
-async def _analysis_arrays(polygon: dict) -> tuple[dict, object, object, object]:
+_EMPTY_CONTOURS_WARNING = (
+    "No contour lines pass through the selected area at this interval. "
+    "Try a smaller contour interval or add an analysis offset around the polygon."
+)
+_INTERVAL_10_WARNING = "Minimum reliable contour interval for Copernicus GLO-30 is 10m."
+
+
+async def _analysis_arrays(polygon: dict, buffer_m: float = 0) -> tuple[dict, object, object, object]:
     if dem_service.site_area_ha(polygon) < 0.5:
         raise HTTPException(
             status_code=422,
@@ -54,7 +62,7 @@ async def _analysis_arrays(polygon: dict) -> tuple[dict, object, object, object]
         )
     try:
         source = dem_service.select_dem_source(polygon)
-        dem = await dem_service.fetch_dem(polygon, source)
+        dem = await dem_service.fetch_dem(polygon, source, buffer_m=buffer_m)
     except HTTPException:
         raise
     except Exception as exc:
@@ -74,12 +82,17 @@ def health() -> dict:
 @router.post("/analyze", response_model=ContourResponse)
 async def analyze_contour(request: ContourRequest) -> ContourResponse:
     _require_flag()
-    dem, slope_pct, aspect, classes = await _analysis_arrays(request.polygon)
+    dem, slope_pct, aspect, classes = await _analysis_arrays(request.polygon, request.buffer_m)
     interval = request.contour_interval
-    warning = (
-        "Minimum reliable contour interval for Copernicus GLO-30 is 10m."
-        if interval == 10
-        else None
+    site_mask = dem_service.raster_mask_from_polygon(dem, request.polygon)
+    if not np.any(site_mask):
+        site_mask = np.isfinite(dem["array"])
+    slope_site = np.where(site_mask, slope_pct, np.nan)
+    aspect_site = np.where(site_mask, aspect, np.nan)
+    classes_site = np.where(site_mask, classes, 0).astype(classes.dtype)
+    contour_geojson = generate_contours(dem["array"], dem["transform"], dem["crs"], interval)
+    warning = _EMPTY_CONTOURS_WARNING if not contour_geojson.get("features") else (
+        _INTERVAL_10_WARNING if interval == 10 else None
     )
     hillshade, _slope_rad, _aspect_rad = compute_hillshade(dem["array"], _cellsize(dem["transform"]))
     return ContourResponse(
@@ -89,12 +102,13 @@ async def analyze_contour(request: ContourRequest) -> ContourResponse:
             "vertical_rmse_m": dem.get("vertical_rmse_m", 4.0),
             "contour_interval_m": interval,
             "warning": warning,
+            "buffer_m": request.buffer_m,
         },
-        slope_stats=slope_stats(slope_pct),
-        aspect_stats=aspect_stats(aspect),
-        contour_geojson=generate_contours(dem["array"], dem["transform"], dem["crs"], interval),
-        slope_geojson=slope_geojson(classes, dem["transform"], dem["crs"]),
-        buildability_geojson=buildability_geojson(classes, dem["transform"], dem["crs"]),
+        slope_stats=slope_stats(slope_site),
+        aspect_stats=aspect_stats(aspect_site),
+        contour_geojson=contour_geojson,
+        slope_geojson=slope_geojson(classes_site, dem["transform"], dem["crs"]),
+        buildability_geojson=buildability_geojson(classes_site, dem["transform"], dem["crs"]),
         hillshade_png_b64=encode_png_b64(hillshade),
         hillshade_bounds=_hillshade_bounds(dem),
     )
@@ -103,7 +117,7 @@ async def analyze_contour(request: ContourRequest) -> ContourResponse:
 @router.post("/transect", response_model=TransectResponse)
 async def analyze_transect(request: TransectRequest) -> TransectResponse:
     _require_flag()
-    dem, slope_pct, _aspect, classes = await _analysis_arrays(request.polygon)
+    dem, slope_pct, _aspect, classes = await _analysis_arrays(request.polygon, request.buffer_m)
     return await compute_transect(
         request.transect_line,
         dem["array"],

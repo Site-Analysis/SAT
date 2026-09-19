@@ -47,7 +47,7 @@ export function ContourReportVisual({ result, transect }: ContourReportVisualPro
         </g>
       ))}
       <text x="0" y="112" fontSize="10" fill={HEX.muted}>
-        {demSourceLabel(result.dem_metadata.source)} · {metres(result.dem_metadata.resolution_m)} · {metres(result.dem_metadata.contour_interval_m)} interval
+        {demSourceLabel(result.dem_metadata.source)} · {metres(result.dem_metadata.contour_interval_m)} interval
       </text>
       {transect && transect.points.length > 1 ? (
         <g transform="translate(0 128)">
@@ -93,6 +93,7 @@ export function ContourReportExtras({ result, transect }: ContourReportVisualPro
     <div style={{ fontSize: 10, color: HEX.text, lineHeight: 1.45 }}>
       <div style={{ marginBottom: 6, color: HEX.muted }}>{copy.caveat.dsm}</div>
       <div style={{ marginBottom: 6, color: HEX.muted }}>{copy.report.disclaimer}</div>
+      <div style={{ marginBottom: 6, color: HEX.muted }}>{copy.dem.rmse}: {metres(result.dem_metadata.vertical_rmse_m, 1)}. {copy.dem.rmseExplain}</div>
       <div style={{ marginBottom: 6, color: "#C4865A" }}>{copy.caveat.buildability}</div>
       <div>Mean {pct(s.mean_slope_pct)} · Max {pct(s.max_slope_pct)} · Aspect {a.dominant_aspect_label} {Math.round(a.dominant_aspect_deg)}°</div>
       <div style={{ marginTop: 4 }}>

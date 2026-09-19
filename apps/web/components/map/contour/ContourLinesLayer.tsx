@@ -6,7 +6,7 @@
 import L from "leaflet";
 import { useMemo } from "react";
 import { GeoJSON } from "react-leaflet";
-import { MAX_SVG_FEATURES, PANE } from "@/lib/contour/constants";
+import { CONTOUR_STROKE, MAX_SVG_FEATURES, PANE } from "@/lib/contour/constants";
 import { featureProp } from "@/lib/contour/format";
 import { featureCount } from "@/lib/contour/geometry";
 import type { GeoJSONLike } from "@/lib/contour/types";
@@ -26,9 +26,8 @@ export function ContourLinesLayer({ data }: { data: GeoJSONLike }) {
       pane={PANE.lines.name}
       style={(feature) => {
         const isIndex = Boolean(featureProp<boolean>(feature, "is_index"));
-        const color = featureProp<string>(feature, "color") ?? "#2d6a4f";
-        const weight = featureProp<number>(feature, "line_weight") ?? (isIndex ? 2 : 1);
-        return { color, weight, opacity: isIndex ? 1 : 0.7, renderer };
+        const stroke = isIndex ? CONTOUR_STROKE.index : CONTOUR_STROKE.regular;
+        return { color: stroke.color, weight: stroke.weight, opacity: stroke.opacity, renderer };
       }}
       onEachFeature={(feature, layer) => {
         const elev = featureProp<number>(feature, "elevation");

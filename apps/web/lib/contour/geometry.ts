@@ -124,3 +124,84 @@ export function transectLineGeoJSON(positions: [number, number][]): GeoJSONLike 
     coordinates: positions.map(([lat, lng]) => [lng, lat]),
   };
 }
+
+function exteriorRing(geojson: GeoJSONLike): number[][] | null {
+  const obj = geojson as {
+    type?: string;
+    geometry?: { type?: string; coordinates?: unknown };
+    coordinates?: unknown;
+    features?: Array<{ geometry?: { type?: string; coordinates?: unknown } }>;
+  };
+  let coords: unknown;
+  if (obj.type === "FeatureCollection" && Array.isArray(obj.features)) {
+    coords = obj.features[0]?.geometry?.coordinates;
+  } else if (obj.type === "Feature") {
+    coords = obj.geometry?.coordinates;
+  } else {
+    coords = obj.coordinates ?? obj.geometry?.coordinates;
+  }
+  if (!Array.isArray(coords) || coords.length === 0) return null;
+  const ring = Array.isArray(coords[0]) && Array.isArray((coords[0] as unknown[])[0])
+    ? (coords[0] as number[][])
+    : (coords as number[][]);
+  if (!Array.isArray(ring) || ring.length < 3) return null;
+  return ring.filter((pt) => Array.isArray(pt) && pt.length >= 2);
+}
+
+function normalize2(x: number, y: number): [number, number] {
+  const len = Math.hypot(x, y);
+  if (len < 1e-9) return [0, 0];
+  return [x / len, y / len];
+}
+
+/** Approximate metre buffer of a polygon exterior, returned as Leaflet [lat, lng] ring. */
+export function offsetRingLatLngs(geojson: GeoJSONLike, bufferM: number): [number, number][] | null {
+  if (!(bufferM > 0)) return null;
+  const ring = exteriorRing(geojson);
+  if (!ring) return null;
+  const pts = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring;
+  if (pts.length < 3) return null;
+  let area = 0;
+  let meanLat = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    area += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+    meanLat += pts[i][1];
+  }
+  meanLat /= pts.length;
+  const ccw = area > 0;
+  const mLat = 111320;
+  const mLng = 111320 * Math.max(0.2, Math.cos((meanLat * Math.PI) / 180));
+  const out: [number, number][] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const prev = pts[(i - 1 + pts.length) % pts.length];
+    const cur = pts[i];
+    const next = pts[(i + 1) % pts.length];
+    const e1x = (cur[0] - prev[0]) * mLng;
+    const e1y = (cur[1] - prev[1]) * mLat;
+    const e2x = (next[0] - cur[0]) * mLng;
+    const e2y = (next[1] - cur[1]) * mLat;
+    const n1 = ccw ? normalize2(e1y, -e1x) : normalize2(-e1y, e1x);
+    const n2 = ccw ? normalize2(e2y, -e2x) : normalize2(-e2y, e2x);
+    let nx = n1[0] + n2[0];
+    let ny = n1[1] + n2[1];
+    const nlen = Math.hypot(nx, ny);
+    if (nlen < 1e-9) {
+      nx = n1[0];
+      ny = n1[1];
+    } else {
+      nx /= nlen;
+      ny /= nlen;
+    }
+    const dot = Math.max(-1, Math.min(1, n1[0] * n2[0] + n1[1] * n2[1]));
+    const miter = Math.min(4, 1 / Math.max(0.25, Math.sqrt((1 + dot) / 2)));
+    out.push([
+      cur[1] + (ny * bufferM * miter) / mLat,
+      cur[0] + (nx * bufferM * miter) / mLng,
+    ]);
+  }
+  out.push(out[0]);
+  return out;
+}

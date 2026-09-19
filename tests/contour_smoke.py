@@ -162,3 +162,108 @@ def test_interval_above_max_returns_422():
         json={"polygon": BENGALURU_TEST_POLYGON, "contour_interval": 70},
     )
     assert resp.status_code == 422
+
+
+@skip_no_app
+def test_buffer_m_accepted_and_echoed():
+    resp = CLIENT.post(
+        "/contour/analyze",
+        json={"polygon": BENGALURU_TEST_POLYGON, "contour_interval": 20, "buffer_m": 100},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["dem_metadata"]["buffer_m"] == 100
+
+
+@skip_no_app
+def test_buffer_m_default_is_zero():
+    resp = CLIENT.post(
+        "/contour/analyze",
+        json={"polygon": BENGALURU_TEST_POLYGON, "contour_interval": 20},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["dem_metadata"]["buffer_m"] == 0
+
+
+@skip_no_app
+def test_buffer_m_above_max_returns_422():
+    resp = CLIENT.post(
+        "/contour/analyze",
+        json={"polygon": BENGALURU_TEST_POLYGON, "contour_interval": 20, "buffer_m": 600},
+    )
+    assert resp.status_code == 422
+
+
+@skip_no_app
+def test_transect_accepts_buffer_m():
+    resp = CLIENT.post(
+        "/contour/transect",
+        json={
+            "polygon": BENGALURU_TEST_POLYGON,
+            "transect_line": BENGALURU_TRANSECT,
+            "buffer_m": 50,
+        },
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()["points"]) > 0
+
+
+@skip_no_app
+def test_empty_contours_sets_warning(monkeypatch):
+    import app.routers.contour as contour_router
+
+    monkeypatch.setattr(
+        contour_router,
+        "generate_contours",
+        lambda *_args, **_kwargs: {"type": "FeatureCollection", "features": []},
+    )
+    resp = CLIENT.post(
+        "/contour/analyze",
+        json={"polygon": BENGALURU_TEST_POLYGON, "contour_interval": 20},
+    )
+    assert resp.status_code == 200
+    warning = resp.json()["dem_metadata"]["warning"] or ""
+    assert "No contour lines" in warning
+
+
+def test_buffered_geometry_expands():
+    from shapely.geometry import shape
+
+    from app.services.dem_service import buffered_geometry, extract_polygon_geometry
+
+    orig = shape(extract_polygon_geometry(BENGALURU_TEST_POLYGON))
+    same = shape(buffered_geometry(BENGALURU_TEST_POLYGON, 0))
+    assert abs(same.area - orig.area) < 1e-12
+    expanded = shape(buffered_geometry(BENGALURU_TEST_POLYGON, 100))
+    assert expanded.area > orig.area
+
+
+def test_raster_mask_from_polygon_excludes_outside():
+    from shapely.geometry import shape
+    from shapely.ops import transform as shapely_transform
+    from pyproj import Transformer
+
+    from app.services.dem_service import (
+        _utm_epsg,
+        extract_polygon_geometry,
+        raster_mask_from_polygon,
+    )
+
+    geom = shape(extract_polygon_geometry(BENGALURU_TEST_POLYGON))
+    centroid = geom.centroid
+    crs = _utm_epsg(centroid.y, centroid.x)
+    to_utm = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+    projected = shapely_transform(to_utm.transform, geom)
+    minx, miny, maxx, maxy = projected.bounds
+    pad = 200
+    west = minx - pad
+    north = maxy + pad
+    width, height = 40, 40
+    transform = Affine(30, 0, west, 0, -30, north)
+    dem = {
+        "array": np.ones((height, width), dtype="float32"),
+        "transform": transform,
+        "crs": crs,
+    }
+    mask = raster_mask_from_polygon(dem, BENGALURU_TEST_POLYGON)
+    assert mask.any()
+    assert not mask.all()

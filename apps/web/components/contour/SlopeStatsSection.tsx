@@ -15,9 +15,12 @@ import { C } from "./theme";
 import { InfoTip } from "./InfoTip";
 import { StatTile } from "./StatTile";
 
-const STATS: Array<{ key: keyof SlopeStats; label: string; help: string }> = [
+const ALWAYS: Array<{ key: keyof SlopeStats; label: string; help: string }> = [
   { key: "mean_slope_pct", label: copy.slopeLabels.mean, help: copy.slopeHelp.mean },
   { key: "max_slope_pct", label: copy.slopeLabels.max, help: copy.slopeHelp.max },
+];
+
+const CLASS_STATS: Array<{ key: keyof SlopeStats; label: string; help: string }> = [
   { key: "flat_area_pct", label: copy.slopeLabels.flat, help: copy.slopeHelp.flat },
   { key: "gentle_area_pct", label: copy.slopeLabels.gentle, help: copy.slopeHelp.gentle },
   { key: "moderate_area_pct", label: copy.slopeLabels.moderate, help: copy.slopeHelp.moderate },
@@ -27,9 +30,11 @@ const STATS: Array<{ key: keyof SlopeStats; label: string; help: string }> = [
 ];
 
 export function SlopeStatsSection({ stats, moduleResult }: { stats: SlopeStats; moduleResult?: ModuleResult }) {
-  const total = SLOPE_CLASSES.reduce((s, c) => s + (stats[c.statKey as keyof SlopeStats] as number), 0) || 1;
-  const aria = SLOPE_CLASSES.map((c) => `${c.label} ${pct(stats[c.statKey as keyof SlopeStats] as number)}`).join(", ");
+  const present = SLOPE_CLASSES.filter((c) => (stats[c.statKey as keyof SlopeStats] as number) > 0);
+  const total = present.reduce((s, c) => s + (stats[c.statKey as keyof SlopeStats] as number), 0) || 1;
+  const aria = present.map((c) => `${c.label} ${pct(stats[c.statKey as keyof SlopeStats])}`).join(", ");
   const chart = moduleResult?.charts?.find((ch) => ch.title === "Slope class share");
+  const classTiles = CLASS_STATS.filter((s) => (stats[s.key] as number) > 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -38,7 +43,7 @@ export function SlopeStatsSection({ stats, moduleResult }: { stats: SlopeStats; 
         aria-label={`Slope class share: ${aria}`}
         style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", background: C.border }}
       >
-        {SLOPE_CLASSES.map((c) => {
+        {present.map((c) => {
           const v = stats[c.statKey as keyof SlopeStats] as number;
           return (
             <div
@@ -50,7 +55,7 @@ export function SlopeStatsSection({ stats, moduleResult }: { stats: SlopeStats; 
         })}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-        {STATS.map((s) => (
+        {[...ALWAYS, ...classTiles].map((s) => (
           <StatTile
             key={s.key}
             label={s.label}
@@ -71,16 +76,20 @@ export function LayerToggleGrid({
   layers: Record<ContourLayerId, boolean>;
   onToggle: (id: ContourLayerId) => void;
 }) {
-  const rows: Array<{ id: ContourLayerId; label: string }> = [
+  const rows: Array<{ id: ContourLayerId; label: string; info?: string }> = [
     { id: "hillshade", label: copy.layers.hillshade },
     { id: "contours", label: copy.layers.contours },
+    { id: "contourLabels", label: copy.layers.contourLabels, info: copy.layers.elevationHint },
     { id: "slope", label: copy.layers.slope },
     { id: "buildability", label: copy.layers.buildability },
   ];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {rows.map((r) => (
-        <Toggle key={r.id} label={r.label} checked={layers[r.id]} onChange={() => onToggle(r.id)} />
+        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Toggle label={r.label} checked={layers[r.id]} onChange={() => onToggle(r.id)} />
+          {r.info ? <InfoTip label={r.label} text={r.info} /> : null}
+        </div>
       ))}
     </div>
   );

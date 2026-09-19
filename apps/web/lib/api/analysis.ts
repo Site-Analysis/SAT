@@ -125,6 +125,7 @@ export async function analyzeContour(
   polygon: GeoJSONLike,
   contourInterval: number,
   signal?: AbortSignal,
+  bufferM = 0,
 ): Promise<ContourResponse> {
   if (process.env.NEXT_PUBLIC_CONTOUR_FIXTURES === "1") {
     const { contourFixture } = await import("../contour/fixtures");
@@ -132,7 +133,7 @@ export async function analyzeContour(
   }
   return svcFetch<ContourResponse>(SVC.contour, "/contour/analyze", {
     method: "POST",
-    body: JSON.stringify({ polygon, contour_interval: contourInterval }),
+    body: JSON.stringify({ polygon, contour_interval: contourInterval, buffer_m: bufferM }),
   }, CONTOUR_TIMEOUT_MS, signal);
 }
 
@@ -140,6 +141,7 @@ export async function analyzeTransect(
   polygon: GeoJSONLike,
   transectLine: GeoJSONLike,
   signal?: AbortSignal,
+  bufferM = 0,
 ): Promise<TransectResponse> {
   if (process.env.NEXT_PUBLIC_CONTOUR_FIXTURES === "1") {
     const { transectFixture } = await import("../contour/fixtures");
@@ -147,7 +149,7 @@ export async function analyzeTransect(
   }
   return svcFetch<TransectResponse>(SVC.contour, "/contour/transect", {
     method: "POST",
-    body: JSON.stringify({ polygon, transect_line: transectLine }),
+    body: JSON.stringify({ polygon, transect_line: transectLine, buffer_m: bufferM }),
   }, CONTOUR_TIMEOUT_MS, signal);
 }
 
@@ -155,8 +157,9 @@ export async function getContourAnalysis(
   polygon: GeoJSONLike,
   contourInterval = 20,
   signal?: AbortSignal,
+  bufferM = 0,
 ): Promise<ModuleResult> {
-  const raw = await analyzeContour(polygon, contourInterval, signal);
+  const raw = await analyzeContour(polygon, contourInterval, signal, bufferM);
   const s = raw.slope_stats;
   const a = raw.aspect_stats;
   const buildablePct = num(s.flat_area_pct) + num(s.gentle_area_pct);
@@ -197,8 +200,10 @@ export async function getContourAnalysis(
     detailMetrics: [
       { group: "DEM", rows: [
         { label: "Source", value: "Copernicus DEM GLO-30 2024" },
-        { label: "Resolution", value: String(raw.dem_metadata.resolution_m), unit: "m" },
         { label: "Contour interval", value: String(raw.dem_metadata.contour_interval_m), unit: "m" },
+        ...(num(raw.dem_metadata.buffer_m) > 0
+          ? [{ label: "Analysis offset", value: String(raw.dem_metadata.buffer_m), unit: "m" }]
+          : []),
       ]},
       { group: "Slope", rows: [
         { label: "Flat", value: num(s.flat_area_pct).toFixed(1), unit: "%" },

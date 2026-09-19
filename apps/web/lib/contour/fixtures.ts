@@ -15,6 +15,7 @@ export function contourFixture(interval = DEFAULT_INTERVAL): ContourResponse {
       vertical_rmse_m: 4.0,
       contour_interval_m: interval,
       warning: interval === 10 ? "Minimum reliable contour interval for Copernicus GLO-30 is 10m." : null,
+      buffer_m: 0,
     },
     slope_stats: {
       mean_slope_pct: 8.4,

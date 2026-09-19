@@ -5,6 +5,7 @@
 
 import { copy } from "@/lib/contour/copy";
 import { featureCount } from "@/lib/contour/geometry";
+import { metres } from "@/lib/contour/format";
 import type { ContourEligibility } from "@/lib/contour/types";
 import type { ModuleResult } from "@/lib/stores/analysis";
 import { useContourStore } from "@/lib/stores/contour";
@@ -19,6 +20,7 @@ import { DemMetadataCard } from "./DemMetadataCard";
 import { LayerToggleGrid } from "./SlopeStatsSection";
 import { SlopeStatsSection } from "./SlopeStatsSection";
 import { TransectSection } from "./TransectSection";
+import { ContourLegend } from "@/components/map/contour/ContourLegend";
 
 interface ContourPanelProps {
   result?: ModuleResult;
@@ -54,6 +56,9 @@ export function ContourPanel({ result: moduleResult, eligibility }: ContourPanel
               </CollapsibleSubsection>
               <CollapsibleSubsection title={copy.sections.layers} defaultOpen>
                 <LayerToggleGrid layers={layers} onToggle={toggleLayer} />
+                <div style={{ marginTop: 10 }}>
+                  <ContourLegend />
+                </div>
               </CollapsibleSubsection>
               <CollapsibleSubsection title={copy.sections.slope} defaultOpen>
                 <SlopeStatsSection stats={result.slope_stats} moduleResult={moduleResult} />
@@ -77,6 +82,8 @@ export function ContourPanel({ result: moduleResult, eligibility }: ContourPanel
                   <span>{copy.advanced.buildabilityFeatures}: {featureCount(result.buildability_geojson)}</span>
                   <span>{copy.advanced.sampleCount}: {transectResult?.points.length ?? "—"}</span>
                   <span>{copy.advanced.resultNonce}: {resultNonce}</span>
+                  <span>{copy.dem.rmse}: {metres(result.dem_metadata.vertical_rmse_m, 1)}</span>
+                  <span>{copy.dem.rmseExplain}</span>
                 </div>
               </CollapsibleSubsection>
             </>

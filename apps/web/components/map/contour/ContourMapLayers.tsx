@@ -13,6 +13,7 @@ import { BuildabilityLayer } from "./BuildabilityLayer";
 import { ContourHillshadeLayer } from "./ContourHillshadeLayer";
 import { ContourLabels } from "./ContourLabels";
 import { ContourLinesLayer } from "./ContourLinesLayer";
+import { ContourOffsetRing } from "./ContourOffsetRing";
 import { SlopeClassLayer } from "./SlopeClassLayer";
 
 export function ContourMapLayers({ sitePolygon }: { sitePolygon?: GeoJSONLike | null }) {
@@ -27,16 +28,13 @@ export function ContourMapLayers({ sitePolygon }: { sitePolygon?: GeoJSONLike | 
       <Pane name={PANE.lines.name} style={{ zIndex: PANE.lines.zIndex }} />
       <Pane name={PANE.transect.name} style={{ zIndex: PANE.transect.zIndex }} />
       {layers.hillshade ? <ContourHillshadeLayer result={result} sitePolygon={sitePolygon} /> : null}
+      <ContourOffsetRing sitePolygon={sitePolygon} />
       {layers.slope ? <SlopeClassLayer data={result.slope_geojson} renderer={renderer} /> : null}
       {layers.buildability ? (
         <BuildabilityLayer data={result.buildability_geojson} renderer={renderer} />
       ) : null}
-      {layers.contours ? (
-        <>
-          <ContourLinesLayer data={result.contour_geojson} />
-          <ContourLabels data={result.contour_geojson} />
-        </>
-      ) : null}
+      {layers.contours ? <ContourLinesLayer data={result.contour_geojson} /> : null}
+      {layers.contours && layers.contourLabels ? <ContourLabels data={result.contour_geojson} /> : null}
     </>
   );
 }

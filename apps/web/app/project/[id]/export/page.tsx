@@ -132,7 +132,15 @@ export default function ExportPage() {
         if (moduleId === "contour" && !eligibility.eligible) continue;
         setModuleLoading(moduleId);
         const fetcher = moduleId === "contour" && eligibility.eligible
-          ? () => getContourAnalysis(eligibility.polygon, interval)
+          ? () => {
+              const st = useContourStore.getState();
+              return getContourAnalysis(
+                eligibility.polygon,
+                interval,
+                undefined,
+                st.resultBufferM ?? st.bufferM,
+              );
+            }
           : FETCHERS[moduleId]
             ? () => FETCHERS[moduleId]!(coords)
             : null;

@@ -26,6 +26,7 @@ def _configure_proj_data_dir() -> None:
 _configure_proj_data_dir()
 
 import rasterio
+import rasterio.features
 import pyproj.datadir
 from pyproj import Transformer
 from rasterio.io import MemoryFile
@@ -84,6 +85,33 @@ def compute_centroid(polygon_geojson: dict) -> dict[str, float]:
 
 def select_dem_source(_polygon_geojson: dict) -> str:
     return "copernicus"
+
+
+def buffered_geometry(polygon_geojson: dict, buffer_m: float) -> dict:
+    """Return a WGS84 geometry dict, optionally buffered in metres in UTM."""
+    geometry = shape(extract_polygon_geometry(polygon_geojson))
+    if buffer_m <= 0:
+        return mapping(geometry)
+    centroid = geometry.centroid
+    crs = _utm_epsg(centroid.y, centroid.x)
+    to_utm = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+    to_wgs = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    projected = shapely_transform(to_utm.transform, geometry)
+    buffered = projected.buffer(float(buffer_m))
+    return mapping(shapely_transform(to_wgs.transform, buffered))
+
+
+def raster_mask_from_polygon(dem: dict[str, Any], polygon_geojson: dict) -> np.ndarray:
+    """Boolean mask of DEM pixels that fall inside the original site polygon."""
+    geometry = shape(extract_polygon_geometry(polygon_geojson))
+    transformer = Transformer.from_crs("EPSG:4326", dem["crs"], always_xy=True)
+    projected = shapely_transform(transformer.transform, geometry)
+    return rasterio.features.geometry_mask(
+        [mapping(projected)],
+        out_shape=dem["array"].shape,
+        transform=dem["transform"],
+        invert=True,
+    )
 
 
 def _utm_epsg(lat: float, lon: float) -> str:
@@ -218,10 +246,19 @@ def _project_raster(
     }
 
 
-async def fetch_dem(polygon_geojson: dict, source: str = "copernicus") -> dict[str, Any]:
+async def fetch_dem(
+    polygon_geojson: dict,
+    source: str = "copernicus",
+    buffer_m: float = 0,
+) -> dict[str, Any]:
     if source != "copernicus":
         logger.warning("Unsupported DEM source %s requested; using Copernicus", source)
+    clip_geojson = {
+        "type": "Feature",
+        "properties": {},
+        "geometry": buffered_geometry(polygon_geojson, buffer_m),
+    }
     ee = initialize_gee_client()
-    data = _download_copernicus_dem(ee, polygon_geojson)
+    data = _download_copernicus_dem(ee, clip_geojson)
     array, transform, source_crs, _nodata = _read_downloaded_tiff(data)
-    return _project_raster(array, transform, source_crs, polygon_geojson)
+    return _project_raster(array, transform, source_crs, clip_geojson)

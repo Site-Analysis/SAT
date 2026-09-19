@@ -6,12 +6,12 @@
 // constants are for legends, chips, and the report where no feature is present.
 
 export const SLOPE_CLASSES = [
-  { id: "FLAT",       label: "Flat",       range: "0-5%",   color: "#2d6a4f", statKey: "flat_area_pct" },
-  { id: "GENTLE",     label: "Gentle",     range: "5-10%",  color: "#52b788", statKey: "gentle_area_pct" },
-  { id: "MODERATE",   label: "Moderate",   range: "10-15%", color: "#ffd166", statKey: "moderate_area_pct" },
-  { id: "STEEP",      label: "Steep",      range: "15-25%", color: "#f4a261", statKey: "steep_area_pct" },
-  { id: "VERY_STEEP", label: "Very steep", range: "25-33%", color: "#e76f51", statKey: "very_steep_area_pct" },
-  { id: "HAZARD",     label: "Hazard",     range: ">33%",   color: "#c1121f", statKey: "hazard_area_pct" },
+  { id: "FLAT",       label: "Flat",       meaning: "Low-gradient terrain",                range: "0-5%",   color: "#2d6a4f", statKey: "flat_area_pct" },
+  { id: "GENTLE",     label: "Gentle",     meaning: "Mild slope",                          range: "5-10%",  color: "#52b788", statKey: "gentle_area_pct" },
+  { id: "MODERATE",   label: "Moderate",   meaning: "Noticeable grade",                     range: "10-15%", color: "#ffd166", statKey: "moderate_area_pct" },
+  { id: "STEEP",      label: "Steep",      meaning: "Construction-sensitive slope",         range: "15-25%", color: "#f4a261", statKey: "steep_area_pct" },
+  { id: "VERY_STEEP", label: "Very steep", meaning: "Unstable, high-constraint terrain",    range: "25-33%", color: "#e76f51", statKey: "very_steep_area_pct" },
+  { id: "HAZARD",     label: "Hazard",     meaning: "Hazard-prone steep terrain",           range: ">33%",   color: "#c1121f", statKey: "hazard_area_pct" },
 ] as const;
 
 export const BUILDABILITY_CLASSES = [
@@ -28,13 +28,23 @@ export const MIN_INTERVAL = 10;
 export const MAX_INTERVAL = 60;
 export const MIN_AREA_HA = 0.5;
 
-export const LABEL_MIN_ZOOM = 16;
+export const BUFFER_PRESETS = [0, 50, 100, 200] as const;
+export const DEFAULT_BUFFER_M = 0;
+export const MAX_BUFFER_M = 500;
+
+export const LABEL_MIN_ZOOM = 14;
+export const LABEL_INTERMEDIATE_ZOOM = 16;
 export const MAX_LABELS = 40;
 export const MAX_SVG_FEATURES = 800;
 export const MAX_TOOLTIP_FEATURES = 20_000;
 
 export const HILLSHADE_OPACITY = 0.45;
 export const CONTOUR_TIMEOUT_MS = 90_000;
+
+export const CONTOUR_STROKE = {
+  regular: { color: "#B08968", weight: 1.5, opacity: 1 },
+  index: { color: "#6F4E37", weight: 2.75, opacity: 1 },
+} as const;
 
 export const PANE = {
   hillshade: { name: "contour-hillshade", zIndex: 350 },
@@ -46,6 +56,7 @@ export const PANE = {
 export const LAYER_DEFAULTS = {
   hillshade: true,
   contours: true,
+  contourLabels: true,
   slope: false,
   buildability: false,
 } as const;

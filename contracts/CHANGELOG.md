@@ -1,5 +1,16 @@
 # Contract Changelog
 
+## 2.10.0 - 2026-09-19
+
+### Added - contour.yaml (SAT-19 SME review: analysis offset)
+- Optional `buffer_m` (0–500, default 0) on `ContourRequest` and
+  `TransectRequest`. DEM and contour lines are generated for the polygon
+  plus this offset so surrounding slope direction is visible; slope and
+  buildability statistics stay clipped to the original site polygon.
+- Optional `buffer_m` echo on `DEMMetadata`.
+- `dem_metadata.warning` may now also report that no contour lines pass
+  through the site at the selected interval.
+
 ## 2.9.0 - 2026-08-21
 
 ### Added - contour.yaml (SAT-19 frontend contract addendum)

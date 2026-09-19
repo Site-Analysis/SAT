@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { copy } from "@/lib/contour/copy";
 import { C } from "./theme";
 import { useContourStore } from "@/lib/stores/contour";
@@ -33,6 +33,14 @@ export function TransectProfileChart({ result }: { result: TransectResponse }) {
   const pad = (max - min) * 0.05 || 1;
   const yMin = min - pad;
   const yMax = max + pad;
+  const pointsRef = useRef(points);
+  const yMinRef = useRef(yMin);
+  const yMaxRef = useRef(yMax);
+  const totalRef = useRef(total);
+  pointsRef.current = points;
+  yMinRef.current = yMin;
+  yMaxRef.current = yMax;
+  totalRef.current = total;
 
   const { line, area } = useMemo(() => {
     if (!points.length) return { line: "", area: "" };
@@ -46,6 +54,19 @@ export function TransectProfileChart({ result }: { result: TransectResponse }) {
   }, [points, total, yMin, yMax]);
 
   const interpolated = points.some((p) => p.lat == null || p.lng == null);
+
+  function moveCrosshair(i: number) {
+    const p = pointsRef.current[i];
+    if (!p || !crosshair.current) return;
+    const x = xOf(p.distance_m, totalRef.current);
+    const y = yOf(p.elevation_m, yMinRef.current, yMaxRef.current);
+    crosshair.current.setAttribute("transform", `translate(${x} ${y})`);
+    crosshair.current.style.display = "";
+  }
+
+  function hideCrosshair() {
+    if (crosshair.current) crosshair.current.style.display = "none";
+  }
 
   function indexFromX(clientX: number, svg: SVGSVGElement) {
     const rect = svg.getBoundingClientRect();
@@ -65,14 +86,18 @@ export function TransectProfileChart({ result }: { result: TransectResponse }) {
     return best;
   }
 
-  function moveCrosshair(i: number) {
-    const p = points[i];
-    if (!p || !crosshair.current) return;
-    const x = xOf(p.distance_m, total);
-    const y = yOf(p.elevation_m, yMin, yMax);
-    crosshair.current.setAttribute("transform", `translate(${x} ${y})`);
-    crosshair.current.style.display = "";
-  }
+  useEffect(() => {
+    return useContourStore.subscribe(
+      (s) => s.activeProfileIndex,
+      (idx) => {
+        if (idx == null) {
+          hideCrosshair();
+          return;
+        }
+        moveCrosshair(idx);
+      },
+    );
+  }, []);
 
   function onPointer(e: React.PointerEvent<SVGSVGElement>) {
     if (!points.length) return;
@@ -111,7 +136,7 @@ export function TransectProfileChart({ result }: { result: TransectResponse }) {
         onPointerDown={onPointer}
         onPointerLeave={() => {
           setActive(null);
-          if (crosshair.current) crosshair.current.style.display = "none";
+          hideCrosshair();
         }}
         onKeyDown={onKey}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"

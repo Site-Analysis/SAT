@@ -7,8 +7,9 @@ import { BUILDABILITY_CLASSES, SLOPE_CLASSES } from "@/lib/contour/constants";
 import { copy } from "@/lib/contour/copy";
 import { featureCount } from "@/lib/contour/geometry";
 import { MAX_TOOLTIP_FEATURES } from "@/lib/contour/constants";
+import type { SlopeStats } from "@/lib/contour/types";
 import { useContourStore } from "@/lib/stores/contour";
-import { C, caption, hudCard } from "@/components/contour/theme";
+import { C, caption } from "@/components/contour/theme";
 
 function SwatchRow({ color, label, range }: { color: string; label: string; range?: string }) {
   return (
@@ -28,21 +29,11 @@ export function ContourLegend() {
   const interval = result.dem_metadata.contour_interval_m;
   const approx = !result.hillshade_bounds;
   const slopeHeavy = featureCount(result.slope_geojson) > MAX_TOOLTIP_FEATURES;
+  const stats = result.slope_stats as SlopeStats;
+  const slopeRows = SLOPE_CLASSES.filter((c) => (stats[c.statKey as keyof SlopeStats] as number) > 0);
 
   return (
-    <div
-      style={{
-        ...hudCard,
-        position: "absolute",
-        bottom: 76,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 420,
-        minWidth: 220,
-        maxWidth: 280,
-        pointerEvents: "auto",
-      }}
-    >
+    <div>
       {layers.hillshade ? (
         <div style={{ marginBottom: 8 }}>
           <div style={caption}>{copy.legend.hillshade(Math.round(opacity * 100))}</div>
@@ -51,7 +42,8 @@ export function ContourLegend() {
       ) : null}
       {layers.contours ? (
         <div style={{ marginBottom: 8 }}>
-          <div style={caption}>{copy.legend.contours(interval, interval * 5)}</div>
+          <div style={caption}>{copy.legend.contours(interval)}</div>
+          <div style={{ ...caption, marginTop: 2 }}>{copy.legend.indexContour}</div>
         </div>
       ) : null}
       {layers.slope ? (
@@ -59,8 +51,8 @@ export function ContourLegend() {
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", color: C.inkSoft, marginBottom: 6 }}>
             {copy.legend.slopeTitle}
           </div>
-          {SLOPE_CLASSES.map((c) => (
-            <SwatchRow key={c.id} color={c.color} label={c.label} range={c.range} />
+          {slopeRows.map((c) => (
+            <SwatchRow key={c.id} color={c.color} label={`${c.label} — ${c.meaning}`} range={c.range} />
           ))}
           <div style={{ ...caption, marginTop: 4 }}>{copy.caveat.slopeLayer}</div>
           {slopeHeavy ? <div style={{ ...caption, color: C.warn }}>{copy.errors.geometrySimplified}</div> : null}

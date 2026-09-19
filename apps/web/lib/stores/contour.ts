@@ -7,10 +7,11 @@ import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { ApiError, RequestCancelledError } from "../api/client";
 import {
-  CONTOUR_TIMEOUT_MS,
+  DEFAULT_BUFFER_M,
   DEFAULT_INTERVAL,
   HILLSHADE_OPACITY,
   LAYER_DEFAULTS,
+  MAX_BUFFER_M,
   MAX_INTERVAL,
   MIN_INTERVAL,
 } from "../contour/constants";
@@ -39,6 +40,8 @@ interface ContourState {
   interval: number;
   intervalError: string | null;
   resultInterval: number | null;
+  bufferM: number;
+  resultBufferM: number | null;
   serviceStatus: ServiceStatus;
   runStatus: ContourRunStatus;
   runStartedAt: number | null;
@@ -58,6 +61,7 @@ interface ContourState {
   transectStartedAt: number | null;
   activeProfileIndex: number | null;
   setInterval: (v: number) => void;
+  setBufferM: (v: number) => void;
   toggleLayer: (id: ContourLayerId) => void;
   setLayers: (next: Partial<Record<ContourLayerId, boolean>>) => void;
   runAnalysis: (polygon: GeoJSONLike) => Promise<void>;
@@ -93,6 +97,8 @@ export const useContourStore = create<ContourState>()(
     interval: DEFAULT_INTERVAL,
     intervalError: null,
     resultInterval: null,
+    bufferM: DEFAULT_BUFFER_M,
+    resultBufferM: null,
     serviceStatus: "unknown",
     runStatus: "idle",
     runStartedAt: null,
@@ -119,6 +125,12 @@ export const useContourStore = create<ContourState>()(
       set({ interval: Math.round(v), intervalError: null });
     },
 
+    setBufferM: (v) => {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 0 || n > MAX_BUFFER_M) return;
+      set({ bufferM: n });
+    },
+
     toggleLayer: (id) =>
       set((s) => ({ layers: { ...s.layers, [id]: !s.layers[id] } })),
 
@@ -136,7 +148,7 @@ export const useContourStore = create<ContourState>()(
         set({ error: clientMissingPolygonError(), runStatus: "failed" });
         return;
       }
-      const { interval, intervalError } = get();
+      const { interval, intervalError, bufferM } = get();
       if (intervalError || interval < MIN_INTERVAL || interval > MAX_INTERVAL) {
         set({ intervalError: copy.interval.invalid, error: mapContourError(422, "contour_interval") });
         return;
@@ -152,13 +164,14 @@ export const useContourStore = create<ContourState>()(
       });
       try {
         const { getContourAnalysis } = await import("../api/analysis");
-        const moduleResult = await getContourAnalysis(polygon, interval, controller.signal);
+        const moduleResult = await getContourAnalysis(polygon, interval, controller.signal, bufferM);
         const { useAnalysisStore } = await import("./analysis");
         useAnalysisStore.getState().setModuleResult("contour", moduleResult);
         const contour = moduleResult.contour ?? null;
         set((s) => ({
           result: contour,
           resultInterval: interval,
+          resultBufferM: bufferM,
           runStatus: "succeeded",
           abortController: null,
           error: null,
@@ -252,6 +265,7 @@ export const useContourStore = create<ContourState>()(
           polygon,
           transectLineGeoJSON(line),
           controller.signal,
+          get().resultBufferM ?? get().bufferM,
         );
         set({
           transectResult,
@@ -290,6 +304,8 @@ export const useContourStore = create<ContourState>()(
         interval: DEFAULT_INTERVAL,
         intervalError: null,
         resultInterval: null,
+        bufferM: DEFAULT_BUFFER_M,
+        resultBufferM: null,
         serviceStatus: "unknown",
         runStatus: "idle",
         runStartedAt: null,

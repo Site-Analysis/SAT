@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import { PANE } from "@/lib/contour/constants";
 import { buildProfileLocator } from "@/lib/contour/geometry";
 import { C } from "@/components/contour/theme";
 import { useContourStore } from "@/lib/stores/contour";
@@ -56,7 +57,7 @@ export function TransectCursorMarker() {
           return;
         }
         m.setLatLng(latlng);
-        m.setRadius(7);
+        m.setRadius(8);
       },
     );
     return () => {
@@ -65,6 +66,45 @@ export function TransectCursorMarker() {
       markerRef.current = null;
     };
   }, [map, locator]);
+
+  useEffect(() => {
+    if (!result || line.length < 2) return;
+    const hit = L.polyline(line, {
+      weight: 18,
+      opacity: 0,
+      pane: PANE.transect.name,
+      interactive: true,
+      bubblingMouseEvents: false,
+    });
+    hit.addTo(map);
+    const onMove = (e: L.LeafletMouseEvent) => {
+      const pts = useContourStore.getState().transectResult?.points;
+      if (!pts?.length) return;
+      let best = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const pt = pts[i];
+        let latlng: [number, number] | null = null;
+        if (pt.lat != null && pt.lng != null) latlng = [pt.lat, pt.lng];
+        else if (locator) latlng = locator(pt.distance_m);
+        if (!latlng) continue;
+        const d = map.distance(e.latlng, latlng);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      useContourStore.getState().setActiveProfileIndex(best);
+    };
+    const onOut = () => useContourStore.getState().setActiveProfileIndex(null);
+    hit.on("mousemove", onMove);
+    hit.on("mouseout", onOut);
+    return () => {
+      hit.off("mousemove", onMove);
+      hit.off("mouseout", onOut);
+      hit.remove();
+    };
+  }, [map, result, line, locator]);
 
   return null;
 }

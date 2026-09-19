@@ -16,11 +16,23 @@ class ContourRequest(BaseModel):
         le=60,
         description="Contour interval in metres. Min 10m, max 60m.",
     )
+    buffer_m: float = Field(
+        default=0,
+        ge=0,
+        le=500,
+        description="Offset in metres around the site polygon for DEM/contour context.",
+    )
 
 
 class TransectRequest(BaseModel):
     polygon: dict
     transect_line: dict
+    buffer_m: float = Field(
+        default=0,
+        ge=0,
+        le=500,
+        description="Offset in metres around the site polygon for DEM sampling.",
+    )
 
 
 class DEMMetadata(BaseModel):
@@ -29,6 +41,7 @@ class DEMMetadata(BaseModel):
     vertical_rmse_m: float
     contour_interval_m: int
     warning: str | None = None
+    buffer_m: float = 0
 
 
 class SlopeStats(BaseModel):

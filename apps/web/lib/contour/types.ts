@@ -8,7 +8,7 @@ export type GeoJSONLike = Record<string, unknown>;
 export type SlopeClassId = (typeof SLOPE_CLASSES)[number]["id"];
 export type BuildabilityClassId = (typeof BUILDABILITY_CLASSES)[number]["id"];
 
-export type ContourLayerId = "hillshade" | "contours" | "slope" | "buildability";
+export type ContourLayerId = "hillshade" | "contours" | "contourLabels" | "slope" | "buildability";
 export type ContourRunStatus = "idle" | "running" | "succeeded" | "failed" | "cancelled";
 export type TransectStatus = "idle" | "drawing" | "ready" | "running" | "succeeded" | "failed";
 
@@ -30,6 +30,7 @@ export interface DEMMetadata {
   vertical_rmse_m: number;
   contour_interval_m: number;
   warning?: string | null;
+  buffer_m?: number;
 }
 
 export interface SlopeStats {

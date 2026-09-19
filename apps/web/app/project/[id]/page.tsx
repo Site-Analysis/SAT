@@ -139,14 +139,6 @@ const TransectCursorMarker = dynamic(
   () => import("@/components/map/contour/TransectCursorMarker").then((m) => m.TransectCursorMarker),
   { ssr: false }
 );
-const ContourLayerControl = dynamic(
-  () => import("@/components/map/contour/ContourLayerControl").then((m) => m.ContourLayerControl),
-  { ssr: false }
-);
-const ContourLegend = dynamic(
-  () => import("@/components/map/contour/ContourLegend").then((m) => m.ContourLegend),
-  { ssr: false }
-);
 const ContourMapStatus = dynamic(
   () => import("@/components/map/contour/ContourMapStatus").then((m) => m.ContourMapStatus),
   { ssr: false }
@@ -604,13 +596,9 @@ export default function ProjectPage() {
                 {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                   <SunOverlay result={result} />
                 )}
-                {contourVisible && (
-                  <>
-                    <ContourLayerControl />
-                    <ContourLegend />
+                  {contourVisible && (
                     <ContourMapStatus />
-                  </>
-                )}
+                  )}
                 {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                   <>
                     <ZoningComplianceHUD result={result} variant="full" corner="tl" />
@@ -923,11 +911,7 @@ export default function ProjectPage() {
                     <SunOverlay result={modules.sunpath} />
                   )}
                   {contourVisible && (
-                    <>
-                      <ContourLayerControl />
-                      <ContourLegend />
-                      <ContourMapStatus />
-                    </>
+                    <ContourMapStatus />
                   )}
                   {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                     <>
