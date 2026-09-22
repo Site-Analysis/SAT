@@ -72,7 +72,10 @@ def test_analyze_flag_on(monkeypatch):
         "_fetch_rain",
         lambda *a, **k: {"annual_mean_mm": 2400.0, "max_daily_mm": 180.0, "high_rain_days": 22},
     )
-    monkeypatch.setattr(flood_router.service, "_fetch_water_distance", lambda *a, **k: 150.0)
+    # (distance_m, degraded) — degraded=False means this is a real measurement.
+    monkeypatch.setattr(
+        flood_router.service, "_fetch_water_distance", lambda *a, **k: (150.0, False)
+    )
 
     resp = CLIENT.post(
         "/flood/analyze",
@@ -104,6 +107,8 @@ def test_overpass_request_sets_user_agent():
     sent = {}
 
     class _FakeResp:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 
@@ -122,3 +127,92 @@ def test_overpass_request_sets_user_agent():
     assert "overpass" in sent["url"].lower()
     assert ua, "no User-Agent sent to Overpass"
     assert "httpx" not in ua.lower(), f"default httpx UA leaked: {ua!r}"
+
+
+@skip_no_app
+def test_overpass_rate_limit_is_retried_not_treated_as_no_water(monkeypatch):
+    """A 429 must be retried, not silently read as "no water nearby".
+
+    Regression guard for #91: under the shared production egress IP, Overpass
+    rate-limits this query, the old code swallowed it and returned the search
+    radius, and the report claimed no water beside a site next to Bellandur lake.
+    """
+    from app.services import flood_service as fs
+
+    monkeypatch.setattr(fs, "_OVERPASS_ATTEMPTS", 2)
+    monkeypatch.setattr(fs, "_OVERPASS_BACKOFF_S", 0.0)
+    calls = {"n": 0}
+
+    class _Resp:
+        def __init__(self, status):
+            self.status_code = status
+            self.request = None
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            # 120 m due north — comfortably inside the 5000 m clamp, so a fallback
+            # would be distinguishable from this by value.
+            return {"elements": [{"lat": 19.0711, "lon": 72.87}]}
+
+    class _Client:
+        def post(self, url, **kwargs):
+            calls["n"] += 1
+            return _Resp(429 if calls["n"] == 1 else 200)
+
+    svc = fs.FloodRiskService()
+    dist, degraded = svc._fetch_water_distance(_Client(), 19.07, 72.87, 1000.0)
+
+    assert calls["n"] == 2, "the 429 was not retried"
+    assert degraded is False, "a successful retry must not be reported as degraded"
+    assert dist < 5000.0, f"real measurement expected, got the fallback clamp: {dist}"
+
+
+@skip_no_app
+def test_exhausted_overpass_marks_hydrology_unavailable(monkeypatch):
+    """When every attempt fails the response must not still advertise Overpass.
+
+    A fallback 5000 m and a measured 5000 m are identical by value, so the only way
+    a caller can tell them apart is the metadata saying so.
+    """
+    from app.services import flood_service as fs
+
+    monkeypatch.setattr(fs, "_OVERPASS_ATTEMPTS", 2)
+    monkeypatch.setattr(fs, "_OVERPASS_BACKOFF_S", 0.0)
+
+    class _Resp:
+        status_code = 504
+        request = None
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {}
+
+    class _Client:
+        def post(self, url, **kwargs):
+            return _Resp()
+
+    svc = fs.FloodRiskService()
+    dist, degraded = svc._fetch_water_distance(_Client(), 19.07, 72.87, 1000.0)
+
+    assert degraded is True
+    assert dist == 5000.0
+
+    # …and the degraded flag must reach the caller-visible metadata.
+    monkeypatch.setattr(svc, "_fetch_elevation", lambda *a, **k: 8.0)
+    monkeypatch.setattr(
+        svc,
+        "_fetch_rain",
+        lambda *a, **k: {"annual_mean_mm": 2400.0, "max_daily_mm": 180.0, "high_rain_days": 22},
+    )
+    monkeypatch.setattr(svc, "_fetch_water_distance", lambda *a, **k: (5000.0, True))
+
+    from app.models.flood import FloodRequest
+
+    report = svc.analyze(FloodRequest(latitude=19.07, longitude=72.87, radius_meters=1000))
+    src = report.metadata.data_source
+    assert "UNAVAILABLE" in src, f"degraded run still advertises a live source: {src!r}"
+    assert "water body proximity" not in src
