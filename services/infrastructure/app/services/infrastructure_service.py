@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import math
 import os
 from typing import Any
@@ -18,9 +20,67 @@ from app.models.infrastructure import (
     UtilityPresence,
 )
 
+logger = logging.getLogger("infrastructure")
+
 OVERPASS_URL = os.getenv("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
 # User-Agent required — public Overpass mirrors 403/406 the default httpx UA.
 _OVERPASS_HEADERS = {"User-Agent": "SAT-SiteAnalysisTool/1.0"}
+
+# analyze() fires five Overpass queries. overpass-api.de allots a couple of slots per
+# client IP, and firing them back to back exhausts those slots: queries 2-5 draw 429 or
+# 504 and the whole analysis 502s. Each query succeeds on its own, and a retry seconds
+# later succeeds — so the burst is the problem, not the queries.
+#
+# Two mitigations, both deliberately small: space the queries out so the slots are not
+# exhausted in the first place, and retry the ones that still trip the limit.
+_OVERPASS_RETRY_STATUS = {429, 502, 503, 504}
+_OVERPASS_ATTEMPTS = int(os.getenv("OVERPASS_ATTEMPTS", "2"))
+_OVERPASS_BACKOFF_S = float(os.getenv("OVERPASS_BACKOFF_SECONDS", "2.0"))
+_OVERPASS_PACING_S = float(os.getenv("OVERPASS_PACING_SECONDS", "1.0"))
+
+
+async def _overpass_post(client: httpx.AsyncClient, query: str, label: str) -> dict[str, Any]:
+    """POST one Overpass query, retrying the rate-limit statuses.
+
+    The previous code called `.json()` straight off the response without looking at the
+    status. A rate-limited Overpass replies 429/504 with an HTML body, so `.json()`
+    raised and every upstream condition collapsed into one opaque 502 — which is why the
+    logs showed a 504 from Overpass surfacing as a 502 with no indication of the cause.
+    Checking the status explicitly is what makes the failure legible *and* retryable.
+    """
+    last_error: Exception | None = None
+    for attempt in range(_OVERPASS_ATTEMPTS):
+        try:
+            resp = await client.post(OVERPASS_URL, data={"data": query})
+            if resp.status_code in _OVERPASS_RETRY_STATUS:
+                last_error = httpx.HTTPStatusError(
+                    f"Overpass {resp.status_code} for {label}",
+                    request=resp.request,
+                    response=resp,
+                )
+                logger.warning(
+                    "Overpass %s for %s (attempt %d/%d)",
+                    resp.status_code,
+                    label,
+                    attempt + 1,
+                    _OVERPASS_ATTEMPTS,
+                )
+            else:
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as exc:  # noqa: BLE001 — retried below, re-raised if terminal
+            last_error = exc
+            logger.warning(
+                "Overpass request failed for %s (attempt %d/%d): %s",
+                label,
+                attempt + 1,
+                _OVERPASS_ATTEMPTS,
+                exc,
+            )
+        if attempt < _OVERPASS_ATTEMPTS - 1:
+            await asyncio.sleep(_OVERPASS_BACKOFF_S * (2**attempt))
+    raise last_error if last_error else RuntimeError(f"Overpass failed for {label}")
+
 
 # Paved road surfaces get a score bonus; unpaved get a penalty.
 _PAVED_SURFACES = {"paved", "asphalt", "concrete", "tarmac", "tar", "bituminous"}
@@ -175,15 +235,31 @@ out center tags 10;
 );
 out center tags 15;
 """
+        queries = [
+            ("road", road_query),
+            ("transit", transit_query),
+            ("utility", utility_query),
+            ("power", power_query),
+            ("telecom", telecom_query),
+        ]
+        results: dict[str, dict[str, Any]] = {}
         try:
             async with httpx.AsyncClient(timeout=35, headers=_OVERPASS_HEADERS) as c:
-                r_road = (await c.post(OVERPASS_URL, data={"data": road_query})).json()
-                r_transit = (await c.post(OVERPASS_URL, data={"data": transit_query})).json()
-                r_util = (await c.post(OVERPASS_URL, data={"data": utility_query})).json()
-                r_power = (await c.post(OVERPASS_URL, data={"data": power_query})).json()
-                r_telecom = (await c.post(OVERPASS_URL, data={"data": telecom_query})).json()
-        except Exception:
-            raise HTTPException(status_code=502, detail="OSM upstream unavailable")
+                for i, (label, query) in enumerate(queries):
+                    # Pace the burst rather than firing all five at once. The delay goes
+                    # *between* queries only, so a single-query analysis is unaffected.
+                    if i and _OVERPASS_PACING_S > 0:
+                        await asyncio.sleep(_OVERPASS_PACING_S)
+                    results[label] = await _overpass_post(c, query, label)
+        except Exception as exc:  # noqa: BLE001 — surfaced as 502 below
+            logger.error("Overpass unavailable after retries: %s", exc)
+            raise HTTPException(status_code=502, detail="OSM upstream unavailable") from exc
+
+        r_road = results["road"]
+        r_transit = results["transit"]
+        r_util = results["utility"]
+        r_power = results["power"]
+        r_telecom = results["telecom"]
 
         # ── Road access ────────────────────────────────────────────────────
         road_elements = r_road.get("elements", [])

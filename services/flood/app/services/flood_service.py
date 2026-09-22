@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import time
 from datetime import date, timedelta
 
 import httpx
@@ -22,9 +24,20 @@ from app.settings import FloodSettings
 
 _OPENMETEO_ELEVATION = "https://api.open-meteo.com/v1/elevation"
 _OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
-_OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+# Env-overridable so this can be pointed at a private mirror without a code change —
+# `infrastructure` already reads OVERPASS_URL this way and flood hardcoded it, which
+# meant the two services could not be repointed together.
+_OVERPASS_URL = os.getenv("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
 # User-Agent required — public Overpass mirrors 403/406 the default httpx UA.
 _OVERPASS_HEADERS = {"User-Agent": "SAT-SiteAnalysisTool/1.0"}
+
+# All ten services share one egress IP in production, so flood competes for the same
+# per-IP Overpass slots that infrastructure's five-query burst exhausts. A single flood
+# query usually succeeds, but under that contention it draws a 429/504 and silently
+# falls back — see _fetch_water_distance.
+_OVERPASS_RETRY_STATUS = {429, 502, 503, 504}
+_OVERPASS_ATTEMPTS = int(os.getenv("OVERPASS_ATTEMPTS", "2"))
+_OVERPASS_BACKOFF_S = float(os.getenv("OVERPASS_BACKOFF_SECONDS", "2.0"))
 
 logger = logging.getLogger("flood")
 
@@ -37,7 +50,7 @@ class FloodRiskService:
         with httpx.Client(timeout=35) as client:
             elevation_m = self._fetch_elevation(client, request.latitude, request.longitude)
             rain = self._fetch_rain(client, request.latitude, request.longitude)
-            water_dist = self._fetch_water_distance(
+            water_dist, water_degraded = self._fetch_water_distance(
                 client, request.latitude, request.longitude, request.radius_meters
             )
 
@@ -95,9 +108,18 @@ class FloodRiskService:
             latitude=request.latitude,
             longitude=request.longitude,
             radius_meters=request.radius_meters,
+            # Never advertise Overpass as a source when the lookup did not happen. The
+            # returned distance is then the clamp constant, and a caller comparing
+            # `nearest_river_distance_m` against a threshold cannot otherwise tell a
+            # measured 5000 m from a fallback 5000 m.
             data_source=(
                 "Open-Meteo (SRTM elevation + ERA5 precipitation · 5-year daily) "
-                "· OSM Overpass (water body proximity)"
+                + (
+                    "· hydrology UNAVAILABLE (OSM Overpass lookup failed; "
+                    "water-body distance is a fallback constant, not a measurement)"
+                    if water_degraded
+                    else "· OSM Overpass (water body proximity)"
+                )
             ),
             gee_enabled=False,
         )
@@ -162,7 +184,15 @@ class FloodRiskService:
 
     def _fetch_water_distance(
         self, client: httpx.Client, lat: float, lon: float, radius_m: float
-    ) -> float:
+    ) -> tuple[float, bool]:
+        """Nearest water-body distance, and whether that number is a real measurement.
+
+        Returns `(distance_m, degraded)`. `degraded=True` means the Overpass lookup did
+        not happen and `distance_m` is the clamp constant, not a measurement. Callers
+        MUST NOT present a degraded value as hydrology data: a real 5000 m and a
+        fallback 5000 m are indistinguishable by value alone, and the fallback flattens
+        hydrology risk for a site that may sit beside a lake.
+        """
         search_r = max(radius_m, 5000.0)
         query = (
             f"[out:json][timeout:20];\n"
@@ -173,18 +203,53 @@ class FloodRiskService:
             f");\n"
             f"out center 30;"
         )
-        try:
-            resp = client.post(
-                _OVERPASS_URL, data={"data": query}, timeout=25, headers=_OVERPASS_HEADERS
-            )
-            resp.raise_for_status()
-            elements = resp.json().get("elements", [])
-        except Exception:
+        elements: list[dict] | None = None
+        last_error: Exception | None = None
+        for attempt in range(_OVERPASS_ATTEMPTS):
+            try:
+                resp = client.post(
+                    _OVERPASS_URL, data={"data": query}, timeout=25, headers=_OVERPASS_HEADERS
+                )
+                # Retry the rate-limit statuses rather than treating them as "no water".
+                # Probing production showed a query that 429s succeeding seconds later,
+                # so a single retry recovers most of these.
+                if resp.status_code in _OVERPASS_RETRY_STATUS:
+                    last_error = httpx.HTTPStatusError(
+                        f"Overpass {resp.status_code}", request=resp.request, response=resp
+                    )
+                    logger.warning(
+                        "Overpass water-body lookup got %s (attempt %d/%d)",
+                        resp.status_code,
+                        attempt + 1,
+                        _OVERPASS_ATTEMPTS,
+                    )
+                else:
+                    resp.raise_for_status()
+                    elements = resp.json().get("elements", [])
+                    break
+            except Exception as exc:  # noqa: BLE001 — retried below, degraded if terminal
+                last_error = exc
+                logger.warning(
+                    "Overpass water-body lookup failed (attempt %d/%d): %s",
+                    attempt + 1,
+                    _OVERPASS_ATTEMPTS,
+                    exc,
+                )
+            if attempt < _OVERPASS_ATTEMPTS - 1:
+                time.sleep(_OVERPASS_BACKOFF_S * (2**attempt))
+
+        if elements is None:
             # Conservative fallback: treat as "no water within the search radius".
-            # Logged because this silently flattens hydrology risk for every site —
-            # a 6-week Overpass 406 outage went unnoticed exactly this way.
-            logger.warning("Overpass water-body lookup failed; using %.0f m fallback", search_r)
-            return search_r
+            # Logged AND reported as degraded — this silently flattens hydrology risk
+            # for every affected site, and a 6-week Overpass 406 outage went unnoticed
+            # exactly this way when the only signal was a log line.
+            logger.warning(
+                "Overpass water-body lookup failed after %d attempts; using %.0f m fallback: %s",
+                _OVERPASS_ATTEMPTS,
+                search_r,
+                last_error,
+            )
+            return search_r, True
 
         min_dist = float(search_r)
         for el in elements:
@@ -195,7 +260,7 @@ class FloodRiskService:
             dist = self._haversine(lat, lon, float(clat), float(clon))
             if dist < min_dist:
                 min_dist = dist
-        return min_dist
+        return min_dist, False
 
     # ── risk scoring ────────────────────────────────────────────────────────
 

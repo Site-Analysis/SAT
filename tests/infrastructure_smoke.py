@@ -127,7 +127,10 @@ def test_overpass_request_sets_user_agent(monkeypatch):
 
         async def post(self, url, **kwargs):
             seen["url"] = url
-            return httpx.Response(200, json={"elements": []})
+            # `request=` is required: the service now calls raise_for_status() to
+            # detect rate-limit statuses, and httpx refuses that on a response with
+            # no request attached. Real httpx always sets it.
+            return httpx.Response(200, json={"elements": []}, request=httpx.Request("POST", url))
 
     monkeypatch.setattr(svc.httpx, "AsyncClient", _FakeAsyncClient)
 
@@ -139,3 +142,74 @@ def test_overpass_request_sets_user_agent(monkeypatch):
     assert "overpass" in seen["url"].lower()
     assert ua, "no User-Agent sent to Overpass"
     assert "httpx" not in ua.lower(), f"default httpx UA leaked: {ua!r}"
+
+
+@skip_no_app
+def test_overpass_rate_limit_is_retried_before_502(monkeypatch):
+    """A rate-limited query must be retried, not collapsed straight into a 502.
+
+    Regression guard for #91: analyze() fires five Overpass queries back to back,
+    which exhausts the per-IP slots. The old code called .json() without checking
+    the status, so a 429/504 HTML body raised and every upstream condition became
+    one opaque 502 — 0/6 requests succeeded in production.
+    """
+    import asyncio
+
+    from app.services import infrastructure_service as isvc
+
+    monkeypatch.setattr(isvc, "_OVERPASS_ATTEMPTS", 2)
+    monkeypatch.setattr(isvc, "_OVERPASS_BACKOFF_S", 0.0)
+    calls = {"n": 0}
+
+    class _Resp:
+        def __init__(self, status):
+            self.status_code = status
+            self.request = None
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"elements": []}
+
+    class _Client:
+        async def post(self, url, **kwargs):
+            calls["n"] += 1
+            return _Resp(429 if calls["n"] == 1 else 200)
+
+    out = asyncio.run(isvc._overpass_post(_Client(), "[out:json];", "road"))
+
+    assert calls["n"] == 2, "the 429 was not retried"
+    assert out == {"elements": []}
+
+
+@skip_no_app
+def test_overpass_gives_up_after_attempts(monkeypatch):
+    """Persistent failure still raises, so analyze() can surface its 502."""
+    import asyncio
+
+    import pytest as _pytest
+    from app.services import infrastructure_service as isvc
+
+    monkeypatch.setattr(isvc, "_OVERPASS_ATTEMPTS", 2)
+    monkeypatch.setattr(isvc, "_OVERPASS_BACKOFF_S", 0.0)
+    calls = {"n": 0}
+
+    class _Resp:
+        status_code = 504
+        request = None
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {}
+
+    class _Client:
+        async def post(self, url, **kwargs):
+            calls["n"] += 1
+            return _Resp()
+
+    with _pytest.raises(Exception):
+        asyncio.run(isvc._overpass_post(_Client(), "[out:json];", "road"))
+    assert calls["n"] == 2, "did not use every allotted attempt"
