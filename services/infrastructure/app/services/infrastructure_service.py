@@ -26,17 +26,18 @@ OVERPASS_URL = os.getenv("OVERPASS_URL", "https://overpass-api.de/api/interprete
 # User-Agent required — public Overpass mirrors 403/406 the default httpx UA.
 _OVERPASS_HEADERS = {"User-Agent": "SAT-SiteAnalysisTool/1.0"}
 
-# analyze() fires five Overpass queries. overpass-api.de allots a couple of slots per
-# client IP, and firing them back to back exhausts those slots: queries 2-5 draw 429 or
-# 504 and the whole analysis 502s. Each query succeeds on its own, and a retry seconds
-# later succeeds — so the burst is the problem, not the queries.
+# analyze() used to fire five Overpass queries back to back. overpass-api.de allots a
+# couple of slots per client IP, so that burst exhausted them: queries 2-5 drew 429/504
+# and the whole analysis 502'd. It now sends ONE request (see _merged_query), which
+# removes the burst at source rather than pacing around it — five slots per analysis
+# becomes one, and with ten services sharing a single production egress IP that is the
+# difference that matters.
 #
-# Two mitigations, both deliberately small: space the queries out so the slots are not
-# exhausted in the first place, and retry the ones that still trip the limit.
+# Retry is kept regardless: one request can still be rate-limited when other services
+# are competing for the same slots.
 _OVERPASS_RETRY_STATUS = {429, 502, 503, 504}
 _OVERPASS_ATTEMPTS = int(os.getenv("OVERPASS_ATTEMPTS", "2"))
 _OVERPASS_BACKOFF_S = float(os.getenv("OVERPASS_BACKOFF_SECONDS", "2.0"))
-_OVERPASS_PACING_S = float(os.getenv("OVERPASS_PACING_SECONDS", "1.0"))
 
 
 async def _overpass_post(client: httpx.AsyncClient, query: str, label: str) -> dict[str, Any]:
@@ -80,6 +81,137 @@ async def _overpass_post(client: httpx.AsyncClient, query: str, label: str) -> d
         if attempt < _OVERPASS_ATTEMPTS - 1:
             await asyncio.sleep(_OVERPASS_BACKOFF_S * (2**attempt))
     raise last_error if last_error else RuntimeError(f"Overpass failed for {label}")
+
+
+def _merged_query(lat: float, lon: float, radius_m: float) -> str:
+    """The five former queries as one request, using named sets.
+
+    Each group keeps its own `out ... N` limit, so the element budget per group is
+    unchanged (25/30/20/10/15) — verified against the live API: the merged form
+    returns exactly 25 roads + 30 transit for a Bengaluru point, with no duplicates.
+    Per-clause radii are unchanged too; they live in the clauses, not in the request.
+
+    The timeout is the sum of the old per-query timeouts (20+20+20+15+15) because one
+    request now does all the work.
+    """
+    return f"""
+[out:json][timeout:90];
+way[highway~"^(motorway|trunk|primary|secondary|tertiary|residential|service)$"](around:{radius_m},{lat},{lon})->.roads;
+(
+  node[railway~"^(station|subway_entrance|halt)$"](around:5000,{lat},{lon});
+  node[public_transport=stop_position][network](around:2000,{lat},{lon});
+  node[highway=bus_stop](around:1000,{lat},{lon});
+)->.transit;
+(
+  node[amenity=water_works](around:3000,{lat},{lon});
+  node[man_made=water_tower](around:3000,{lat},{lon});
+  node[power=substation](around:2000,{lat},{lon});
+  node[man_made~"^(wastewater_plant|sewage_works)$"](around:3000,{lat},{lon});
+  way[waterway~"^(drain|ditch)$"](around:1000,{lat},{lon});
+)->.utility;
+(
+  way[power=line](around:1000,{lat},{lon});
+  way[power=cable](around:500,{lat},{lon});
+)->.power;
+(
+  node[man_made=mast](around:2000,{lat},{lon});
+  node[man_made=communications_tower](around:2000,{lat},{lon});
+  node[man_made=tower]["tower:type"=communication](around:2000,{lat},{lon});
+)->.telecom;
+.roads out center tags 25;
+.transit out center tags 30;
+.utility out center tags 20;
+.power out center tags 10;
+.telecom out center tags 15;
+"""
+
+
+# ── Response grouping ──────────────────────────────────────────────────────────
+# The five queries are sent as one request (see _merged_query). Overpass returns a
+# single flat element list, so the groups have to be reconstructed here.
+#
+# These predicates mirror each query's filter EXACTLY, and an element may land in
+# more than one group — that is deliberate: sent as five separate queries, an element
+# matching two filters came back in both responses, so multi-membership preserves the
+# old behaviour rather than breaking it.
+#
+# Reconstructing the groups is not cosmetic. `road_access` picks the *nearest*
+# element from its group, so a flat list would let a bus stop win the "nearest road"
+# slot and silently change every road score.
+_ROAD_HIGHWAYS = {
+    "motorway",
+    "trunk",
+    "primary",
+    "secondary",
+    "tertiary",
+    "residential",
+    "service",
+}
+_TRANSIT_RAILWAYS = {"station", "subway_entrance", "halt"}
+_UTILITY_MAN_MADE = {"water_tower", "wastewater_plant", "sewage_works"}
+_TELECOM_MAN_MADE = {"mast", "communications_tower"}
+
+
+def _groups_for(el: dict[str, Any]) -> set[str]:
+    """Which of the five original queries would have returned this element."""
+    kind = el.get("type")
+    tags = el.get("tags") or {}
+    groups: set[str] = set()
+
+    if kind == "way" and tags.get("highway") in _ROAD_HIGHWAYS:
+        groups.add("road")
+
+    if kind == "node" and (
+        tags.get("railway") in _TRANSIT_RAILWAYS
+        or (tags.get("public_transport") == "stop_position" and tags.get("network"))
+        or tags.get("highway") == "bus_stop"
+    ):
+        groups.add("transit")
+
+    if (
+        kind == "node"
+        and (
+            tags.get("amenity") == "water_works"
+            or tags.get("man_made") in _UTILITY_MAN_MADE
+            or tags.get("power") == "substation"
+        )
+    ) or (kind == "way" and tags.get("waterway") in {"drain", "ditch"}):
+        groups.add("utility")
+
+    if kind == "way" and tags.get("power") in {"line", "cable"}:
+        groups.add("power")
+
+    if kind == "node" and (
+        tags.get("man_made") in _TELECOM_MAN_MADE
+        or (tags.get("man_made") == "tower" and tags.get("tower:type") == "communication")
+    ):
+        groups.add("telecom")
+
+    return groups
+
+
+def _split_by_group(elements: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Rebuild the five per-query responses the parser below already expects.
+
+    Deduplicated per group by (type, id): an element appearing under two `out`
+    statements must not be counted twice within one group.
+    """
+    seen: dict[str, set[tuple[str, int]]] = {}
+    out: dict[str, list[dict[str, Any]]] = {
+        "road": [],
+        "transit": [],
+        "utility": [],
+        "power": [],
+        "telecom": [],
+    }
+    for el in elements:
+        key = (str(el.get("type")), int(el.get("id", 0)))
+        for group in _groups_for(el):
+            if key in seen.setdefault(group, set()):
+                continue
+            seen[group].add(key)
+            out[group].append(el)
+    return {group: {"elements": els} for group, els in out.items()}
 
 
 # Paved road surfaces get a score bonus; unpaved get a penalty.
@@ -191,70 +323,15 @@ def _road_score(nearest_road_m: float, road_type: str | None, surface: str | Non
 class InfrastructureService:
     async def analyze(self, lat: float, lon: float, radius_m: float = 2000) -> InfraResult:
         # Aerodromes excluded from transit — airport proximity is in Planning service.
-        road_query = f"""
-[out:json][timeout:20];
-(
-  way[highway~"^(motorway|trunk|primary|secondary|tertiary|residential|service)$"](around:{radius_m},{lat},{lon});
-);
-out center tags 25;
-"""
-        transit_query = f"""
-[out:json][timeout:20];
-(
-  node[railway~"^(station|subway_entrance|halt)$"](around:5000,{lat},{lon});
-  node[public_transport=stop_position][network](around:2000,{lat},{lon});
-  node[highway=bus_stop](around:1000,{lat},{lon});
-);
-out center tags 30;
-"""
-        utility_query = f"""
-[out:json][timeout:20];
-(
-  node[amenity=water_works](around:3000,{lat},{lon});
-  node[man_made=water_tower](around:3000,{lat},{lon});
-  node[power=substation](around:2000,{lat},{lon});
-  node[man_made~"^(wastewater_plant|sewage_works)$"](around:3000,{lat},{lon});
-  way[waterway~"^(drain|ditch)$"](around:1000,{lat},{lon});
-);
-out center tags 20;
-"""
-        power_query = f"""
-[out:json][timeout:15];
-(
-  way[power=line](around:1000,{lat},{lon});
-  way[power=cable](around:500,{lat},{lon});
-);
-out center tags 10;
-"""
-        telecom_query = f"""
-[out:json][timeout:15];
-(
-  node[man_made=mast](around:2000,{lat},{lon});
-  node[man_made=communications_tower](around:2000,{lat},{lon});
-  node[man_made=tower]["tower:type"=communication](around:2000,{lat},{lon});
-);
-out center tags 15;
-"""
-        queries = [
-            ("road", road_query),
-            ("transit", transit_query),
-            ("utility", utility_query),
-            ("power", power_query),
-            ("telecom", telecom_query),
-        ]
-        results: dict[str, dict[str, Any]] = {}
+        query = _merged_query(lat, lon, radius_m)
         try:
             async with httpx.AsyncClient(timeout=35, headers=_OVERPASS_HEADERS) as c:
-                for i, (label, query) in enumerate(queries):
-                    # Pace the burst rather than firing all five at once. The delay goes
-                    # *between* queries only, so a single-query analysis is unaffected.
-                    if i and _OVERPASS_PACING_S > 0:
-                        await asyncio.sleep(_OVERPASS_PACING_S)
-                    results[label] = await _overpass_post(c, query, label)
+                payload = await _overpass_post(c, query, "infrastructure")
         except Exception as exc:  # noqa: BLE001 — surfaced as 502 below
             logger.error("Overpass unavailable after retries: %s", exc)
             raise HTTPException(status_code=502, detail="OSM upstream unavailable") from exc
 
+        results = _split_by_group(payload.get("elements", []))
         r_road = results["road"]
         r_transit = results["transit"]
         r_util = results["utility"]
