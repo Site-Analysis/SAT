@@ -213,3 +213,93 @@ def test_overpass_gives_up_after_attempts(monkeypatch):
     with _pytest.raises(Exception):
         asyncio.run(isvc._overpass_post(_Client(), "[out:json];", "road"))
     assert calls["n"] == 2, "did not use every allotted attempt"
+
+
+@skip_no_app
+def test_merged_response_splits_back_into_the_original_five_groups():
+    """The single merged query must reconstruct exactly what five queries returned.
+
+    This is the whole risk of collapsing the five requests into one (#91 option 2):
+    Overpass returns one flat element list, and `road_access` picks the *nearest*
+    element from its group — so if a bus stop leaked into the road group it would win
+    the "nearest road" slot and silently change every road score.
+
+    One representative element per original query clause, plus two deliberate traps.
+    """
+    from app.services import infrastructure_service as isvc
+
+    elements = [
+        # road_query — way with a road highway value
+        {"type": "way", "id": 1, "tags": {"highway": "primary", "name": "MG Rd"}},
+        # transit_query — all three clauses
+        {"type": "node", "id": 2, "tags": {"railway": "station", "name": "Majestic"}},
+        {
+            "type": "node",
+            "id": 3,
+            "tags": {"public_transport": "stop_position", "network": "BMTC"},
+        },
+        {"type": "node", "id": 4, "tags": {"highway": "bus_stop", "name": "Stop"}},
+        # utility_query — node clauses and the way clause
+        {"type": "node", "id": 5, "tags": {"amenity": "water_works"}},
+        {"type": "node", "id": 6, "tags": {"man_made": "water_tower"}},
+        {"type": "node", "id": 7, "tags": {"power": "substation"}},
+        {"type": "node", "id": 8, "tags": {"man_made": "sewage_works"}},
+        {"type": "way", "id": 9, "tags": {"waterway": "drain"}},
+        # power_query
+        {"type": "way", "id": 10, "tags": {"power": "line"}},
+        {"type": "way", "id": 11, "tags": {"power": "cable"}},
+        # telecom_query — including the tower:type clause
+        {"type": "node", "id": 12, "tags": {"man_made": "mast"}},
+        {"type": "node", "id": 13, "tags": {"man_made": "communications_tower"}},
+        {
+            "type": "node",
+            "id": 14,
+            "tags": {"man_made": "tower", "tower:type": "communication"},
+        },
+        # Trap 1: a bus stop is a node, and must NEVER land in the road group even
+        # though it carries a `highway` tag.
+        {"type": "node", "id": 15, "tags": {"highway": "bus_stop"}},
+        # Trap 2: a plain tower is NOT telecom without tower:type=communication.
+        {"type": "node", "id": 16, "tags": {"man_made": "tower"}},
+        # Trap 3: stop_position without a network did not match the original filter.
+        {"type": "node", "id": 17, "tags": {"public_transport": "stop_position"}},
+    ]
+
+    split = isvc._split_by_group(elements)
+    ids = {g: sorted(e["id"] for e in payload["elements"]) for g, payload in split.items()}
+
+    assert ids["road"] == [1], f"road group wrong: {ids['road']}"
+    assert ids["transit"] == [2, 3, 4, 15], f"transit group wrong: {ids['transit']}"
+    assert ids["utility"] == [5, 6, 7, 8, 9], f"utility group wrong: {ids['utility']}"
+    assert ids["power"] == [10, 11], f"power group wrong: {ids['power']}"
+    assert ids["telecom"] == [12, 13, 14], f"telecom group wrong: {ids['telecom']}"
+
+
+@skip_no_app
+def test_element_matching_two_queries_appears_in_both_groups():
+    """Multi-membership is intentional — five separate queries returned it twice.
+
+    A substation mapped as a node with a power tag matched utility_query; were it also
+    to match another clause, both responses contained it. Dropping it from one group
+    to make the split tidy would be a behaviour change.
+    """
+    from app.services import infrastructure_service as isvc
+
+    # A way that is both a drain (utility) and carries a road highway value (road).
+    el = {"type": "way", "id": 99, "tags": {"waterway": "drain", "highway": "service"}}
+    groups = isvc._groups_for(el)
+    assert groups == {"road", "utility"}, groups
+
+    split = isvc._split_by_group([el])
+    assert [e["id"] for e in split["road"]["elements"]] == [99]
+    assert [e["id"] for e in split["utility"]["elements"]] == [99]
+
+
+@skip_no_app
+def test_split_deduplicates_within_a_group():
+    """Two `out` statements can print the same element; it must count once per group."""
+    from app.services import infrastructure_service as isvc
+
+    el = {"type": "way", "id": 42, "tags": {"highway": "primary"}}
+    split = isvc._split_by_group([el, dict(el)])
+    assert [e["id"] for e in split["road"]["elements"]] == [42]
