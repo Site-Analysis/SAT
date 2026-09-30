@@ -37,6 +37,15 @@ export function MapContainer({
   children,
   className,
 }: MapContainerProps) {
+  // CARTO retired anonymous raster basemap tiles (28 Aug 2026) — unkeyed
+  // requests now return a 200 with an "API KEY REQUIRED" watermark baked
+  // into the tile image instead of an error. Free key, no account/approval
+  // queue: https://carto.com/basemaps/apikey/
+  const cartoKey = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+  const tileUrl = cartoKey
+    ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`
+    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
   return (
     <div
       className={cn(
@@ -55,7 +64,7 @@ export function MapContainer({
         zoomControl={false}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url={tileUrl}
           attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd"
           maxZoom={20}
