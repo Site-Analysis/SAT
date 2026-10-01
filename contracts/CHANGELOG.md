@@ -1,6 +1,6 @@
 # Contract Changelog
 
-## 2.2.0 — 2026-09-30
+## 2.11.0 — 2026-10-01
 
 ### Added — cadastral.yaml (new service, Builder-Prod integration)
 - New `services/cadastral` (port 8011); `cadastral.yaml` (v1.0.0) documents Karnataka
@@ -9,6 +9,37 @@
 - Gated by `feature.cadastral.land-records` (403 when disabled).
 - No authentication on this service yet (deferred).
 - Source: `Site-Analysis/Builder-Prod` branch `Cadestral`.
+## 2.10.0 - 2026-09-19
+
+### Added - contour.yaml (SAT-19 SME review: analysis offset)
+- Optional `buffer_m` (0–500, default 0) on `ContourRequest` and
+  `TransectRequest`. DEM and contour lines are generated for the polygon
+  plus this offset so surrounding slope direction is visible; slope and
+  buildability statistics stay clipped to the original site polygon.
+- Optional `buffer_m` echo on `DEMMetadata`.
+- `dem_metadata.warning` may now also report that no contour lines pass
+  through the site at the selected interval.
+
+## 2.9.0 - 2026-08-21
+
+### Added - contour.yaml (SAT-19 frontend contract addendum)
+- Optional `hillshade_bounds: [[south, west], [north, east]]` on `ContourResponse`
+  so the hillshade PNG can be georeferenced to the DEM pixel-snapped UTM box
+  rather than guessed from the site polygon (AD-5a).
+- Optional `lat` / `lng` on `TransectPoint` so the graph-to-map scrub marker
+  can sit on the exact sample rather than interpolating along the drawn line
+  (AD-5b). Both fields are additive and backwards-compatible.
+
+## 2.8.0 - 2026-07-14
+
+### Added - contour.yaml (new service, SAT-19 contour analysis)
+- New `services/contour`; `contour.yaml` (v1.0.0) documents:
+  - `POST /contour/analyze` -> `ContourResponse` (DEM metadata, slope/aspect
+    stats, contour lines, slope polygons, buildability zones, hillshade PNG).
+  - `POST /contour/transect` -> `TransectResponse` (sampled elevation profile).
+  - Gated by `feature.contour.analysis` (403 when disabled).
+- Data source: Copernicus DEM GLO-30 2024 (`COPERNICUS/DEM/GLO30_2024_1`, band
+  `DEM`), 30m DSM. Local DEM ingestion is planned as a follow-up source layer.
 
 ## 2.1.0 — 2026-06-20
 

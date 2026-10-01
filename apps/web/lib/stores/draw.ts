@@ -6,7 +6,7 @@
 import { create } from "zustand";
 
 export type RectBounds = [[number, number], [number, number]];
-export type DrawMode = "rect" | "circle" | "poly" | null;
+export type DrawMode = "rect" | "circle" | "poly" | "transect" | null;
 
 export interface DrawnBoundary {
   kind: "rect" | "poly";

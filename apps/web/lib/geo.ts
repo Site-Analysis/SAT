@@ -5,6 +5,21 @@
 
 export type LatLng = [number, number];
 
+/** Spherical polygon area in m². Promoted from DrawTools (pure move). */
+export function polygonAreaM2(pts: LatLng[]): number {
+  if (pts.length < 3) return 0;
+  const R = 6371000;
+  const lat0 = (pts.reduce((s, p) => s + p[0], 0) / pts.length) * Math.PI / 180;
+  const cosL = Math.cos(lat0);
+  const xy = pts.map((p) => [p[1] * Math.PI / 180 * R * cosL, p[0] * Math.PI / 180 * R]);
+  let area = 0;
+  for (let i = 0; i < xy.length; i++) {
+    const j = (i + 1) % xy.length;
+    area += xy[i][0] * xy[j][1] - xy[j][0] * xy[i][1];
+  }
+  return Math.abs(area / 2);
+}
+
 // Move `dist` metres along `bearingDeg` (0 = N, clockwise) from `center`.
 export function dest(center: LatLng, bearingDeg: number, distM: number): LatLng {
   const br = (bearingDeg * Math.PI) / 180;

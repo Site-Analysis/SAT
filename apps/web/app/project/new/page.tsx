@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sun, Waves, Thermometer, Wind, CloudRain, Scale } from "lucide-react";
+import { Sun, Waves, Thermometer, Wind, CloudRain, Scale, Mountain } from "lucide-react";
 import { TopNav } from "@/components/layout/TopNav";
 import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
@@ -48,6 +48,7 @@ const ANALYSIS_MODULES: { id: ModuleId; name: string; color: string; icon: React
   { id: "temperature", name: "Temperature",       color: "#EF4444", icon: <Thermometer size={15} />, desc: "Thermal profile, comfort" },
   { id: "wind",        name: "Wind",              color: "#06B6D4", icon: <Wind size={15} />,         desc: "Speed, ventilation, gusts" },
   { id: "rainfall",    name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={15} />,    desc: "Annual totals, wet days" },
+  { id: "contour",     name: "Contour",           color: "#2D6A4F", icon: <Mountain size={15} />,     desc: "Contours, slope, terrain profile" },
   { id: "zoning",      name: "Zoning",            color: "#B45309", icon: <Scale size={15} />,        desc: "Zone, LULC, FAR, NA order, DGCA" },
 ];
 

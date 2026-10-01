@@ -3,13 +3,17 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from .settings import BackendSettings
+try:
+    from .settings import BackendSettings
+except ImportError:  # Allows direct import when packages/settings/src is on sys.path.
+    from settings import BackendSettings
 
 
 @dataclass(frozen=True)
 class GeeCredentialsConfig:
-    project_id: str
+    project_id: str | None
     service_account_email: str
     service_account_key_path: Path
 
@@ -31,3 +35,17 @@ def load_gee_credentials_config(
         service_account_email=resolved.gee_service_account_email,
         service_account_key_path=key_path,
     )
+
+
+def initialize_gee(settings: BackendSettings | None = None) -> Any:
+    """Initialize Earth Engine with the shared backend credentials."""
+    import ee
+
+    config = load_gee_credentials_config(settings)
+    credentials = ee.ServiceAccountCredentials(
+        config.service_account_email,
+        str(config.service_account_key_path),
+    )
+    init_kwargs = {"project": config.project_id} if config.project_id else {}
+    ee.Initialize(credentials, **init_kwargs)
+    return ee

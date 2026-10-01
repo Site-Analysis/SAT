@@ -25,6 +25,7 @@ services/              FastAPI backends (one per analysis type)
   flood/               port 8002 — flood risk (GEE + MERIT/ALOS)
   wind/                port 8003 — wind climatology
   geo/                 port 8004 — base geo / vegetation / admin boundaries
+  contour/             port 8010 — terrain contours / slope / transect (Copernicus GLO-30)
 packages/flags/        Shared feature flag enum + helper
 contracts/             OpenAPI YAML — one per service + CHANGELOG.md
 migrations/            DB migrations + rollback notes
@@ -134,6 +135,7 @@ class FeatureFlag(StrEnum):
     WIND_ANALYSIS = "feature.wind.analysis"
     RAINFALL_ARCHIVE = "feature.rainfall.archive"
     RAINFALL_SUMMARY = "feature.rainfall.summary"
+    CONTOUR_ANALYSIS = "feature.contour.analysis"
 ```
 
 Enable via env var:
@@ -149,7 +151,7 @@ Add new flag to enum BEFORE first commit that depends on it.
 
 | Service | Used by | Setup |
 |---|---|---|
-| Google Earth Engine | flood, geo (vegetation, NDVI) | Service account JSON at `gee-sa.json` — copy from `/Volumes/LocalDrive/Site Analysis/Site-Analysis-Tool/gee-sa.json` |
+| Google Earth Engine | flood, geo (vegetation, NDVI), contour (Copernicus DEM) | Service account JSON at `gee-sa.json` — copy from `/Volumes/LocalDrive/Site Analysis/Site-Analysis-Tool/gee-sa.json` |
 | Open-Meteo | temperature, wind | Public, no key |
 | IMD gridded data | temperature | Local files at `services/temperature/data/` |
 | pvlib | sunpath | pip install only |

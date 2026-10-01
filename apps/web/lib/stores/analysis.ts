@@ -4,8 +4,11 @@
 "use client";
 
 import { create } from "zustand";
+import type { ContourResponse, TransectResponse } from "../contour/types";
 
-export type ModuleId = "flood" | "rainfall" | "sunpath" | "wind" | "temperature" | "zone" | "planning" | "zoning" | "infrastructure" | "soil" | "waterConstraints" | "growth" | "land" | "amenities";
+export type { ContourResponse, TransectResponse } from "../contour/types";
+
+export type ModuleId = "flood" | "rainfall" | "sunpath" | "wind" | "temperature" | "contour" | "zone" | "planning" | "zoning" | "infrastructure" | "soil" | "waterConstraints" | "growth" | "land" | "amenities";
 export type Severity = "high" | "moderate" | "low" | "none";
 
 export interface Indicator {
@@ -115,6 +118,8 @@ export interface AmenityPoint {
   lon: number;
 }
 
+export type GeoJSONLike = Record<string, unknown>;
+
 // Structured, raw zoning fields the floating HUD visuals consume directly —
 // avoids re-parsing the formatted indicator/qualitative strings. Populated by
 // getZoningAnalysis from the combined geo /zone + planning /analyze responses.
@@ -184,12 +189,14 @@ export interface ModuleResult {
   wind?: WindData;
   zoning?: ZoningData;
   amenityPoints?: AmenityPoint[];
+  contour?: ContourResponse;
   loading: boolean;
   error: string | null;
 }
 
 export interface SiteScore {
-  overall_score: number;
+  /** Null when no runnable modules produced a score (e.g. Contour-only on a point site). */
+  overall_score: number | null;
   overall_severity: Severity;
   verdict_text: string;
   desc_text?: string;
@@ -226,5 +233,9 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
       },
     })),
   setSiteScore: (score) => set({ siteScore: score }),
-  resetAnalysis: () => set({ modules: {}, siteScore: null }),
+  resetAnalysis: () =>
+    set({
+      modules: {},
+      siteScore: null,
+    }),
 }));

@@ -13,6 +13,13 @@ export class ApiError extends Error {
   }
 }
 
+export class RequestCancelledError extends Error {
+  constructor() {
+    super("Request cancelled");
+    this.name = "RequestCancelledError";
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit

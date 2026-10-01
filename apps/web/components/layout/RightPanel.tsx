@@ -24,7 +24,7 @@ export interface ActiveModuleInfo {
 
 export interface RightPanelProps {
   state: "loading" | "populated";
-  overallScore?: number;
+  overallScore?: number | null;
   overallSeverity?: Severity;
   verdictText?: string;
   descText?: string;
@@ -46,8 +46,10 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={cn("rounded bg-neutral-border animate-pulse", className)} />;
 }
 
-function ScoreDonut({ score }: { score: number }) {
-  const deg = Math.round(Math.min(Math.max(score, 0), 100) / 100 * 360);
+function ScoreDonut({ score }: { score: number | null | undefined }) {
+  const n = score ?? 0;
+  const deg = Math.round(Math.min(Math.max(n, 0), 100) / 100 * 360);
+  const empty = score == null;
   return (
     <div
       style={{
@@ -60,7 +62,7 @@ function ScoreDonut({ score }: { score: number }) {
         width: 48, height: 48, borderRadius: "50%", background: "#FDFCFB",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: "#3A3F3B", lineHeight: 1 }}>{score}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#3A3F3B", lineHeight: 1 }}>{empty ? "—" : n}</span>
         <span style={{ fontSize: 8, color: "#7B8F83", fontWeight: 500, textTransform: "uppercase", marginTop: 1 }}>SITE</span>
       </div>
     </div>
@@ -97,7 +99,7 @@ function ModuleScoreRing({ score, color, label }: { score: number; color: string
 
 export function RightPanel({
   state,
-  overallScore = 0,
+  overallScore,
   verdictText,
   descText,
   moduleProgress,
@@ -153,8 +155,8 @@ export function RightPanel({
                     </div>
                     <div style={{ fontSize: 11, color: "#7B8F83", marginTop: 2 }}>
                       {moduleProgress
-                        ? `${moduleProgress.complete} of ${moduleProgress.total} modules · Site score ${overallScore}`
-                        : `Site score ${overallScore}`}
+                        ? `${moduleProgress.complete} of ${moduleProgress.total} modules · Site score ${overallScore ?? "—"}`
+                        : `Site score ${overallScore ?? "—"}`}
                     </div>
                     <div style={{ display: "flex", gap: 3, marginTop: 8 }}>
                       {MODULE_PROGRESS_COLORS.map((c) => (

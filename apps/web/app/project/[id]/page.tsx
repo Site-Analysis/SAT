@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sun, Waves, Thermometer, Wind, CloudRain, Settings, MapPin, Building2, Wifi, Layers, Droplets, TrendingUp, FileText, Scale } from "lucide-react";
+import { Sun, Waves, Thermometer, Wind, CloudRain, Settings, MapPin, Building2, Wifi, Layers, Droplets, TrendingUp, FileText, Scale, Mountain } from "lucide-react";
 import { TopNav } from "@/components/layout/TopNav";
 import { RightPanel } from "@/components/layout/RightPanel";
 import type { ActiveModuleInfo } from "@/components/layout/RightPanel";
@@ -19,6 +19,7 @@ import WindPanel from "@/components/layout/WindPanel";
 import { WindOverlay } from "@/components/map/WindOverlay";
 import { RainfallPanel } from "@/components/layout/RainfallPanel";
 import { TemperaturePanel } from "@/components/layout/TemperaturePanel";
+import { ContourPanel } from "@/components/contour/ContourPanel";
 import { LandRecordsPanel } from "@/components/layout/LandRecordsPanel";
 import { TemperatureOverlay } from "@/components/map/TemperatureOverlay";
 import { SunOverlay } from "@/components/map/SunOverlay";
@@ -28,8 +29,11 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { supabase } from "@/lib/supabase/client";
 import { useProjectStore } from "@/lib/stores/project";
 import { useAnalysisStore } from "@/lib/stores/analysis";
+import { useContourStore } from "@/lib/stores/contour";
 import { useConfigStore } from "@/lib/stores/config";
 import { getProject } from "@/lib/api/projects";
+import { deriveContourEligibility } from "@/lib/contour/eligibility";
+import { DEFAULT_INTERVAL } from "@/lib/contour/constants";
 import {
   computeSiteScore,
   getFloodAnalysis,
@@ -121,6 +125,30 @@ const MapToggle = dynamic(
   () => import("@/components/map/MapToggle").then((m) => m.MapToggle),
   { ssr: false }
 );
+const ContourMapLayers = dynamic(
+  () => import("@/components/map/contour/ContourMapLayers").then((m) => m.ContourMapLayers),
+  { ssr: false }
+);
+const TransectDrawTool = dynamic(
+  () => import("@/components/map/contour/TransectDrawTool").then((m) => m.TransectDrawTool),
+  { ssr: false }
+);
+const TransectPathOverlay = dynamic(
+  () => import("@/components/map/contour/TransectPathOverlay").then((m) => m.TransectPathOverlay),
+  { ssr: false }
+);
+const TransectStartEndLabels = dynamic(
+  () => import("@/components/map/contour/TransectPathOverlay").then((m) => m.TransectStartEndLabels),
+  { ssr: false }
+);
+const TransectCursorMarker = dynamic(
+  () => import("@/components/map/contour/TransectCursorMarker").then((m) => m.TransectCursorMarker),
+  { ssr: false }
+);
+const ContourMapStatus = dynamic(
+  () => import("@/components/map/contour/ContourMapStatus").then((m) => m.ContourMapStatus),
+  { ssr: false }
+);
 const ClimateContextHUD = dynamic(
   () => import("@/components/zoning/ClimateContextHUD").then((m) => m.ClimateContextHUD),
   { ssr: false }
@@ -134,6 +162,7 @@ const SEVERITY_VERDICT: Record<string, string> = {
 
 const MODULE_ABBREV: Record<ModuleId, string> = {
   sunpath: "SUN", flood: "FLOOD", temperature: "TEMP", wind: "WIND", rainfall: "RAIN",
+  contour: "TERRAIN",
   zone: "ZONE", planning: "FAR", zoning: "ZONING", infrastructure: "INFRA", soil: "SOIL",
   waterConstraints: "WATER", growth: "GROWTH", land: "TITLE", amenities: "AMENITY",
 };
@@ -149,6 +178,7 @@ const MODULE_META: {
   { id: "temperature",      name: "Temperature",       color: "#EF4444", icon: <Thermometer size={14} />  },
   { id: "wind",             name: "Wind",              color: "#06B6D4", icon: <Wind size={14} />         },
   { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8", icon: <CloudRain size={14} />    },
+  { id: "contour",          name: "Contour",           color: "#2D6A4F", icon: <Mountain size={14} />     },
   { id: "zoning",           name: "Zoning",            color: "#B45309", icon: <Scale size={14} />        },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981", icon: <MapPin size={14} />       },
   { id: "planning",         name: "Site Capacity",     color: "#F97316", icon: <Building2 size={14} />    },
@@ -187,6 +217,7 @@ export default function ProjectPage() {
     setSiteScore,
     resetAnalysis,
   } = useAnalysisStore();
+  const resetContour = useContourStore((s) => s.resetForProject);
 
   const [project,      setProject]      = useState<Awaited<ReturnType<typeof getProject>> | null>(null);
   const [center,       setCenter]       = useState<[number, number]>([12.9716, 77.5946]);
@@ -228,6 +259,7 @@ export default function ProjectPage() {
     : solar ? dayRange(solar.equinox) : { start: 6, end: 18 };
   const [expanded,     setExpanded]     = useState<Record<ModuleId, boolean>>({
     flood: true, sunpath: false, wind: false, temperature: false, rainfall: false,
+    contour: false,
     zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
     waterConstraints: false, growth: false, land: false, amenities: false,
   });
@@ -241,6 +273,7 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!id || !user) return;
     resetAnalysis();
+    resetContour();
     getProject(id).then((p) => {
       setProject(p);
       setCurrentProject(p);
@@ -270,9 +303,8 @@ export default function ProjectPage() {
 
       // Only run the modules the user selected at creation (default: all 5).
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
-      // The zoning map overlay renders amenity pins, so amenities must run whenever
-      // zoning does — even if the project's modules_run didn't list it explicitly.
       if (run.has("zoning")) run.add("amenities");
+      const eligibility = deriveContourEligibility(p);
       const allFetchers: [ModuleId, () => Promise<unknown>][] = [
         ["flood",             () => getFloodAnalysis(coords)],
         ["rainfall",          () => getRainfallAnalysis(coords)],
@@ -288,12 +320,21 @@ export default function ProjectPage() {
         ["growth",            () => getGrowthAnalysis(lat, lng)],
         ["amenities",         () => getAmenitiesAnalysis(lat, lng)],
       ];
+      if (eligibility.eligible) {
+        allFetchers.push(["contour", async () => {
+          const { useContourStore: store } = await import("@/lib/stores/contour");
+          store.getState().setInterval(DEFAULT_INTERVAL);
+          await store.getState().runAnalysis(eligibility.polygon);
+          return useAnalysisStore.getState().modules.contour;
+        }]);
+      }
 
       // Open the first selected module in canonical order.
       const firstSelected = MODULE_META.find((m) => run.has(m.id))?.id;
       if (firstSelected) {
         setExpanded({
           flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+          contour: false,
           zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
           waterConstraints: false, growth: false, land: false, amenities: false,
           [firstSelected]: true,
@@ -347,7 +388,11 @@ export default function ProjectPage() {
 
   // Composite site score — recomputed from module results as they resolve.
   useEffect(() => {
-    const total = project?.modules_run?.length ?? 14;
+    if (!project) return;
+    const run = project.modules_run ?? MODULE_META.map((m) => m.id);
+    let total = run.length;
+    const elig = deriveContourEligibility(project);
+    if (run.includes("contour") && !elig.eligible) total -= 1;
     const score = computeSiteScore(modules, total);
     if (score) setSiteScore(score);
   }, [modules, project, setSiteScore]);
@@ -355,6 +400,7 @@ export default function ProjectPage() {
   function toggleModule(moduleId: ModuleId) {
     setExpanded((prev) => ({
       flood: false, sunpath: false, wind: false, temperature: false, rainfall: false,
+      contour: false,
       zone: false, planning: false, zoning: false, infrastructure: false, soil: false,
       waterConstraints: false, growth: false, land: false, amenities: false,
       [moduleId]: !prev[moduleId],
@@ -380,12 +426,25 @@ export default function ProjectPage() {
     };
   })();
 
-  const panelState = siteScore ? "populated" : "loading";
-
   // Only the modules the user selected at creation (default: all 5).
   const runModules = MODULE_META.filter(
     (m) => !project?.modules_run || project.modules_run.includes(m.id)
   );
+  const eligibility = deriveContourEligibility(project);
+  const contourSkipped = !eligibility.eligible;
+  const runnableIds = (project
+    ? (project.modules_run ?? MODULE_META.map((m) => m.id))
+    : []
+  ).filter((id) => id !== "contour" || eligibility.eligible);
+  const stillLoading =
+    !project ||
+    runnableIds.some((id) => {
+      const r = modules[id];
+      return !r || r.loading;
+    });
+  const panelState = stillLoading ? "loading" : "populated";
+  const contourVisible = !view3D && (detailModule === "contour" || (detailModule === null && expanded.contour));
+  const sitePolygon = eligibility.eligible ? eligibility.polygon : null;
 
   if (!user) return null;
 
@@ -519,6 +578,15 @@ export default function ProjectPage() {
                   {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                     <SunPathArc center={center} result={result} />
                   )}
+                  {contourVisible && (
+                    <>
+                      <ContourMapLayers sitePolygon={sitePolygon} />
+                      <TransectPathOverlay />
+                      <TransectStartEndLabels />
+                      <TransectDrawTool />
+                      <TransectCursorMarker />
+                    </>
+                  )}
                   {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                     <ZoningContextOverlay center={center} zoningResult={result} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                   )}
@@ -549,6 +617,9 @@ export default function ProjectPage() {
                 {detailModule === "sunpath" && result && !result.loading && !result.error && result.solar && (
                   <SunOverlay result={result} />
                 )}
+                  {contourVisible && (
+                    <ContourMapStatus />
+                  )}
                 {detailModule === "zoning" && result && !result.loading && !result.error && result.zoning && (
                   <>
                     <ZoningComplianceHUD result={result} variant="full" corner="tl" />
@@ -823,6 +894,15 @@ export default function ProjectPage() {
                     {expanded.sunpath && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                       <SunPathArc center={center} result={modules.sunpath} />
                     )}
+                    {contourVisible && (
+                      <>
+                        <ContourMapLayers sitePolygon={sitePolygon} />
+                        <TransectPathOverlay />
+                        <TransectStartEndLabels />
+                        <TransectDrawTool />
+                        <TransectCursorMarker />
+                      </>
+                    )}
                     {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                       <ZoningContextOverlay center={center} zoningResult={modules.zoning} amenitiesResult={modules.amenities} showAmenities={showAmenities} />
                     )}
@@ -851,6 +931,9 @@ export default function ProjectPage() {
                   )}
                   {expanded.sunpath && modules.sunpath && !modules.sunpath.loading && !modules.sunpath.error && modules.sunpath.solar && (
                     <SunOverlay result={modules.sunpath} />
+                  )}
+                  {contourVisible && (
+                    <ContourMapStatus />
                   )}
                   {expanded.zoning && modules.zoning && !modules.zoning.loading && !modules.zoning.error && modules.zoning.zoning && (
                     <>
@@ -895,8 +978,9 @@ export default function ProjectPage() {
                     moduleName={name}
                     moduleColor={color}
                     severity={result?.severity ?? "none"}
-                    score={result?.score ?? 0}
-                    loading={!result || result.loading}
+                    score={moduleId === "contour" && contourSkipped ? null : (result?.score ?? 0)}
+                    loading={moduleId === "contour" && contourSkipped ? false : (!result || result.loading)}
+                    skipped={moduleId === "contour" && contourSkipped}
                     error={result?.error}
                     indicators={result?.indicators}
                     charts={result?.charts}
@@ -909,6 +993,7 @@ export default function ProjectPage() {
                       moduleId === "wind"    ? <WindPanel result={result} severity={result?.severity ?? "none"} activeSeason={windSeason} onSeasonChange={setWindSeason} /> :
                       moduleId === "rainfall" ? <RainfallPanel result={result} severity={result?.severity ?? "none"} /> :
                       moduleId === "temperature" ? <TemperaturePanel result={result} severity={result?.severity ?? "none"} /> :
+                      moduleId === "contour" ? <ContourPanel result={result} eligibility={eligibility} /> :
                       moduleId === "land" ? <LandRecordsPanel result={result} prefill={(() => {
                         const k = modules.zoning?.zoning?.kgis;
                         if (!k || k.type !== "Rural") return undefined;

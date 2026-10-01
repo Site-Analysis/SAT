@@ -13,6 +13,9 @@ import { useAuthStore } from "@/lib/stores/auth";
 import { useProjectStore } from "@/lib/stores/project";
 import { useAnalysisStore, type ModuleId } from "@/lib/stores/analysis";
 import { getProject } from "@/lib/api/projects";
+import { DEFAULT_INTERVAL } from "@/lib/contour/constants";
+import { deriveContourEligibility } from "@/lib/contour/eligibility";
+import { useContourStore } from "@/lib/stores/contour";
 import {
   computeSiteScore,
   getFloodAnalysis,
@@ -20,6 +23,7 @@ import {
   getSunpathAnalysis,
   getWindAnalysis,
   getTemperatureAnalysis,
+  getContourAnalysis,
   getZoneAnalysis,
   getPlanningAnalysis,
   getZoningAnalysis,
@@ -37,6 +41,7 @@ const MODULE_META: { id: ModuleId; name: string; color: string }[] = [
   { id: "temperature",      name: "Temperature",       color: "#EF4444" },
   { id: "wind",             name: "Wind",              color: "#06B6D4" },
   { id: "rainfall",         name: "Rainfall",          color: "#1D4ED8" },
+  { id: "contour",          name: "Contour",           color: "#2D6A4F" },
   { id: "zoning",           name: "Zoning Compliance", color: "#B45309" },
   { id: "zone",             name: "Zone & Land Use",   color: "#10B981" },
   { id: "planning",         name: "Site Capacity",     color: "#F97316" },
@@ -114,17 +119,33 @@ export default function ExportPage() {
       }
       const coords: AnalysisCoords = { lat, lng, projectId: id };
       const run = new Set<ModuleId>(p.modules_run ?? MODULE_META.map((m) => m.id));
+      const eligibility = deriveContourEligibility(p);
+      if (!eligibility.eligible) run.delete("contour");
       setIncluded(run);
+      const interval = useContourStore.getState().resultInterval ?? DEFAULT_INTERVAL;
 
       const existing = useAnalysisStore.getState().modules;
       for (const { id: moduleId } of MODULE_META) {
         if (!run.has(moduleId)) continue;
         const cur = existing[moduleId];
-        if (cur && !cur.loading && !cur.error) continue; // already hydrated
+        if (cur && !cur.loading && !cur.error) continue;
+        if (moduleId === "contour" && !eligibility.eligible) continue;
         setModuleLoading(moduleId);
-        const fetcher = FETCHERS[moduleId];
+        const fetcher = moduleId === "contour" && eligibility.eligible
+          ? () => {
+              const st = useContourStore.getState();
+              return getContourAnalysis(
+                eligibility.polygon,
+                interval,
+                undefined,
+                st.resultBufferM ?? st.bufferM,
+              );
+            }
+          : FETCHERS[moduleId]
+            ? () => FETCHERS[moduleId]!(coords)
+            : null;
         if (!fetcher) continue;
-        fetcher(coords)
+        fetcher()
           .then((result) => setModuleResult(moduleId, result as never))
           .catch((err) => setModuleError(moduleId, err instanceof Error ? err.message : "Failed"));
       }
@@ -133,7 +154,10 @@ export default function ExportPage() {
 
   // Recompute composite score as module results resolve.
   useEffect(() => {
-    const total = project?.modules_run?.length ?? 5;
+    if (!project) return;
+    const run = project.modules_run ?? MODULE_META.map((m) => m.id);
+    let total = run.length;
+    if (run.includes("contour") && !deriveContourEligibility(project).eligible) total -= 1;
     const score = computeSiteScore(analysisModules, total);
     if (score) setSiteScore(score);
   }, [analysisModules, project, setSiteScore]);
