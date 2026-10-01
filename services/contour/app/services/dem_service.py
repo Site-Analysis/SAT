@@ -37,7 +37,8 @@ from shapely.geometry import mapping, shape
 from shapely.ops import transform as shapely_transform
 
 logger = logging.getLogger(__name__)
-pyproj.datadir.set_data_dir(os.environ["PROJ_DATA"])
+if os.environ.get("PROJ_DATA"):  # only set on Windows; Linux/macOS wheels bundle their own
+    pyproj.datadir.set_data_dir(os.environ["PROJ_DATA"])
 
 COPERNICUS_COLLECTION_ID = "COPERNICUS/DEM/GLO30_2024_1"
 COPERNICUS_BAND = "DEM"
@@ -45,7 +46,10 @@ _GEE_CLIENT: Any | None = None
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    # Inside the container the file sits at /app/app/services/ (only 3 parents); settings
+    # are already on PYTHONPATH there, so fall back to the nearest parent.
+    parents = Path(__file__).resolve().parents
+    return parents[4] if len(parents) > 4 else parents[-1]
 
 
 def _ensure_settings_path() -> None:
