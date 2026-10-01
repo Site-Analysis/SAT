@@ -223,5 +223,26 @@ services:
       retries: 5
       start_period: 1200s
 
+  cadastral:
+    build:
+      context: ./services/cadastral
+    ports:
+      - "127.0.0.1:8011:8011"
+    environment:
+      - FLAGS=${FLAGS:-}
+      - CADASTRAL_DATA_DIR=/data/cadastral_lake_v2
+      - SURVEY_INDEX_DB=/survey_index/survey_index.db
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      # parent dir of cadastral_lake_v2/ + echawadi_village_list.json
+      - ${CADASTRAL_DATA_ROOT:-./services/cadastral/data}:/data:ro
+      - survey_index_vol:/survey_index
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   overpass-db:
+  survey_index_vol:

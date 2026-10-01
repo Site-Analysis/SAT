@@ -143,6 +143,59 @@ export const ReportDocument = forwardRef<HTMLDivElement, ReportDocumentProps>(
           )}
         </div>
 
+        {/* ── Parcel & Title — only for projects created from a cadastral parcel ── */}
+        {project?.parcel && (
+          <div data-export-page style={pageStyle}>
+            <div style={{
+              background: C.mint, borderRadius: 6, padding: "7px 12px", marginBottom: 16,
+              borderLeft: `4px solid ${C.primary}`, fontSize: 12, fontWeight: 700,
+              color: C.text, textTransform: "uppercase", letterSpacing: "0.6px",
+            }}>
+              Parcel &amp; Title
+            </div>
+            {([
+              ["Survey number", project.parcel.survey_no],
+              ["Village", project.parcel.village],
+              ["Hobli", project.parcel.hobli],
+              ["Taluk", project.parcel.taluk],
+              ["District", project.parcel.district],
+              ["Parcel area", project.area_sqm ? `${Math.round(project.area_sqm).toLocaleString("en-IN")} m² (${(project.area_sqm / 4046.856).toFixed(2)} acres)` : "—"],
+              ["Centroid", project.coordinates || "—"],
+            ] as [string, string][]).map(([label, value]) => (
+              <div key={label} style={{ display: "flex", padding: "7px 0", borderBottom: `1px solid ${C.bg}`, fontSize: 12 }}>
+                <span style={{ width: 140, color: C.muted, flexShrink: 0 }}>{label}</span>
+                <span style={{ fontWeight: 600, color: C.text }}>{value || "—"}</span>
+              </div>
+            ))}
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, margin: "18px 0 6px" }}>Court cases (RCCMS)</div>
+            {!project.parcel.rtc || project.parcel.rtc.owners.length === 0
+              ? <div style={{ fontSize: 11, color: C.muted }}>No active cases found.</div>
+              : project.parcel.rtc.owners.map((o, i) => (
+                  <div key={i} style={{ fontSize: 11, padding: "4px 0", borderBottom: `1px solid ${C.bg}` }}>
+                    <span style={{ fontWeight: 600 }}>{o.owner_name || "—"}</span>
+                    <span style={{ color: C.muted }}> · Survey {o.survey_no}{o.case_status ? ` · ${o.case_status}` : ""}{o.ack_no ? ` · Ack ${o.ack_no}` : ""}</span>
+                  </div>
+                ))}
+
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, margin: "18px 0 6px" }}>Mutations</div>
+            {!project.parcel.rtc || project.parcel.rtc.mutations.length === 0
+              ? <div style={{ fontSize: 11, color: C.muted }}>No mutations found.</div>
+              : project.parcel.rtc.mutations.map((m, i) => (
+                  <div key={i} style={{ fontSize: 11, padding: "4px 0", borderBottom: `1px solid ${C.bg}` }}>
+                    <span style={{ fontWeight: 600 }}>{m.transaction_type || "—"}</span>
+                    <span style={{ color: C.muted }}>{m.mr_number ? ` · MR ${m.mr_number}` : ""}{m.status ? ` · ${m.status}` : ""}{m.applicant ? ` · ${m.applicant}` : ""}</span>
+                  </div>
+                ))}
+
+            <div style={{ fontSize: 9, color: C.muted, marginTop: 22, lineHeight: 1.5 }}>
+              Parcel geometry is from the Karnataka e-Chawadi (Bhoomi) cadastral dataset; area is computed from that
+              polygon, not from the record. Court-case and mutation data (RCCMS) is indicative and has not been
+              independently verified — confirm against the official record before relying on it for title decisions.
+            </div>
+          </div>
+        )}
+
         {/* ── One template page per visual feature ───────────────────── */}
         {visual.map((m) => (
           <ReportFeaturePage

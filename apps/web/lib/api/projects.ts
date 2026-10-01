@@ -123,6 +123,7 @@ export async function createProject(
   data: Pick<Project, "name" | "location"> & {
     boundary: GeoJSON.Geometry;
     modules_run?: Project["modules_run"];
+    parcel?: Project["parcel"];
   }
 ): Promise<Project> {
   // No projects backend (GH#55) — persist client-side so the analysis page can
@@ -152,6 +153,7 @@ export async function createProject(
     coordinates,
     area_sqm,
     modules_run: data.modules_run ?? ["sunpath", "flood", "temperature", "wind", "rainfall"],
+    parcel: data.parcel,
   };
 
   writeSession([project, ...readSession()]);

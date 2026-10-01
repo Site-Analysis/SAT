@@ -5,6 +5,7 @@
 
 import { create } from "zustand";
 import type { ModuleId } from "./analysis";
+import type { RtcData } from "@/lib/api/cadastral_records";
 
 export interface Project {
   id: string;
@@ -19,6 +20,18 @@ export interface Project {
   boundary?: GeoJSON.Geometry;
   area_sqm?: number;
   coordinates?: string;
+  parcel?: ParcelInfo;
+}
+
+// Snapshot of the cadastral parcel a project was created from (feeds the PDF "Parcel & Title" page).
+export interface ParcelInfo {
+  survey_no: string;
+  village: string;
+  hobli: string;
+  taluk: string;
+  district: string;
+  codes: { dist: string; taluk: string; hobli: string; vlg: string };
+  rtc: RtcData | null;
 }
 
 export interface ProjectStats {

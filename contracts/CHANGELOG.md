@@ -1,5 +1,15 @@
 # Contract Changelog
 
+## 2.2.0 — 2026-09-30
+
+### Added — cadastral.yaml (new service, Builder-Prod integration)
+- New `services/cadastral` (port 8011); `cadastral.yaml` (v1.0.0) documents Karnataka
+  e-Chawadi parcel geometry and the district/taluk/hobli/village hierarchy, survey-number
+  and village search, village boundary, nearby villages, and RCCMS land-record lookups.
+- Gated by `feature.cadastral.land-records` (403 when disabled).
+- No authentication on this service yet (deferred).
+- Source: `Site-Analysis/Builder-Prod` branch `Cadestral`.
+
 ## 2.1.0 — 2026-06-20
 
 ### Added — planning.yaml (new service, SAT-10 build-capacity)

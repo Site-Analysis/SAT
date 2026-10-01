@@ -63,6 +63,12 @@ const MapContainer = dynamic(
   () => import("@/components/map/MapContainer").then((m) => m.MapContainer),
   { ssr: false }
 );
+const ENABLE_CADASTRAL = process.env.NEXT_PUBLIC_ENABLE_CADASTRAL_EXPLORER === "1";
+
+const CadastralLayer = dynamic(
+  () => import("@/components/map/CadastralLayer").then((m) => m.CadastralLayer),
+  { ssr: false }
+);
 const SiteBoundaryOverlay = dynamic(
   () => import("@/components/map/SiteBoundaryOverlay").then((m) => m.SiteBoundaryOverlay),
   { ssr: false }
@@ -527,6 +533,7 @@ export default function ProjectPage() {
                     onClear={() => setShowSiteCircle(false)}
                   />
                   <MapSearch />
+                  {ENABLE_CADASTRAL && <CadastralLayer />}
                 </MapContainer>
 
                 {/* HTML badge + legend overlay — not inside Leaflet */}
@@ -830,6 +837,7 @@ export default function ProjectPage() {
                       onClear={() => setShowSiteCircle(false)}
                     />
                     <MapSearch topOffset={16} />
+                    {ENABLE_CADASTRAL && <CadastralLayer />}
                   </MapContainer>
                   {/* HTML badge + legend overlay — not inside Leaflet */}
                   {expanded.flood && modules.flood && !modules.flood.loading && !modules.flood.error && (

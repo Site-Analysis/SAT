@@ -31,6 +31,7 @@ class FeatureFlag(StrEnum):
     INFRASTRUCTURE_CONNECTIVITY = "feature.infrastructure.connectivity"
     CONTEXT_GROWTH_PIPELINE = "feature.context.growth-pipeline"
     LAND_RECORDS = "feature.land.records"
+    CADASTRAL_LAND_RECORDS = "feature.cadastral.land-records"
     ZONING_LAND_USE = "feature.zoning.land-use"
     ENVIRONMENT_SOIL = "feature.environment.soil"
     ENVIRONMENT_WATER_CONSTRAINTS = "feature.environment.water-constraints"
