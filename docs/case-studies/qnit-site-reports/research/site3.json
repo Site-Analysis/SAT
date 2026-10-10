@@ -1,0 +1,342 @@
+{
+ "site": 3,
+ "accessed": "2026-10-10",
+ "facts": [
+  {
+   "topic": "Zoning - RMP 2015 land use",
+   "claim": "Kogilu Sy. Nos. 27 and 28 sit in BDA RMP 2015 Planning District 3.09 Tanisandra. On the proposed land use map they are shaded light yellow, which the map legend defines as Residential (Main). (Reading taken from the map image in this session; survey labels 27/28 sit just south of the Kogilu village label and just east of the PD 3.07 Yelahanka boundary.)",
+   "value": "Residential (Main), PD 3.09 Tanisandra",
+   "source_title": "BDA RMP 2015 Proposed Land Use Map, Planning District 309 (Tanisandra), signed 25/6/2007",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/1bd22e6c-c5d9-410d-9347-187c138ea94b/download/5f5c6b94-06a4-4fcb-ac5a-295341e4734a.pdf",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Zoning - RMP 2015 land use",
+   "claim": "Around Sy. 27/28 on the RMP 2015 PD 3.09 map: a green dashed 'Sensitive Area' (valley) line runs along the western edge, next to the PD 3.07 boundary and the Yelahanka valley drain. Proposed roads are 18 m to the east and 15 m to the south. A 24 m proposed road (Kogilu main road) lies about 0.6 km north. Kogilu village gaothana (Residential Mixed) is about 1 km north, and a Coordinated Planning Scheme (BDA CPS) area zoned Commercial (Business) lies a few hundred metres east, next to the proposed Peripheral Ring Road.",
+   "value": "See claim",
+   "source_title": "BDA RMP 2015 Proposed Land Use Map, PD 309 and PD 307",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/1bd22e6c-c5d9-410d-9347-187c138ea94b/download/5f5c6b94-06a4-4fcb-ac5a-295341e4734a.pdf",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Zoning - RMP 2015 status",
+   "claim": "RMP 2015 was approved by G.O. No. UDD 540 BEM AA SE 2004 dated 22.06.2007. It is still the operative plan: the government was still amending its zonal regulations in a June 2026 draft, which applies to the 'Local Planning Area of Bengaluru and Greater Bengaluru'.",
+   "value": "Approved 22-06-2007; still operative (draft amendment dated 04-06-2026)",
+   "source_title": "Karnataka Gazette, Draft Zonal Regulations of RMP-2015 (Amendment) Regulations 2026, No. UDD 338 MNJ 2026(E), dated 04.06.2026",
+   "url": "https://data.opencity.in/dataset/2f0b8536-01fc-4028-8515-1209b4a78529/resource/595137ba-a6a1-460a-8de5-9262964b025a/download/proposed-amendments-rmp-2015-zonal-regulations-no.-udd-338-mnj-2026e-04.06.2026.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - Residential (Main) FAR",
+   "claim": "RMP 2015 Table 10 (Residential Main) sets FAR and ground coverage by plot size and road width together: up to 360 m2 / road up to 12 m: GC 75%, FAR 1.75; 360-1000 m2 / road 12-18 m: 65%, 2.25; 1000-2000 m2 / road 18-24 m: 60%, 2.50; 2000-4000 m2 / road 24-30 m: 55%, 3.00; 4000-20000 m2 / road above 30 m: 50%, 3.25. Reg. 3.4(iv): where a plot faces a wider road than the one prescribed for it, FAR is capped at the plot-size limit.",
+   "value": "See claim",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - large plot (>20,000 m2) residential development plan",
+   "claim": "A plot of about 44,000 m2 exceeds 20,000 m2, so it is a 'Residential Development Plan' (Ch. 7.1, Table 20). Conditions: reserve 10% for park and open space (handed over free); reserve at least 5% for civic amenities; compute FAR after deducting the civic amenity site; hand over RMP roads free of cost. Table 20 FAR/coverage by road width: less than 12 m: 2.00 / 60%; 12-18 m: 2.25 / 55%; 18-24 m: 2.50 / 55%; 24-30 m: 3.00 / 50%; above 30 m: 3.25 / 50%.",
+   "value": "On an 18 m road: FAR 2.25-2.50 depending on which band an exactly-18 m road falls in (the bands are 'above 12 up to 18' and 'above 18 up to 24')",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - setbacks",
+   "claim": "Original RMP 2015 Table 8 applies to buildings up to 11.5 m on plots up to 4,000 m2; plots over 4,000 m2 need at least 5 m on all sides. Table 9 (buildings above 11.5 m) sets all-round setbacks: 11.5-15 m: 5 m; 15-18: 6; 18-21: 7; 21-24: 8; 24-27: 9; 27-30: 10; 30-35: 11; 35-40: 12; 40-45: 13; 45-50: 14; above 50 m: 16 m. Buildings on the same site must be separated by half the height of the tallest building.",
+   "value": "5-16 m all round, by height",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - 2025 amendment",
+   "claim": "The RMP 2015 Zonal Regulations (Amendment) Regulations 2025 (UDD 31 MNJ 2022(E), notified 01.08.2025) changed the following. The Table 8 threshold rose from 11.5 m to 12 m. Table 9 was replaced: for buildings above 12 m up to 15 m with a stilt floor on plots up to 4,000 m2, setbacks are relaxed (front 1.5 m, rear and sides 1 m, or Table 8, whichever is higher); plots above 4,000 m2 still need 5 m. The 15 m and taller bands are unchanged (6 m to 16 m). Stilt floor may be up to 3 m and is excluded from height, provided total height does not exceed 15 m.",
+   "value": "Notified 01-08-2025",
+   "source_title": "Karnataka Gazette Part IVA No. 423, 01.08.2025",
+   "url": "https://data.opencity.in/dataset/2f0b8536-01fc-4028-8515-1209b4a78529/resource/de2f96fc-9e7d-4e4c-b6ff-a03c08f3b233/download/d7b00660-a3bc-49cf-b35a-3d70283ace0a.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - height vs road width",
+   "claim": "The RMP 2015 zoning regulations contain no '1.5 x (road width + front setback)' height formula; that formula was not found in the RMP 2015 text. RMP 2015 limits height through the following: road width under 9 m caps height at 11.5 m (12 m after the 2025 amendment) or stilt+G+2; Table 9 setbacks; the high-rise definition (24 m or more; the June 2026 draft proposes 21 m); Fire Force NOC for buildings of 24 m or more; and an AAI NOC 'wherever applicable' (Reg. 3.12(iv)).",
+   "value": "Not found in RMP 2015 text",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - draft 2026 amendments",
+   "claim": "The June 2026 draft amendment proposes four main changes. High-rise is redefined as 21 m or more. High-rise buildings are allowed only on roads of 12 m or more. FAR may be granted on the full site area, including road-widening or RMP road land, if that land is relinquished free. Lake buffers would follow the Karnataka Tank Conservation and Development Authority (Amendment) Act 2025 (notified 18-02-2026), and drain buffers become 15/10/5 m (primary/secondary/tertiary) measured from the drain edge, per UDD 468 MNJ 2025(E) dated 15-10-2025.",
+   "value": "Draft, objections invited (30 days from 04-06-2026)",
+   "source_title": "Draft Zonal Regulations of RMP-2015 (Amendment) Regulations 2026",
+   "url": "https://data.opencity.in/dataset/2f0b8536-01fc-4028-8515-1209b4a78529/resource/595137ba-a6a1-460a-8de5-9262964b025a/download/proposed-amendments-rmp-2015-zonal-regulations-no.-udd-338-mnj-2026e-04.06.2026.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - apartments/ring",
+   "claim": "RMP 2015 Residential (Main): multi-dwelling units (apartments) are allowed on plots above 360 m2 in Rings I/II and above 750 m2 in Ring III (beyond the Outer Ring Road, which includes Kogilu), on roads wider than 9 m. Within 150 m of metro terminals, FAR can go up to 4, but only after the stations are completed and BMRCL confirms.",
+   "value": "See claim",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - TDR",
+   "claim": "RMP 2015 TDR: land surrendered for public purpose earns a DRC of 1.5 times the area. A receiving plot may exceed its FAR by up to 0.6 times the base FAR on roads of 12 m or more, or 0.4 times on 9-12 m roads. DRCs are invalid on roads under 9 m. Kogilu lies in Ring III (Zone C), where a DRC generated in Zone C is used at a factor of 1.0.",
+   "value": "1.5x; +0.6 FAR (road 12 m or more)",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - lake/drain buffers (RMP 2015 original)",
+   "claim": "RMP 2015 Reg. 4.12.2: 30 m 'no development zone' around lakes (per revenue records). Drain buffers: 50/25/15 m from the drain centre for primary/secondary/tertiary drains. No fresh permissions in the valley zone; the valley portion can count towards park and open space.",
+   "value": "30 m lake; 50/25/15 m drains",
+   "source_title": "BDA Zoning Regulations, Revised Master Plan 2015 (OpenCity mirror of BDA PDF)",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/dc23b4ae-e020-4499-b18d-8e4ed2f86a24/download/35d71c70-13b7-457d-a123-5a84987f67a6.pdf",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - NGT 75 m buffer",
+   "claim": "On 5 March 2019 the Supreme Court set aside the NGT's 2016 order that had raised lake buffers to 75 m. Buffers reverted to the RMP 2015 limits (30 m for lakes).",
+   "value": "SC 05-03-2019",
+   "source_title": "Cyril Amarchand Mangaldas blog / Citizen Matters",
+   "url": "https://corporate.cyrilamarchandblogs.com/2019/04/supreme-court-diktat-powers-ngt-real-estate-part2/",
+   "confidence": "high"
+  },
+  {
+   "topic": "Zoning - RMP 2031",
+   "claim": "Draft RMP 2031 was published for public suggestions (about 2017). More than 14,000 suggestions were received. The state UDD withdrew the plan's 2017 provisional approval after a Citizens' Action Forum case, and BDA was told to rework it. No approval of RMP 2031 was found as of 2026, and RMP 2015 regulations were still being amended in June 2026.",
+   "value": "Draft only, not approved (as found)",
+   "source_title": "Deccan Herald: Now BDA told to rework on revised master plan 2031",
+   "url": "https://www.deccanherald.com/india/karnataka/bengaluru/now-bda-told-to-rework-on-revised-master-plan-2031-859665.html",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Governance - GBA",
+   "claim": "The Greater Bengaluru Authority replaced BBMP from 2 September 2025, with five city corporations under it.",
+   "value": "GBA effective 02-09-2025",
+   "source_title": "ETV Bharat / The Realty Today",
+   "url": "https://www.etvbharat.com/en/!state/greater-bengaluru-authority-comes-into-effect-historic-day-says-deputy-cm-shivakumar-enn25090300523",
+   "confidence": "high"
+  },
+  {
+   "topic": "Governance - corporation/ward",
+   "claim": "Bengaluru North City Corporation has 72 wards over about 158 km2 and covers Yelahanka, Hebbal and Byatarayanapura. Its ward list (per Wikipedia's 'Administrative divisions of Bengaluru') shows Ward 21 as 'Kogilu'. A later corrigendum renamed or renumbered 13 wards, so verify against the latest gazette. Before 2025, Kogilu was BBMP ward 5 in Byatarayanapura Assembly constituency, Yelahanka zone, Bangalore North Lok Sabha seat.",
+   "value": "Bengaluru North City Corporation, Ward 21 'Kogilu' (to verify)",
+   "source_title": "Wikipedia - Administrative divisions of Bengaluru; The Current India ward list",
+   "url": "https://en.wikipedia.org/wiki/Administrative_divisions_of_Bengaluru",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Height - Yelahanka AFS",
+   "claim": "BBMP's building-plan NOC list requires clearance from Air Force Station Yelahanka for buildings 15 m tall or more.",
+   "value": "15 m or more needs AFS Yelahanka NOC",
+   "source_title": "BBMP - NOC Details (building plan approval)",
+   "url": "https://site.bbmp.gov.in/PDF/buildingplanapproval/NOC%20Details.pdf",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Height - defence aerodromes",
+   "claim": "Defence airports in Bengaluru (HAL, Yelahanka) apply NOC height limits within 20 km of the aerodrome reference point. Defence officials cite rule 5(2) of G.S.R. 751(E) for imposing extra restrictions. On 24-04-2026 DK Shivakumar wrote to Defence Minister Rajnath Singh about 'excessive restrictions', particularly around HAL and Yelahanka. On 28-09-2026 the state sought a review and proposed cutting the mandatory NOC radius to 15 km. No outcome was found.",
+   "value": "NOC zone 20 km (proposed 15 km)",
+   "source_title": "NewsKarnataka / SocialNews.xyz / Webindia123 (IANS)",
+   "url": "https://www.socialnews.xyz/2026/04/24/karnataka-dy-cm-shivakumar-raises-concern-over-height-restrictions-near-defence-airports-in-bengaluru/",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Height - MoD guidelines",
+   "claim": "MoD NOC guidelines for construction near defence establishments: circular dated 18.05.2011, amended 18.03.2015 and 17.11.2015, followed by circulars of 04.04.2016 and 23.12.2022. The 2022 circular limited NOC to 50 m but was kept in abeyance on 23.02.2023. In 2023 the Karnataka High Court held that authorities cannot rely on executive NOC guidelines while the Works of Defence Act 1903 is in force.",
+   "value": "See claim",
+   "source_title": "LiveLaw (Karnataka HC) / court judgment summaries",
+   "url": "https://www.livelaw.in/amp/high-court/karnataka-high-court/karnataka-high-court-ruling-building-constructions-noc-guidelines-defence-establishments-works-of-defence-act-236650",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Height - AAI CCZM/NOCAS",
+   "claim": "AAI's Colour Coded Zoning Map for Bengaluru covers four aerodromes: KIA Devanahalli, HAL, Jakkur GFTS and Yelahanka Defence Aerodrome. A height NOC through NOCAS is generally needed within 20 km of an aerodrome reference point. Kogilu lies within 20 km of KIA, Yelahanka and Jakkur, so an AAI NOCAS application plus Yelahanka AFS clearance should be assumed for any building of 15 m or more. (The aerodrome-radius position is inferred, not taken from an official site-specific CCZM reading.)",
+   "value": "NOC required (inferred)",
+   "source_title": "Citizen Matters - Investing in a high-rise; 1acre air funnel layer",
+   "url": "https://citizenmatters.in/investing-on-a-high-rise-here-s-what-you-need-to-know/",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Transport - Bellary Road",
+   "claim": "On the RMP 2015 PD 3.07 map, Bellary Road (NH-7, now NH-44) runs about 1.5 km west of the site.",
+   "value": "about 1.5 km W (map-measured)",
+   "source_title": "BDA RMP 2015 PD 307 map",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/a99f3cb5-416f-4c12-85af-17057618ac52/download/ede00261-22ba-488a-833c-4fa3fb56d03b.pdf",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Transport - Namma Metro",
+   "claim": "Blue Line Phase 2B (KR Puram-Hebbal-KIAL) stations include Hebbal, Kodigehalli, Jakkur Cross, Yelahanka (formerly 'Kogilu Cross'), Bagalur Cross, Bettahalasuru, Doddajala, Airport City and KIAL Terminals. Yelahanka (Kogilu Cross) station is the nearest, about 1.5-2 km west at Kogilu Cross on NH-44. Reported targets vary: Phase 2B by early 2027 (Housing.com), station pages say about June 2027 (TBC), Wikipedia line page says March 2028. Not operational as of these sources.",
+   "value": "Yelahanka (ex-Kogilu Cross) station, under construction",
+   "source_title": "The Metro Rail Guy - Bangalore Metro Phase 2B",
+   "url": "https://themetrorailguy.com/?p=24000",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Transport - suburban rail",
+   "claim": "K-RIDE Kanaka Line (Heelalige-Rajanukunte, Corridor 4) has an elevated Yelahanka station that interchanges with the Sampige line. L&T holds the civil works contract; station packages were tendered separately (Yelahanka in package C4B). The reported planned opening is March 2027.",
+   "value": "Under construction",
+   "source_title": "Deccan Herald / Bharatpedia (Kanaka line)",
+   "url": "https://en.bharatpedia.org/wiki/Kanaka_line",
+   "confidence": "low"
+  },
+  {
+   "topic": "Transport - BMTC/roads",
+   "claim": "A BMTC route runs Kogilu Cross - Yelahanka - Yelahanka PS - Allalasandra - Jakkur Cross - Byatarayanapura (Bellary Rd). Summing the segment distances gives about 4.6 km from Kogilu Cross to Byatarayanapura. BBMP lists a 'Bellary - Kogilu Main road' junction.",
+   "value": "See claim",
+   "source_title": "onefivenine route page",
+   "url": "https://www.onefivenine.com/india/distance-and-route/Bengaluru/Kogilu-Cross-to-Rajajinagar-Eph",
+   "confidence": "low"
+  },
+  {
+   "topic": "Waste - Kogilu Layout SWM site",
+   "claim": "BSWML plans about Rs 100 crore of waste facilities on a 14-acre site in Kogilu Layout: a 50 TPD biomethanisation unit plus animal-waste and sanitary-waste plants. The land is government gomala land in Sy. No. 99 of Kogilu village (part of a 57+ acre extent), handed to BBMP in November 2014 for solid waste processing. BSWML already held 9 acres.",
+   "value": "14 acres, Sy. 99 Kogilu",
+   "source_title": "Deccan Herald - Rs 100 cr waste facilities planned on Kogilu site cleared of encroachments",
+   "url": "https://www.deccanherald.com/india/karnataka/bengaluru/bengaluru-rs-100-cr-waste-facilities-planned-on-kogilu-site-cleared-of-encroachments-3846190",
+   "confidence": "high"
+  },
+  {
+   "topic": "Waste - distance",
+   "claim": "On the RMP 2015 PD 3.09 map, Sy. No. 99 sits next to the 'Kogilu Layout' label and is zoned Agricultural land. Measured on the map, it is about 2.4 km north-east of Sy. 27/28.",
+   "value": "about 2.4 km NE (map-measured)",
+   "source_title": "BDA RMP 2015 PD 309 map",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/1bd22e6c-c5d9-410d-9347-187c138ea94b/download/5f5c6b94-06a4-4fcb-ac5a-295341e4734a.pdf",
+   "confidence": "low"
+  },
+  {
+   "topic": "Waste - Kogilu demolition",
+   "claim": "On 20-12-2025 BSWML/GBA demolished houses in Fakir (Faqir) Colony and Waseem Layout, Kogilu, which sit on part of the waste-plant land. Officials put the count at 167 structures; reports give 150-400 houses and up to about 3,000 people affected. The Karnataka High Court is monitoring rehabilitation, and political controversy followed.",
+   "value": "Dec 2025",
+   "source_title": "LiveLaw / Deccan Herald / TNM",
+   "url": "https://www.livelaw.in/amp/high-court/karnataka-high-court/kogilu-demolition-drive-families-displaced-rehabilitation-status-526891",
+   "confidence": "high"
+  },
+  {
+   "topic": "Waste - quarry landfills NE",
+   "claim": "Abandoned quarries at Mitaganahalli, Bellahalli and Bagalur in north-east Bengaluru have served as BBMP landfills, with reported dumping of more than 2,500 TPD. Problems reported include leachate, odour and fly nuisance, an NGT bio-mining order, and village blockades. Distances to the site were not found.",
+   "value": "See claim",
+   "source_title": "Deccan Herald - Mitaganahalli landfill shows the dirty picture",
+   "url": "https://www.deccanherald.com/specials/bengalurus-mitaganahalli-landfill-shows-the-dirty-picture-1121165.html",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Lakes - nearby",
+   "claim": "Lakes labelled on the RMP 2015 maps, with distances measured on the map from label to label (lake edges are closer): Jakkur kere about 1.3 km S; Kogilu kere about 1.7 km NE; Agrahara kere about 2.1 km SE; Allalasandra kere about 2.5 km WSW; Yelahanka (Amanikere) kere about 2.7 km NW. A valley/'Sensitive Area' strip runs along the site's western edge.",
+   "value": "See claim",
+   "source_title": "BDA RMP 2015 PD 307 map",
+   "url": "https://data.opencity.in/dataset/3ba2ed19-5d9a-4c1a-999c-f48f7574684d/resource/a99f3cb5-416f-4c12-85af-17057618ac52/download/ede00261-22ba-488a-833c-4fa3fb56d03b.pdf",
+   "confidence": "low"
+  },
+  {
+   "topic": "Lakes - Kogilu lake quality",
+   "claim": "Kogilu lake is among 24 lakes flagged for poor water quality in an IISc report, despite BBMP restoration.",
+   "value": "Poor water quality",
+   "source_title": "Deccan Herald - Rejuvenated lakes continue to stink",
+   "url": "https://www.deccanherald.com/specials/point-blank/rejuvenated-lakes-continue-to-stink-after-restoration-793364.html",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Flood history",
+   "claim": "Kendriya Vihar apartments in Yelahanka (602 units, about 2,500 or more residents) flooded repeatedly. The causes were Yelahanka lake overflow (the lake is connected to 11 upstream lakes) and choked or encroached rajakaluves. About 138 mm fell in 3 hours in one event. Episodes include one under CM Bommai (Rs 10,000 relief, NDRF evacuation) and October 2024 (compound wall collapse; Doddabommasandra lake overflow).",
+   "value": "Recurring",
+   "source_title": "TNM / Deccan Herald",
+   "url": "https://www.thenewsminute.com/amp/story/karnataka/bengalurus-kendriya-vihar-apartments-in-yelahanka-flood-for-the-third-time-in-a-month",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Water - Cauvery Stage V",
+   "claim": "Cauvery Water Supply Scheme Stage V (Rs 4,336 crore, JICA-funded, 775 MLD) serves the 110 villages added to BBMP in 2007. It was launched in October 2024; BWSSB said 104 of the 110 villages had supply, with about 40,800 connections sanctioned. Villages still pending include Bellahalli and Kattigenahalli in the north-east. Kogilu was not named in the found lists.",
+   "value": "104/110 villages supplied",
+   "source_title": "Deccan Herald / Citizen Matters",
+   "url": "https://www.deccanherald.com/india/karnataka/bengaluru/over-40800-water-connections-sanctioned-under-cauvery-stage-v-project-in-110-villages-3338649",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Sewer - STP",
+   "claim": "Jakkur STP (BWSSB) is rated 10 MLD but treats about 6-8 MLD. It takes sewage from Yelahanka, and sewage enters Jakkur lake from the Kogilu side. Yelahanka STP is listed at 10 MLD (JICA survey).",
+   "value": "10 MLD each",
+   "source_title": "India Water Portal - Jakkur Lake; JICA report",
+   "url": "https://www.indiawaterportal.org/water-quality-and-pollution/waste-water-/jakkur-lake-potential-model-urban-water-sustainability",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Power - substations",
+   "claim": "KPTCL built a 220/66/11 kV Yelahanka (Puttenahalli) station (Rs 33.5 crore, two transformers) with a 220/66 kV multi-circuit line of about 6 km from Chikkabettahalli. It feeds the 66 kV stations at Attur, Sahakaranagar, Yelahanka, KHB Colony and Rajanukunte.",
+   "value": "220/66/11 kV Yelahanka (Puttenahalli)",
+   "source_title": "Deccan Herald - Yelahanka's power woes may end",
+   "url": "https://www.deccanherald.com/india/karnataka/bengaluru/yelahankas-power-woes-may-end-2041285",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Groundwater",
+   "claim": "In the 2024 CGWB assessment, Bengaluru North (Yelahanka) and City units drew more than twice their recharge, i.e. over 200% (over-exploited). Bengaluru Urban district extraction was 186.7% in 2024, up from 150.84% in 2023, and the district stayed 'over-exploited' in 2025.",
+   "value": "more than 200% (over-exploited)",
+   "source_title": "OpenCity - Bengaluru and Ground Water in 2024",
+   "url": "https://opencity.in/bengaluru-and-ground-water/",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Real estate - prices",
+   "claim": "Asking prices for Kogilu apartments average about Rs 11,350/sq ft (Squareyards). Registered deals in a nearby Vidhana Soudha Layout Ph-2 project averaged about Rs 8,400/sq ft. The Yelahanka average is about Rs 11,700/sq ft, up 45.89% year on year (Housing.com, listing-based).",
+   "value": "about Rs 11,350/sq ft (asking)",
+   "source_title": "Squareyards / Housing.com",
+   "url": "https://www.squareyards.com/bangalore-residential-property/vidhana-soudha-layout-phase-2/19492/project",
+   "confidence": "low"
+  },
+  {
+   "topic": "Real estate - projects",
+   "claim": "Projects in Kogilu: Adarsh Greens (RERA PRM/KA/RERA/1251/309/PR/201001/003607 and /1251/472/PR/210409/004117); Bren Northern Lights (OC received); Casagrand Estancia; Brigade Northridge Neo (listing).",
+   "value": "See claim",
+   "source_title": "PropertyPistol / Settlin / listings",
+   "url": "https://www.propertypistol.com/projects/adarsh-greens-kogilu-pid-4845",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Social infra - hospitals",
+   "claim": "SPARSH Hospital Yelahanka is at 1474/138 International Airport Road, Kogilu Cross, with 250+ beds and PM-JAY empanelment. NDR Multi Speciality Hospital is on Kogilu Main Road.",
+   "value": "SPARSH, Kogilu Cross",
+   "source_title": "SPARSH Hospital",
+   "url": "https://www.sparshhospital.com/hospitals/sparsh-hospital-yelahanka",
+   "confidence": "high"
+  },
+  {
+   "topic": "Social infra - schools",
+   "claim": "Schools nearby: Canadian International School (IGCSE/IB), Ryan International Yelahanka (ICSE, 2005), Mallya Aditi International (1984), Vidyashilp, Podar, EuroSchool Yelahanka; government schools GKHPS Boys Kogilu and GKLPS Kogilu Layout.",
+   "value": "See claim",
+   "source_title": "EuroSchool guide / iCBSE",
+   "url": "https://www.euroschoolindia.com/blogs/top-schools-in-yelahanka-updated-guide/",
+   "confidence": "medium"
+  },
+  {
+   "topic": "Heritage - Yelahanka",
+   "claim": "Yelahanka is one of the oldest settlements in Bengaluru; a 1267 inscription names it under the Hoysalas. Kempe Gowda I came from the Yelahanka Nadaprabhu chieftains, feudatories of Vijayanagara, and in 1537 moved the capital from Yelahanka to his new mud-fort town of Bengaluru.",
+   "value": "1537",
+   "source_title": "Wikipedia - Yelahanka; Kempe Gowda I",
+   "url": "https://en.wikipedia.org/wiki/Yelahanka",
+   "confidence": "medium"
+  }
+ ],
+ "not_found": [
+  "The '1.5 x (road width + front setback)' height rule is not in the RMP 2015 zoning regulations text (it may come from building bye-laws; not verified)",
+  "Exact RMP 2031 draft zoning map entry for Sy. 27/28 Kogilu (user-supplied 'Residential' not independently verified); 2026 status of RMP 2031 approval",
+  "Official taluk-level CGWB 2024/2025 stage-of-extraction % for Bengaluru North and depth-to-water-level values",
+  "Census 2011 population of Kogilu (it was probably inside BBMP limits by then; no village entry found)",
+  "Whether Kogilu is one of the 110 Cauvery Stage V villages, and its current supply status",
+  "Exact distance from the site to Yelahanka AFS (VOYK) and KIA ARP; site-specific NOCAS/CCZM permissible elevation",
+  "BESCOM 66/11 kV substation nearest Kogilu (names); HT line corridors over or near the site",
+  "Kogilu-specific landfill or quarry dumping history; distances to Mitaganahalli and Bellahalli",
+  "'Bren Lakeview', 'Prakruthi Nagar' and 'KPSC Vidhana Soudha Layout' project details",
+  "Kogilu village history (specific)",
+  "Malls/markets near Kogilu with sourced distances",
+  "Wikimedia Commons image URLs with verified licence/author (WebFetch and Commons API were blocked or rate-limited in this session)",
+  "The 'sewage treatment plant to the SW' shown on the RMP 2031 map is probably Jakkur STP (10 MLD); its exact identity and distance were not verified"
+ ],
+ "summary": "BDA's approved RMP 2015 maps (Planning District 3.09 Tanisandra) show Kogilu Sy. Nos. 27/28 in the Residential (Main) zone. Proposed roads run 18 m to the east and 15 m to the south, and a valley 'Sensitive Area' strip lies along the western edge, so a drain/valley buffer check is essential. RMP 2015 is still the operative plan (amended Aug 2025, further draft June 2026); RMP 2031 remains an unapproved draft. Because the 4.4 ha site exceeds 20,000 m2, it falls under Table 20 (Residential Development Plan): 10% park, 5% civic amenity, FAR 2.25-2.50 at 55% coverage on an 18 m road (2.00 at 60% on roads under 12 m), with all-round setbacks of 5 m (up to 15 m height) rising to 16 m (above 50 m height), plus TDR headroom of up to +0.6 FAR. Height is the key external constraint: buildings of 15 m or more need Air Force Station Yelahanka clearance, defence airports apply NOC limits within 20 km, and the state is lobbying (Apr and Sep 2026) to relax them, so AAI NOCAS and AFS NOCs should be budgeted early. The main nuisance risk is BSWML's planned Rs 100 crore waste-processing hub (50 TPD biomethanisation plus sanitary and animal waste) on Sy. 99 Kogilu Layout, about 2.4 km north-east, after the contested December 2025 demolitions. Connectivity is improving: Yelahanka (ex-Kogilu Cross) metro station on Blue Line Phase 2B (about 2027-28) and the K-RIDE Kanaka line's Yelahanka station (about 2027), with SPARSH Hospital and several schools nearby. Groundwater in Bengaluru North is heavily over-exploited (over 200%), and Yelahanka has a recurring flood history from lake overflow and choked rajakaluves, which supports conservative drainage design."
+}

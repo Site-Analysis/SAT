@@ -1,0 +1,462 @@
+{
+  "site": 1,
+  "accessed": "2026-10-10",
+  "method_note": "Desk research via WebSearch only. WebFetch failed DNS resolution for every host tried (deccanherald, wikipedia, drishtiias, opencity) and the shared web-search budget ran out before all topics were covered. Claims come from search-engine summaries of the cited pages, not from reading the full documents, so primary documents (gazettes, RMP volumes, CGWB tables) still need to be opened to confirm. Wikimedia Commons metadata was read directly from the Commons file pages (raw wikitext). Distances marked 'computed' are straight-line great-circle values from the site centroid 12.817247N 77.581549E.",
+  "facts": [
+    {
+      "topic": "Planning - operative master plan",
+      "claim": "The draft BDA Revised Master Plan 2031 is not in force. In July 2020 the Urban Development Department withdrew the provisional approval it gave in 2017, after 13,046 objections went unaddressed, and BDA decided to start afresh. RMP 2015 (prepared June 2007) remains the operative plan.",
+      "value": "RMP 2031 provisional approval 2017, withdrawn July 2020; 13,046 objections",
+      "source_title": "Deccan Herald - Govt withdraws provisional approval to Revised Master Plan 2031",
+      "url": "https://www.deccanherald.com/amp/story/india%2Fkarnataka%2Fbengaluru%2Fgovt-withdraws-provisional-approval-to-revised-master-plan-2031-860442.html",
+      "confidence": "high"
+    },
+    {
+      "topic": "Planning - operative master plan",
+      "claim": "BDA decided to discard the draft RMP 2031 and start from scratch.",
+      "value": "",
+      "source_title": "Deccan Herald - BDA bins draft Revised Master Plan 2031 to start from scratch",
+      "url": "https://www.deccanherald.com/amp/story/india%2Fkarnataka%2Fbengaluru%2Fbda-bins-draft-revised-master-plan-2031-to-start-from-scratch-912405.html",
+      "confidence": "high"
+    },
+    {
+      "topic": "Planning - RMP 2041",
+      "claim": "In 2025 BDA floated a global tender for a new Revised Master Plan 2041, with bids due 30 Sept 2025. Until RMP 2041 is notified, land-use decisions follow RMP 2015. No 2026 report of a published or approved RMP 2041 was found.",
+      "value": "Tender bid deadline 30 Sept 2025",
+      "source_title": "Deccan Herald - After decades' delay, Bengaluru's BDA floats tender for new city master plan",
+      "url": "https://www.deccanherald.com/india/karnataka/bengaluru/after-decades-delay-bengalurus-bda-floats-tender-for-new-city-master-plan-3691783",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Planning - RMP 2015 zoning regulations (source document)",
+      "claim": "The RMP 2015 Zoning Regulations are Volume III, 'Zoning of Landuse and Regulations', approved by G.O. No. UDD 540 BEM AA SE 2004 dated 22-06-2007.",
+      "value": "G.O. UDD 540 BEM AA SE 2004, 22 June 2007",
+      "source_title": "India Code - Revised Master Plan 2015 Bangalore, Zoning Regulations (PDF)",
+      "url": "https://www.indiacode.nic.in/ViewFileUploaded?path=AC_KA_71_402_00001_11_1552283484255%2Frulesindividualfile%2F&file=zoning_regulations_rmp2015f.pdf",
+      "confidence": "high"
+    },
+    {
+      "topic": "Planning - RMP 2015 Agricultural zone permissible uses",
+      "claim": "Under RMP 2015 the Agricultural (AG) zone covers the area outside the conurbation limits. Permitted uses include agriculture, horticulture, dairy and milk chilling centres, and agro-processing units using locally produced agricultural produce. Farm houses and accessory buildings are allowed up to 250 sq m of plinth area within a plot area limitation of 1.2 ha, limited to G+1 floors. Urban amenities are also permitted: burial grounds, education and health institutions, sports grounds, stadiums, playgrounds, parks and gardens.",
+      "value": "Farm house max 250 sq m plinth; plot area limitation 1.2 ha; max height G+1",
+      "source_title": "BDA Zoning Regulations RMP 2015 (copies on SlideShare/Academia; official PDF on indiacode.nic.in)",
+      "url": "https://www.slideshare.net/slideshow/revised-master-plan-2015-bangalore-2007-zoning-of-landuse-and-regulations-pdf/274649591",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Planning - RMP 2015 Agricultural zone special-circumstance uses",
+      "claim": "Uses the authority may permit under special circumstances include open-air theatres, indoor recreational uses, a dwelling for watch and ward, sports clubs, libraries, milk booths and HOPCOMS outlets. Such uses may not exceed 5% of the total area and may not exceed G+1 floors.",
+      "value": "Max 5% of total area; max G+1",
+      "source_title": "BDA Zoning Regulations RMP 2015 (excerpt via search)",
+      "url": "https://data-opencity.sgp1.cdn.digitaloceanspaces.com/Documents/DocumentCloud/bda-zoning-regulations-rmp2015.pdf",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Planning - RMP 2015 Agricultural zone residential share (unclear)",
+      "claim": "One search excerpt of the RMP 2015 regulations states that 'the area for residential development shall be up to a maximum of 55% of the total land area'. The excerpt does not show which clause this belongs to; it may be a hi-tech or residential-layout provision rather than an AG-zone one. Confirm against the official text before relying on it.",
+      "value": "55% of total land area (clause unverified)",
+      "source_title": "BDA Zoning Regulations RMP 2015 (excerpt via search)",
+      "url": "https://www.indiacode.nic.in/ViewFileUploaded?path=AC_KA_71_402_00001_11_1552283484255%2Frulesindividualfile%2F&file=zoning_regulations_rmp2015f.pdf",
+      "confidence": "low"
+    },
+    {
+      "topic": "Planning - AG zone and construction",
+      "claim": "Plots classified AG under RMP 2015 cannot receive change-of-land-use approval for construction directly. DC conversion is required before agricultural land can be legally subdivided or built on for non-agricultural use.",
+      "value": "",
+      "source_title": "1acre.in - Bengaluru BDA Masterplan 2015 (commercial land portal)",
+      "url": "https://1acre.in/map-layers/karnataka/bengaluru-masterplan",
+      "confidence": "low"
+    },
+    {
+      "topic": "Planning - BDA Local Planning Area extent",
+      "claim": "BDA's Local Planning Area covers 1,306 sq km across 387 villages (secondary source).",
+      "value": "1,306 sq km; 387 villages",
+      "source_title": "1acre.in - Bengaluru BDA Masterplan 2015",
+      "url": "https://1acre.in/map-layers/karnataka/bengaluru-masterplan",
+      "confidence": "low"
+    },
+    {
+      "topic": "Planning - draft RMP 2031 FAR",
+      "claim": "Under RMP 2015, permissible FAR ranged from 1.75 to 3.25. Under the draft RMP 2031, base FAR was 1.5 to 2, generally capped at 2.7 with premium FAR or TDR, and up to 4 in restricted areas. No AG-zone-specific rules for the draft RMP 2031 were found.",
+      "value": "RMP 2015 FAR 1.75-3.25; draft RMP 2031 base FAR 1.5-2, max 2.7 (4 in limited areas)",
+      "source_title": "Citizen Matters - How citizens can decode Bengaluru Master Plan draft",
+      "url": "https://citizenmatters.in/how-citizens-can-decode-bengaluru-master-plan-draft-22296",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Planning - draft RMP 2031 maps",
+      "claim": "Draft RMP 2031 existing-land-use maps by Planning District are hosted on BDA's site (e.g. ELU_PD_41). The Gottigere Planning District map (PD 16, 'Gottigere-A1') shows Agriculture among its categories. The PD 30 map for Bannerghatta was not retrieved.",
+      "value": "",
+      "source_title": "BDA - RMP 2031 ELU PD 41 (example); OpenCity draft RMP 2031 PD maps",
+      "url": "https://bdabangalore.org/uploads/files/TPM_Documents/RMP_2031/ELU_PD_41.pdf",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Land conversion - KLR Act Sec 95 (2023 amendment)",
+      "claim": "Act 25 of 2023, the Karnataka Land Revenue (Amendment) Act dated 27 July 2023, substitutes clauses (i) and (ii) of Section 95(2). It comes into force on a date the State notifies. The bill proposed that no DC permission is needed where the intended use matches the published master plan land use.",
+      "value": "Act 25 of 2023, 27 July 2023",
+      "source_title": "King Stubb & Kasiva - Karnataka Land Revenue Act: Amendments for streamlined land use conversion",
+      "url": "https://ksandk.com/newsletter/karnataka-land-act-streamlining-land-use-conversion/",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Land conversion - KLR Rules 2025",
+      "claim": "Under the Karnataka Land Revenue (Amendment) Rules 2025 (Notification RD-LGP/6/2025, 17 Sept 2025), land inside approved master-plan zones that conforms to its zonal classification needs no prior DC permission: the planning authority verifies, collects fees and issues a digitally signed conversion certificate. Applications need notarised affidavits (Forms 21B/21C), RTC, mutation extracts, sketches and master-plan extracts. Land zoned Agricultural, such as this site under RMP 2015, would not conform to a residential or commercial use, so the conventional DC conversion route under Sec 95 would still apply. This last point is an inference.",
+      "value": "Notification RD-LGP/6/2025 dated 17 Sept 2025",
+      "source_title": "Cyril Amarchand Mangaldas blog - Karnataka Land Revenue Rules Amendment 2025",
+      "url": "https://corporate.cyrilamarchandblogs.com/2025/11/karnataka-land-revenue-rules-amendment-2025-redefining-land-governance/",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Land conversion - timelines",
+      "claim": "Outside master-plan areas, the DC decides within 15 days and approval is deemed after 30 days (practitioner guide). Karnataka High Court rulings have treated conversion applications as deemed allowed when the authority fails to communicate an order in time, subject to paying conversion charges.",
+      "value": "15 days decision; deemed after 30 days",
+      "source_title": "1acre.in DC Conversion Certificate guide; Verdictum - Karnataka HC on Sec 95 deemed conversion",
+      "url": "https://www.verdictum.in/court-updates/high-courts/karnataka-land-revenue-act-no-jurisdiction-of-deputy-commissioner-rejecting-land-conversion-application-post-4-months-expiry-1486764",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Land conversion - GBA area",
+      "claim": "The State removed the requirement for separate land conversion approval in specified cases for lands inside approved master-plan areas in the Bengaluru Metropolitan / Greater Bengaluru Authority area, treating them as converted within the planning approval. New Rules 106B-106F apply.",
+      "value": "Rules 106B-106F",
+      "source_title": "King Stubb & Kasiva - Karnataka removes land conversion requirement in GBA",
+      "url": "https://ksandk.com/newsletter/land-conversion-requirement-removed-in-karnataka-gba/",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Bannerghatta National Park - extent and location",
+      "claim": "Bannerghatta National Park lies within Anekal taluk, Bengaluru Urban district, about 22-25 km south of the city centre (25 km from Vidhana Soudha). It is about 4 km from Gottigere, and Wikipedia gives its reference point as 12°48'03\"N 77°34'32\"E. Park area is given as 260.51 sq km (some sources say 104.27 sq km). Bannerghatta Biological Park was carved out of it in 2002.",
+      "value": "260.51 sq km; ~22-25 km south of the city",
+      "source_title": "Wikipedia - Bannerghatta National Park",
+      "url": "https://en.wikipedia.org/wiki/Bannerghatta_National_Park",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Bannerghatta National Park - distance from site (computed)",
+      "claim": "Straight-line distance from the site centroid (12.817247N 77.581549E) to the Wikipedia reference point for Bannerghatta National Park (12.8008N 77.5756E). That point is not the boundary. The nearest boundary is probably closer, likely under 2 km, but this needs checking against the forest boundary shapefile or ESZ map.",
+      "value": "~1.9 km to the park reference point; boundary distance not verified",
+      "source_title": "Computed from Wikipedia coordinates",
+      "url": "https://en.wikipedia.org/wiki/Bannerghatta_National_Park",
+      "confidence": "low"
+    },
+    {
+      "topic": "Bannerghatta ESZ - final notification",
+      "claim": "The MoEFCC final Eco-Sensitive Zone notification for Bannerghatta National Park is dated 11 March 2020. It set the ESZ at 168.84 sq km, extending 100 m to 1.0 km from the park boundary.",
+      "value": "168.84 sq km; 100 m-1 km width; notified 11.03.2020",
+      "source_title": "Deccan Herald - Central notification shrinks Bannerghatta ESZ by 100 sq km; Greenminute",
+      "url": "https://deccanherald.com/india/central-notification-shrinks-bannerghatta-esz-by-100-sq-km-813219.html",
+      "confidence": "high"
+    },
+    {
+      "topic": "Bannerghatta ESZ - 2016 draft",
+      "claim": "The 2016 draft ESZ proposed 268.96 sq km, extending 100 m to 4.5 km from the boundary. It lapsed after the Karnataka government objected. A 2018 redraft cut the maximum width to 1 km and the area to 168.84 sq km, covering 77 villages.",
+      "value": "2016 draft 268.96 sq km, 100 m-4.5 km; 2018 redraft 168.84 sq km, 77 villages",
+      "source_title": "Deccan Herald - Activists list damage caused by shrinking of Bannerghatta buffer zone; Deccan Herald - BNP eco zone area shrunk despite protests",
+      "url": "https://www.deccanherald.com/amp/story/india%2Fkarnataka%2Fbengaluru%2Factivists-list-damage-caused-by-shrinking-of-bannerghatta-buffer-zone-3847111",
+      "confidence": "high"
+    },
+    {
+      "topic": "Bannerghatta ESZ - pending litigation (key risk)",
+      "claim": "In May 2025 K.B. Belliappa and others, including the Bannerghatta Nature Conservation Trust, petitioned the Supreme Court over the reduced ESZ. The Supreme Court's Central Empowered Committee, in a 524-page report dated 5 Jan 2026, recommended that MoEFCC withdraw the 11.3.2020 notification and fully restore the 2016 draft (268.96 sq km, up to 4.5 km). Greenminute reported a target of re-notification by about July 2026. No Supreme Court ruling or MoEFCC re-notification was found as of the research date.",
+      "value": "CEC report 5 Jan 2026; possible ESZ width up to 4.5 km if the 2016 draft is restored",
+      "source_title": "Greenminute; Deccan Herald - Activists move Supreme Court over shrinkage of Bannerghatta buffer zone",
+      "url": "https://greenminute.in/?p=5029",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Bannerghatta ESZ - prohibited and regulated activities",
+      "claim": "The ESZ notification prohibits commercial mining, stone quarrying and crushing units, polluting industries, major hydro-electric projects, brick kilns, saw mills and similar activities. No new commercial hotels or resorts are allowed within 1 km of the park boundary, or up to the ESZ boundary if nearer, except small temporary eco-tourism structures. Other construction is regulated. These details come from the 2018 draft as reported; whether they carried into the 2020 final text unchanged was not verified.",
+      "value": "No new commercial hotels/resorts within 1 km of the PA boundary (or up to the ESZ limit)",
+      "source_title": "Deccan Herald - Bannerghatta National Park (2018 draft ESZ)",
+      "url": "https://deccanherald.com/city/bannerghatta-national-park-702224.html",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Bannerghatta - settlements near the park",
+      "claim": "A 2016 IISc study counted about 120 human settlements within 5 km of the park boundary and 5 settlements inside the park.",
+      "value": "~120 settlements within 5 km; 5 inside",
+      "source_title": "IISc Sahyadri e-News 54 - Bannerghatta National Park: Conservation Importance",
+      "url": "https://wgbis.ces.iisc.ac.in/biodiversity/sahyadri_enews/newsletter/issue54/article1/summary.html",
+      "confidence": "high"
+    },
+    {
+      "topic": "Wildlife - human-elephant conflict",
+      "claim": "The Karnataka Forest Department and A Rocha India held 4 workshops with over 500 stakeholders from about 36 villages around the park. The main issues raised were elephant movement through villages, ex-gratia disbursement, and breaches in elephant-proof barriers near villages.",
+      "value": "500+ participants; ~36 villages",
+      "source_title": "Priyadarshi et al. 2024, Indian Forester (A Rocha India)",
+      "url": "https://arocha.org/wp-content/uploads/2025/06/Priyadarshi-et-al-2024-INDIAN-FORESTER-elephant-deliberations.pdf",
+      "confidence": "high"
+    },
+    {
+      "topic": "Wildlife - elephant corridors",
+      "claim": "Quarrying threatens elephant corridors around the park, notably near Ragihalli and Shivanahalli in Anekal taluk, which link the park to the Karadikkal and Madeshwara state forests. The forest department sought cancellation of quarry licences there.",
+      "value": "",
+      "source_title": "Save the Elephants - Jumbos in quarry: state of affairs, Bangalore",
+      "url": "https://savetheelephants.org/news/jumbos-in-quarry-state-of-affairs-bangalore",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Wildlife - leopards",
+      "claim": "A recent study estimates 80-85 leopards in and around Bannerghatta National Park. Residents near the park report losing dogs to leopards.",
+      "value": "80-85 leopards",
+      "source_title": "Mongabay (Aug 2025) - In India, humans and leopards meet near major cities",
+      "url": "https://news.mongabay.com/2025/08/in-india-humans-leopards-meet-near-major-cities-preserving-habitat-is-crucial/",
+      "confidence": "high"
+    },
+    {
+      "topic": "Quarrying near site",
+      "claim": "A state Forest and Mines and Geology survey found at least 44 stone quarries, jelly-crushing units and M-sand units inside the recommended 10 km buffer of the park, and 10 were ordered shut. In a later crackdown, authorities raided illegal quarrying at 19 locations in Anekal taluk, including one inside the Bannerghatta forest, with assets valued at about Rs 800 crore. Blasting, dust and truck traffic affect villages next to the park.",
+      "value": "44 units in the 10 km buffer; 19 raid locations in Anekal",
+      "source_title": "Deccan Herald - Massive crackdown on illegal quarries in Anekal",
+      "url": "https://www.deccanherald.com/india/karnataka/bengaluru/massive-crackdown-illegal-quarries-anekal-2134974",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Roads - Bannerghatta Road",
+      "claim": "Bannerghatta Road is Karnataka State Highway 87, not a National Highway. It runs about 45-49 km from Adugodi (Hosur Road) via Bannerghatta, Jigani and Anekal to Samanduru near the Tamil Nadu border, where it continues as an MDR and joins NH 948A in Tamil Nadu. It crosses NICE Road near Gottigere.",
+      "value": "SH-87; ~45-49 km",
+      "source_title": "Wikipedia - State Highway 87 (Karnataka)",
+      "url": "https://en.wikipedia.org/wiki/State_Highway_87_(Karnataka)",
+      "confidence": "high"
+    },
+    {
+      "topic": "Roads - Bannerghatta Road widening",
+      "claim": "Under a Rs 152 crore project, the 7.44 km stretch of Bannerghatta Road from JD Mara junction to Koli Farm in Gottigere is being widened from 24 m to 45 m, with TDR compensation. Only about 1.8 km was complete in 2019, delayed by land acquisition and metro works. No 2025-26 status was found.",
+      "value": "24 m to 45 m over 7.44 km; Rs 152 crore",
+      "source_title": "Deccan Herald - Bannerghatta Road widening: BDA blamed for delay",
+      "url": "https://www.deccanherald.com/amp/story/india%2Fkarnataka%2Fbengaluru%2Fbannerghatta-road-widening-bda-blamed-for-delay-744640.html",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Roads - STRR",
+      "claim": "The Satellite Town Ring Road (NH 948A) is about 280.8 km long. Phase 1 (Dobbaspet-Hoskote, ~80 km) opened 11 March 2024. Its southern alignment passes through the Bannerghatta ESZ from km 95.525 to km 138.0, including an 8.1 km elevated section through the park core with a 28.5 m right of way. The State Wildlife Board approved the elevated section, environmentalists object, and the status of the southern phase is reported as on hold. The exact distance from the site was not found.",
+      "value": "ESZ section km 95.5-138; 8.1 km elevated; ROW 28.5 m",
+      "source_title": "OpenCity - Bengaluru's Ring Roads and How They Align; Down To Earth - Activists point out dangers of highway through BNP",
+      "url": "https://opencity.in/bengalurus-ring-roads-and-how-they-align/",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Transit - nearest metro",
+      "claim": "Kalena Agrahara (formerly Gottigere) is the southern terminal of the Namma Metro Pink Line, at about 12.8716N 77.5936E on Bannerghatta Road. The 7.5 km elevated Kalena Agrahara-Tavarekere section had not opened by late September 2026. The August and September 2026 targets slipped, and a mid-October 2026 opening was expected pending CMRS. The underground Dairy Circle-Nagawara section is targeted for March 2027.",
+      "value": "~6.2 km straight-line from the site (computed); opening expected mid-Oct 2026 (unconfirmed)",
+      "source_title": "Wikipedia - Kalena Agrahara metro station; Business Today 10 Aug 2026; Deccan Herald - Pink Line deadline",
+      "url": "https://en.wikipedia.org/wiki/Kalena_Agrahara_metro_station",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Transit - BMTC",
+      "claim": "BMTC route 365 historically ran between Majestic (Kempegowda Bus Station) and Bannerghatta National Park via Shantinagar and Dairy Circle, about every 20 min. Routes 366, 368, V365 and G-4 also served the corridor. These guides are old, so current timetables need checking with BMTC.",
+      "value": "Route 365 approx. every 20 min (historical)",
+      "source_title": "Citizen Matters - A to Z of using BMTC buses",
+      "url": "https://citizenmatters.in/1919-bengaluru-bmtc-bus-information/",
+      "confidence": "low"
+    },
+    {
+      "topic": "Landmarks - Champakadhama Swamy temple",
+      "claim": "The Champakadhama Swamy temple at Bannerghatta is near the Bannerghatta zoo. Inscriptions date its construction to 1257 CE under the Hoysalas, with later Vijayanagara additions, and it is in Dravidian style. By tradition, the area was the Champaka forest 'Champakaranya'. A Deccan Herald report names Purvadiraya, a Hoysala feudatory, as its builder.",
+      "value": "1257 CE (Hoysala)",
+      "source_title": "Tirthayatra - Champakadhama Swamy Temple; Deccan Herald - 700-year-old Hoysala-era temple in Jigani in ruins",
+      "url": "https://www.tirthayatra.org/champakadhama-swamy-temple/",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Landmarks - Jigani",
+      "claim": "Jigani, home of the KIADB industrial area, is on SH-87 south-east of Bannerghatta. Bannerghatta village is in Jigani hobli. No sourced distance from the site to the Jigani industrial area was found.",
+      "value": "",
+      "source_title": "Wikipedia - Bannerghatta (disambiguation); Wikipedia - State Highway 87",
+      "url": "https://en.wikipedia.org/wiki/Bannerghatta",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Landmarks - schools",
+      "claim": "There is a Government Higher Primary School at Bannerghatta, Anekal taluk, with about 430 students in classes 1-7. It was rebuilt with 6 classrooms in 2007 by OSAAT and the Rotary Club.",
+      "value": "~430 students (2007)",
+      "source_title": "OSAAT - Government Higher Primary School, Bannerghatta",
+      "url": "https://osaat.org/bannerghatta-karnataka",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Groundwater - Anekal stage of extraction",
+      "claim": "Anekal assessment unit stage of groundwater extraction, from IN-GRES figures as compiled by a third-party GitHub dataset: 118.0% (2023-24), 105.6% (2024-25), 106.4% (2025-26). Above 100% is categorised 'Over-Exploited' by CGWB. The same source gives Bengaluru Urban district as 186.7%, 177.3% and 179.4% for those years.",
+      "value": "118.0% / 105.6% / 106.4% - Over-Exploited",
+      "source_title": "GitHub neer-vazhvu PR #395 (IN-GRES data); OpenCity - Bengaluru and Ground Water in 2024",
+      "url": "https://github.com/SundareshPrasanna/neer-vazhvu/pull/395",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Groundwater - categories",
+      "claim": "CGWB categories by stage of extraction: Safe up to 70%, Semi-Critical over 70% to 90%, Critical over 90% to 100%, Over-Exploited over 100%.",
+      "value": "",
+      "source_title": "CGWB Dynamic Ground Water Resources documentation",
+      "url": "https://cgwb.gov.in/cgwbpnm/public/uploads/documents/17056455441185636310file.pdf",
+      "confidence": "high"
+    },
+    {
+      "topic": "Groundwater - water level trend Anekal",
+      "claim": "Anekal's groundwater levels fell by nearly 7.42 m against the ten-year mean (season not stated). Over 1997-2006, pre-monsoon levels in Anekal fell by 0.06-0.33 m per year.",
+      "value": "-7.42 m vs decadal mean; -0.06 to -0.33 m/yr (1997-2006)",
+      "source_title": "Deccan Herald - Groundwater level plunging in Bengaluru Urban taluks; CGWB Groundwater Information Booklet Bangalore Urban 2008",
+      "url": "https://www.deccanherald.com/india/karnataka/bengaluru/groundwater-level-plunging-in-bengaluru-urban-taluks-2871830",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Groundwater - depth to water (district)",
+      "claim": "Bengaluru Urban district depth to water from CGWB piezometers (2011 profile): pre-monsoon 5-30 m bgl, post-monsoon 2-40 m bgl. The 2006 booklet gives pre-monsoon 2.00-10.47 and post-monsoon 1.77-12.02 m bgl.",
+      "value": "Pre-monsoon 5-30 m bgl; post-monsoon 2-40 m bgl (2011)",
+      "source_title": "CGWB District Groundwater Profile - Bangalore Urban 2012",
+      "url": "https://cgwb.gov.in/old_website/District_Profile/karnataka/2012/BANGALORE_URBAN-2012.pdf",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Groundwater - aquifer type",
+      "claim": "Bengaluru Urban is underlain mainly by Archaean granites and gneisses. Groundwater occurs under phreatic conditions in the weathered zone (typically 10-30 m thick) and under semi-confined conditions in deeper jointed and fractured granite-gneiss. CGWB has published an Aquifer Mapping and Management Plan for Anekal taluk covering 8 towns, 9 hoblis, 28 GPs and 227 villages, in the Cauvery and Krishna (Ponnaiyar) basins.",
+      "value": "Weathered zone 10-30 m",
+      "source_title": "CGWB - Aquifer Mapping and Management Plan, Anekal Taluk; NAQUIM 2.0 Bangalore inception report",
+      "url": "https://cgwb.gov.in/cgwbpnm/publication-detail/965",
+      "confidence": "high"
+    },
+    {
+      "topic": "Geology and soils",
+      "claim": "Bengaluru is underlain by the Peninsular Gneissic Complex (granites, gneisses, migmatites). Soils are red laterite and red fine-loamy to clayey; red loam and sandy loam are also listed for Bengaluru Urban. The southern part of the district has small granite and gneiss hills and outcrops.",
+      "value": "",
+      "source_title": "Wikipedia - Bengaluru geography and environment; Invest Karnataka - Bengaluru Urban",
+      "url": "https://en.wikipedia.org/wiki/Bengaluru_geography_and_environment",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Seismic zone",
+      "claim": "IS 1893 (Part 1):2016 is the applicable seismic code. BIS withdrew the 2025 revision by gazette notification dated 3 March 2026. Bengaluru is commonly listed in Zone II (Z = 0.10) under the 2016 code, but some secondary sites list Zone III, so confirm against the official 2016 zone map.",
+      "value": "Zone II, Z = 0.10 (IS 1893:2016)",
+      "source_title": "Studio Matrx - Seismic Zone Checker; Vision IAS - BIS revokes new seismic map (7 Mar 2026)",
+      "url": "https://visionias.in/current-affairs/upsc-daily-news-summary/article/2026-03-07/the-economic-times/environment/bis-revokes-new-seismic-map-with-high-risk-zone-vi",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Climate - annual rainfall",
+      "claim": "Bengaluru city annual normal rainfall: 986.1 mm (IMD LPA 1981-2010) and 1,077.1 mm (1991-2020 normal). The record wettest year was 2005 at 1,606.8 mm.",
+      "value": "986.1 mm (1981-2010); 1,077.1 mm (1991-2020); record 1,606.8 mm (2005)",
+      "source_title": "Citizen Matters - Annual rainfall increasing in Bengaluru; Deccan Herald - 2017 Bengaluru's wettest ever year",
+      "url": "https://citizenmatters.in/bengaluru-annual-rainfall-increasing-changing-patterns",
+      "confidence": "high"
+    },
+    {
+      "topic": "Climate - wettest months",
+      "claim": "September and October are the wettest months. September mean is 208.3-212.8 mm (1981-2010). October normal is 186.4 mm (1991-2020), up from 168.3 mm (1981-2010). The record monthly total is 516.6 mm in September 1986.",
+      "value": "Sept ~208-213 mm; Oct 186.4 mm; record Sept 1986 516.6 mm",
+      "source_title": "Deccan Herald - Bengaluru's driest September in 90 years; Skymet",
+      "url": "https://www.deccanherald.com/india/karnataka/bengaluru/bengaluru-experiences-driest-september-in-90-years-imd-3213892",
+      "confidence": "high"
+    },
+    {
+      "topic": "Climate - 24 h extreme",
+      "claim": "IMD scientist R.K. Jenamani cited an all-time 24-h high of 177.6 mm on 12 Sept 1988, in a September context. It is not confirmed as the all-month record. The IMD Extremes table for Bengaluru is the authoritative source.",
+      "value": "177.6 mm in 24 h (12 Sept 1988)",
+      "source_title": "Udayavani - Worst not over for Bengaluru; IMD Bengaluru Extremes PDF",
+      "url": "https://mausam.imd.gov.in/bengaluru/mcdata/Extremes.pdf",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Flood history (south Bengaluru)",
+      "claim": "In 2019 the Hulimavu lake bund breached on Bannerghatta Road, affecting more than 1,000 families and submerging over 300 cars. In other events, the Dorekere, Gubbalala, Vasanthapura and Doddakallasandra lakes breached and Gottigere and Arakere waterlogged. No flood record specific to Bannerghatta village was found.",
+      "value": ">1,000 families affected (Hulimavu, 2019)",
+      "source_title": "The News Minute - Lake bund breached in Bengaluru, Hulimavu",
+      "url": "https://www.thenewsminute.com/article/lake-bund-breached-bengaluru-scores-houses-flooded-hulimavu-and-btm-layout-112869",
+      "confidence": "high"
+    },
+    {
+      "topic": "Census 2011 - context",
+      "claim": "Anekal taluk had 517,575 people in 2011, of whom 352,425 were rural. Neighbouring Byrappanahalli village, under Bannerughatta GP, had 486 people in 121 households and lies about 1.25 km south-west of Bannerughatta. SECC lists 'BANNERUGATTA' GP (code 215313) with 4,062 households. The village-level figure for Bannerughatta (613132) was not found.",
+      "value": "Anekal taluk 517,575 (2011); Bannerugatta GP 4,062 households (SECC)",
+      "source_title": "CityPopulation.de - Anekal; villageinfo.in - Byrappanahalli; SECC GP household report",
+      "url": "https://secc.gov.in/getAllCategoryHouseOwnershipStatusBlockLgdReport.htm/29/525/5759",
+      "confidence": "medium"
+    },
+    {
+      "topic": "Land prices",
+      "claim": "No credible transaction-based price for Bannerghatta was found. Listing portals show asking prices of roughly Rs 4.2-7 crore per acre for parcels near south Bengaluru (Mayasandra, Thattanahalli, Harohalli). These are seller asks in other villages and not comparable without due diligence.",
+      "value": "Asking Rs 4.2-7 Cr/acre (other villages; listings only)",
+      "source_title": "1acre.in - Lands near Bannerghatta Road",
+      "url": "https://1acre.in/map-layers/karnataka/lands-near-bannerghatta-road",
+      "confidence": "low"
+    },
+    {
+      "topic": "Infrastructure - water",
+      "claim": "Bannerghatta Biological Park relies on borewells (12, of which only 6 were yielding at the time) and asked BWSSB for help. Peri-urban villages around Bengaluru have traditionally relied on GP borewells. No source confirmed BWSSB or Cauvery supply to Bannerghatta village.",
+      "value": "",
+      "source_title": "Deccan Chronicle - Bannerghatta park sends SOS to BWSSB",
+      "url": "https://deccanchronicle.com/nation/in-other-news/260419/bannerghatta-park-sends-sos-to-bwssb.html",
+      "confidence": "low"
+    },
+    {
+      "topic": "Vernacular architecture - image 1",
+      "claim": "Farmer house at Kebbalu, Shravanabelagola, Hassan district, Karnataka (2017). Commons categories: Houses in Karnataka; Fields in Karnataka. Licence CC BY-SA 4.0; author Prof tpms (own work). Image content not visually verified.",
+      "value": "https://upload.wikimedia.org/wikipedia/commons/9/95/Kebbalu._Sravanabelagola.Farmer_house.jpg",
+      "source_title": "Wikimedia Commons - File:Kebbalu. Sravanabelagola.Farmer house.jpg",
+      "url": "https://commons.wikimedia.org/wiki/File:Kebbalu._Sravanabelagola.Farmer_house.jpg",
+      "confidence": "high"
+    },
+    {
+      "topic": "Vernacular architecture - image 2",
+      "claim": "Village house, Melukote old town, Mandya district, Karnataka (2016). Licence CC BY-SA 4.0; author Prof tpms (own work). Image content not visually verified.",
+      "value": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Melkoute.village_house.jpg",
+      "source_title": "Wikimedia Commons - File:Melkoute.village house.jpg",
+      "url": "https://commons.wikimedia.org/wiki/File:Melkoute.village_house.jpg",
+      "confidence": "high"
+    },
+    {
+      "topic": "Vernacular architecture - image 3",
+      "claim": "House at B. Cholenahalli, Shravanabelagola, Hassan district, Karnataka (2017). Licence CC BY-SA 4.0; author Prof tpms (own work). Image content not visually verified.",
+      "value": "https://upload.wikimedia.org/wikipedia/commons/7/7e/B._Cholenahalli_House_Shravanabelagola.jpg",
+      "source_title": "Wikimedia Commons - File:B. Cholenahalli House Shravanabelagola.jpg",
+      "url": "https://commons.wikimedia.org/wiki/File:B._Cholenahalli_House_Shravanabelagola.jpg",
+      "confidence": "high"
+    },
+    {
+      "topic": "Vernacular architecture - image 4",
+      "claim": "Mangalore-tiled home ('henchina mane') at Alasandemajalu, Puttur, Dakshina Kannada, Karnataka (2011). This is the coastal Karnataka tile typology rather than south Bengaluru. Licence CC BY-SA 4.0; author BHARATHESHA ALASANDEMAJALU (own work). Image content not visually verified.",
+      "value": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Mangaluru_tiles_Home.jpg",
+      "source_title": "Wikimedia Commons - File:Mangaluru tiles Home.jpg",
+      "url": "https://commons.wikimedia.org/wiki/File:Mangaluru_tiles_Home.jpg",
+      "confidence": "high"
+    },
+    {
+      "topic": "Vernacular architecture - alternates",
+      "claim": "Alternates: (a) aerial view of Koothagal village, Ramanagara (Bengaluru South district), 12.779373N 77.235778E, CC BY-SA 4.0, KshitizBathwal, a Commons Valued Image; (b) Doddahonnurkaval village, Mysore district, CC BY-SA 4.0, Prof tpms.",
+      "value": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Koothagal_village_in_Ramnagara.jpg ; https://upload.wikimedia.org/wikipedia/commons/b/b7/Doddahonnurkaval_Village._Mysore_district_%282%29.jpg",
+      "source_title": "Wikimedia Commons - Category:Houses in Karnataka",
+      "url": "https://commons.wikimedia.org/wiki/Category:Houses_in_Karnataka",
+      "confidence": "high"
+    },
+    {
+      "topic": "Vernacular architecture - Mangalore tiles origin",
+      "claim": "Mangalore tiles trace to the Basel Mission's mechanised tile factory in Mangalore, from about 1865, and spread across India.",
+      "value": "c. 1865",
+      "source_title": "Scroll.in - Mangalore's age-old tiles survive the shift towards cement; Commons - Basel Mission Works Tile Mangalore 1865",
+      "url": "https://scroll.in/article/668853/mangalores-age-old-tiles-survive-the-shift-towards-cement",
+      "confidence": "medium"
+    }
+  ],
+  "not_found": [
+    "RMP 2015 zoning map designation specific to Bannerghatta village / Planning District 30 (whether AG or green belt). The PD map was not retrieved; the register's AG classification is unverified.",
+    "RMP 2015 AG-zone FAR, ground coverage, setbacks and minimum plot size beyond the farm-house limits (250 sq m plinth, 1.2 ha, G+1). Section 4.13 of the official PDF needs to be read directly.",
+    "KLR Act Section 109 specifics (conversion or ceiling exemption for industrial/approved projects) - not searched before the budget ran out",
+    "Agriculture-zone rules of the draft RMP 2031, and the proposed 45 m road shown near the site",
+    "Exact distance from the site to the Bannerghatta National Park boundary; whether Sy 21/22 fall inside the 2020 ESZ (100 m-1 km) or the 2016 draft ESZ (up to 4.5 km)",
+    "ESZ final notification S.O. number and the 77-village list",
+    "Bannerghatta-Anekal road (SH-87 south of Bannerghatta) widening plans for 2025-26",
+    "Distance from the site to STRR / Peripheral Ring Road alignment",
+    "Current (2026) BMTC route list and frequency to Bannerghatta village",
+    "Bannerghatta Biological Park main entrance coordinates and distance from the site",
+    "Names of lakes in or adjoining Bannerghatta village",
+    "Nearest PHC or hospital to Bannerghatta village",
+    "Distance from the site to Jigani KIADB industrial area",
+    "Official CGWB 2022/2023/2024 taluk-table value for Anekal (only a third-party compilation of IN-GRES was found); Anekal-specific pre/post-monsoon depth to water",
+    "Census 2011 population and households of Bannerughatta village (code 613132)",
+    "Credible land transaction prices or guideline value for Bannerghatta",
+    "BESCOM substation serving Bannerghatta (name, kV)",
+    "Water supply arrangement for Bannerghatta village (GP borewells vs BWSSB), and waste-management arrangements",
+    "Landfill or contamination records specific to Bannerghatta village",
+    "Wikimedia Commons photos specifically of south Bengaluru / Anekal vernacular houses with jagali verandas. Available Karnataka examples are from Hassan, Mandya and Dakshina Kannada, and image content was not visually checked because upload.wikimedia.org is blocked from this container."
+  ],
+  "summary": "The site is about 2 km from the Bannerghatta National Park reference point and very likely within or next to the park's Eco-Sensitive Zone. The 2020 final ESZ (168.84 sq km, 100 m-1 km wide) is under challenge in the Supreme Court. The Supreme Court's Central Empowered Committee recommended in January 2026 restoring the 2016 draft (268.96 sq km, up to 4.5 km), which would almost certainly take in Survey Nos. 21-22 and restrict commercial construction, hotels and resorts, and quarrying. RMP 2015 is still the operative plan because the draft RMP 2031 was withdrawn in July 2020 and RMP 2041 is not notified. If the site is AG-zoned, development is essentially limited to agriculture, agro-processing, institutional and amenity uses, and farm houses of at most 250 sq m plinth and G+1 within 1.2 ha, with any non-agricultural use needing DC conversion under KLR Act Sec 95. Groundwater is a hard constraint: Anekal is Over-Exploited (stage of extraction about 106-118% in 2023-26) on hard-rock granite-gneiss aquifers, so supply strategy and rainwater harvesting are central. Access is via SH-87 (Bannerghatta Road), and the Pink Line terminal at Kalena Agrahara is about 6 km straight-line away with opening imminent but not confirmed. That, plus the park and Hoysala-era Champakadhama temple setting, supports eco-tourism, institutional or low-density nature-sensitive uses. Further risks include elephant and leopard conflict, quarry blasting and dust in the Anekal belt, and the pending RCCMS mutation dispute on Sy 22; low seismic hazard (Zone II) and well-drained red soils are positives."
+}
