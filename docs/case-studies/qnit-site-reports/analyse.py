@@ -792,7 +792,7 @@ def sensitive(s):
     lu["name"] = [name_of(n) for n in lu["names"]]
     lu["d"] = [g.distance(s.poly) for g in lu.geom]
     out = {}
-    pa = lu[lu["subtype"] == "protected"].sort_values("d")
+    pa = lu[(lu["subtype"] == "protected") & (lu["d"] < 20000) & np.array([g.area < 5e9 for g in lu.geom])].sort_values("d")
     if len(pa):
         row = pa.iloc[0]
         g = row.geom
@@ -810,6 +810,89 @@ def sensitive(s):
     sch = lu[(lu["class"] == "school") & lu["name"].notna()].sort_values("d")
     out["school_nearest"] = {"name": sch.iloc[0]["name"], "dist_m": r(sch.iloc[0].d, 0)} if len(sch) else None
     return out
+
+
+# ---------------------------------------------------------------- aerodrome obstacle surfaces (indicative ICAO Annex 14, code 4 precision)
+AERODROME_ELEV = 915.0  # KIA aerodrome elevation, m AMSL (research: Wikipedia / AC-U-KWIK)
+
+
+def airport_surfaces(s, inf):
+    if inf is None or inf.empty:
+        return None
+    rw = inf[inf["class"] == "runway"]
+    if rw.empty:
+        return None
+    z, tr = dem_utm(s, buf=0, res=10)
+    pts = [Point(x, y) for x, y in s.vertices] + [Point(s.cx, s.cy)]
+    names = [f"V{i+1}" for i in range(len(s.vertices))] + ["Centroid"]
+
+    def ground(p):
+        j = int((p.x - tr.c) / 10)
+        i = int((tr.f - p.y) / 10)
+        i = min(max(i, 0), z.shape[0] - 1)
+        j = min(max(j, 0), z.shape[1] - 1)
+        return float(z[i, j])
+
+    runways = []
+    strips = []
+    for _, row in rw.iterrows():
+        c = list(row.geom.coords)
+        a, b = (c[0], c[-1]) if c[0][0] < c[-1][0] else (c[-1], c[0])  # a = west end
+        L = math.dist(a, b)
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        strip = LineString([(a[0] - 60 * ux, a[1] - 60 * uy), (b[0] + 60 * ux, b[1] + 60 * uy)])
+        strips.append(strip)
+        runways.append({"name": name_of(row["names"]), "a": a, "b": b, "u": (ux, uy), "len_m": r(L, 0),
+                        "west_thr_ll": [r(TO_WGS.transform(*a)[1], 5), r(TO_WGS.transform(*a)[0], 5)]})
+    ih = unary_union([st.buffer(4000) for st in strips])
+
+    def approach(p, rwy):
+        # approach to the west threshold (landing eastbound): inner edge 60 m before threshold, 300 m wide, 15% divergence
+        ax_, ay_ = rwy["a"]
+        ux, uy = rwy["u"]
+        dx, dy = p.x - ax_, p.y - ay_
+        along = -(dx * ux + dy * uy)  # metres west of threshold
+        lat = abs(-dx * uy + dy * ux)
+        d = along - 60
+        if d < 0 or d > 15000:
+            return None, along, lat
+        half = 150 + 0.15 * d
+        if lat > half:
+            return None, along, lat
+        h = 0.02 * min(d, 3000) + (0.025 * min(d - 3000, 3600) if d > 3000 else 0) + 0
+        h = min(h, 150)
+        return h, along, lat
+
+    rows = []
+    for nm, p in zip(names, pts):
+        g = ground(p)
+        cands = []
+        dih = p.distance(ih)
+        if ih.contains(p):
+            cands.append(("Inner horizontal", 45.0))
+        elif dih <= 2000:
+            cands.append(("Conical", 45.0 + 0.05 * dih))
+        best_app = None
+        for rwy in runways:
+            h, along, lat = approach(p, rwy)
+            if h is not None:
+                cands.append((f"Approach {rwy['name']}", h))
+                best_app = (rwy["name"], along, lat)
+        lim = min(cands, key=lambda c: c[1]) if cands else ("Outer horizontal", 150.0)
+        top = AERODROME_ELEV + lim[1]
+        rows.append({"pt": nm, "ground": r(g, 1), "surface": lim[0], "limit_above_aerodrome_m": r(lim[1], 1),
+                     "top_amsl": r(top, 1), "height_avail_m": r(top - g, 1),
+                     "in_approach": best_app is not None})
+    geo_rw = []
+    for rwy in runways:
+        h0, along, lat = approach(Point(s.cx, s.cy), rwy)
+        geo_rw.append({"name": rwy["name"], "len_m": rwy["len_m"], "west_thr": rwy["west_thr_ll"],
+                       "centroid_west_of_thr_m": r(along, 0), "centroid_offset_m": r(lat, 0),
+                       "dist_to_strip_m": r(Point(s.cx, s.cy).distance(LineString([rwy["a"], rwy["b"]])), 0)})
+    mn = min(rows, key=lambda r_: r_["height_avail_m"])
+    return {"aerodrome_elev": AERODROME_ELEV, "runways": geo_rw, "points": rows, "min_height_avail_m": mn["height_avail_m"],
+            "min_pt": mn["pt"], "binding_surface": mn["surface"], "any_in_approach": any(r_["in_approach"] for r_ in rows),
+            "in_inner_horizontal": bool(ih.intersects(s.poly)), "basis": "ICAO Annex 14 code-4 precision approach (indicative)"}
 
 
 # ---------------------------------------------------------------- run
@@ -855,6 +938,7 @@ def run(n):
     res["infrastructure"] = infr
     res["airfields"] = airfields(s, inf, pl)
     res["sensitive"] = sensitive(s)
+    res["aerodrome"] = airport_surfaces(s, inf)
     z10 = np.load(CACHE / s.id / "dem10.npy")
     tr10 = json.loads((CACHE / s.id / "dem10.json").read_text())["transform"]
     res["skyline"] = skyline(s, b, z10, tr10)

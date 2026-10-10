@@ -185,7 +185,8 @@ def fig_boundary():
     for i, (x, y) in enumerate(S.vertices):
         ax.plot(x, y, "o", ms=3.2, mfc="white", mec=GREEN, mew=1, zorder=9)
     north_scale(ax, b)
-    ax.plot([], [], color="#1d74d6", ls=(0, (4, 2)), lw=1.2, label=f"Draft RMP 2031 plan road ({'/'.join(sorted({str(int(p['row_m'])) for p in R['plan']['roads'] if p['row_m']}))} m)")
+    if R["plan"]["roads"]:
+        ax.plot([], [], color="#1d74d6", ls=(0, (4, 2)), lw=1.2, label=f"Draft RMP 2031 plan road ({'/'.join(sorted({str(int(p['row_m'])) for p in R['plan']['roads'] if p['row_m']}))} m)")
     ax.plot([], [], color="#38c6f4", lw=1.6, label="Mapped stream / drain")
     ax.legend(loc="lower right", fontsize=5, frameon=True, framealpha=0.9, edgecolor="#ddd", borderpad=0.5)
     return save(fig, "boundary", jpg=True)
@@ -886,11 +887,61 @@ def screenshot_crop():
     return p
 
 
+def fig_airport():
+    inf = read_ov(S, "infrastructure")
+    rw = inf[inf["class"] == "runway"]
+    if rw.empty:
+        return None
+    runways = []
+    for _, row in rw.iterrows():
+        c = list(row.geom.coords)
+        a, b_ = (c[0], c[-1]) if c[0][0] < c[-1][0] else (c[-1], c[0])
+        runways.append((name_of(row["names"]), a, b_))
+    thr_x = min(r_[1][0] for r_ in runways)
+    cx = (S.poly.bounds[0] + thr_x + 900) / 2
+    cy = (S.cy + np.mean([r_[1][1] for r_ in runways])) / 2
+    W_ = (thr_x + 900) - S.poly.bounds[0] + 1400
+    H_ = W_ / 0.95
+    b = (cx - W_ / 2, cy - H_ / 2, cx + W_ / 2, cy + H_ / 2)
+    fig, ax = map_axes(b, 0.95, "airport", res=6.0, fade=0.35)
+    strips = []
+    for nm, a, b_ in runways:
+        L = math.dist(a, b_)
+        ux, uy = (b_[0] - a[0]) / L, (b_[1] - a[1]) / L
+        strips.append(LineString([(a[0] - 60 * ux, a[1] - 60 * uy), (b_[0] + 60 * ux, b_[1] + 60 * uy)]))
+        # approach funnel to the west threshold
+        px_, py_ = -uy, ux
+        e0 = (a[0] - 60 * ux, a[1] - 60 * uy)
+        d = 6600
+        e1 = (e0[0] - d * ux, e0[1] - d * uy)
+        w0, w1 = 150, 150 + 0.15 * d
+        poly = [(e0[0] + w0 * px_, e0[1] + w0 * py_), (e1[0] + w1 * px_, e1[1] + w1 * py_), (e1[0] - w1 * px_, e1[1] - w1 * py_), (e0[0] - w0 * px_, e0[1] - w0 * py_)]
+        ax.add_patch(MplPoly(poly, closed=True, fc="#2f7fd9", ec="#1d5fae", lw=0.6, alpha=0.16, zorder=4))
+        ax.plot([a[0], a[0] - 9000 * ux], [a[1], a[1] - 9000 * uy], color="#1d5fae", lw=0.6, ls=(0, (5, 3)), zorder=5)
+        ax.plot([a[0], b_[0]], [a[1], b_[1]], color="#222", lw=3.2, solid_capstyle="butt", zorder=6)
+        ax.plot([a[0], b_[0]], [a[1], b_[1]], color="white", lw=0.5, ls=(0, (3, 3)), zorder=7)
+        lab = "09L / 27R" if a[1] == max(r_[1][1] for r_ in runways) else "09R / 27L"
+        tag(ax, a[0] + 900, a[1] + (260 if "L /" in lab else -260), lab, fc="#222", fs=5)
+    ih = unary_union([st.buffer(4000) for st in strips])
+    cone = unary_union([st.buffer(6000) for st in strips])
+    for geom, col, ls in ((ih, "#d9480f", "-"), (cone, "#f08c00", (0, (4, 3)))):
+        xs_, ys_ = geom.exterior.xy
+        ax.plot(xs_, ys_, color=col, lw=1.1, ls=ls, zorder=8)
+    site_outline(ax, alpha=0.75, color="#7a1d00", lw=1.0, z=9)
+    ax.patches[-1].set_facecolor((0.95, 0.45, 0.15, 0.85))
+    A = R["aerodrome"]
+    tag(ax, S.cx, S.poly.bounds[1] - 420, f"Site · indicative top ≈ {960:.0f} m AMSL", fc="#7a1d00", fs=5)
+    label(ax, b[0] + 0.5 * W_, b[3] - 0.05 * H_, "Inner horizontal: 45 m above aerodrome (4 km)", fs=5, color="#d9480f")
+    label(ax, b[0] + 0.5 * W_, b[3] - 0.10 * H_, "Conical: +5% to 6 km  ·  Approach: 2% then 2.5%", fs=5, color="#a65c00")
+    north_scale(ax, b)
+    return save(fig, "airport", jpg=True)
+
+
 from sites import SCREENSHOTS as SCREEN
 
 ALL = [fig_hero, fig_boundary, fig_terrain, fig_transect, fig_sunpath_map, fig_seasonal_polar, fig_solar_faces, fig_wind_map,
        fig_windrose, fig_comfort, fig_temperature, fig_runoff, fig_rainfall, fig_groundwater, fig_landscape, fig_context, fig_skyline,
-       fig_isochrones, fig_landuse_change, fig_density, fig_services, screenshot_crop]
+       fig_isochrones, fig_landuse_change, fig_density, fig_services, screenshot_crop, fig_airport]
 
 if __name__ == "__main__":
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 3

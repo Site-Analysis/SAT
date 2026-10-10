@@ -1,0 +1,294 @@
+
+{% macro head(kick, title, n) -%}
+<div class="kicker">{{kick}}</div><div class="hrule"></div><img class="qmark" src="{{qmark}}">
+<div class="title">{{title}}</div><div class="sub">{{S.name}}&nbsp; / &nbsp;{{S.rec.locality}}</div>
+<div class="foot"><b>{{'%02d' % n}}</b><span>{{S.report_id}} &nbsp;/&nbsp; {{DATE}} &nbsp;/&nbsp; {{REV}}</span></div>
+{%- endmacro %}
+{% set A = R.aerodrome %}{% set hmax = A.points|map(attribute='height_avail_m')|max %}
+
+<!-- 01 COVER -->
+<section class="page">
+  <img src="{{logo}}" style="position:absolute;left:18mm;top:20mm;width:69mm">
+  <div style="position:absolute;right:18.5mm;top:57mm;text-align:right;font-style:italic;font-size:12pt;line-height:1.45">Better study,<br>better decisions.</div>
+  <img src="{{layers_cover}}" style="position:absolute;left:135.7mm;top:77.5mm;width:74.3mm">
+  <div style="position:absolute;left:17mm;top:80mm;font-size:48pt;font-weight:700;line-height:1.08;letter-spacing:-1pt">Sadahalli<br>Site<br>Report</div>
+  <div style="position:absolute;left:17.6mm;top:146mm;font-size:12.5pt;color:#333">Site 4 &nbsp;·&nbsp; Sy. 168–190 &nbsp;·&nbsp; {{fmt(geo.area_acre,1)}} acres</div>
+  <div class="glbl" style="position:absolute;left:17.6mm;top:201mm;font-size:7pt">Site analysis</div>
+  <div style="position:absolute;left:17.6mm;top:211mm;font-size:12pt;line-height:1.5">Prepared for Qnit case-study portfolio<br>Presented by GeoAce Studio Pvt Ltd</div>
+  <div style="position:absolute;left:17.6mm;top:233.5mm;font-size:8pt;color:#666;line-height:1.55">Sadahalli, Devanahalli taluk, Bengaluru Rural &nbsp;·&nbsp; {{geo.centroid[0]}}° N, {{geo.centroid[1]}}° E<br>{{DATE}} &nbsp;/&nbsp; {{REV}} &nbsp;/&nbsp; {{S.report_id}}</div>
+  <img src="{{geoace}}" style="position:absolute;left:17.6mm;top:264mm;width:47mm">
+</section>
+
+<!-- 02 OVERVIEW -->
+<section class="page">{{ head('SITE OVERVIEW','The site at a glance',2) }}
+ <div class="body">
+  <div class="row" style="gap:5.6mm">
+   <div style="width:135.5mm"><img class="fig" src="{{fig.hero}}" style="height:81mm"></div>
+   <div class="col" style="padding-top:.6mm">
+     <div class="lbl">Latitude</div><div class="mid" style="font-size:13pt">{{'%.6f' % geo.centroid[0]}}° N</div>
+     <div class="lbl" style="margin-top:6mm">Longitude</div><div class="mid" style="font-size:13pt">{{'%.6f' % geo.centroid[1]}}° E</div>
+     <div class="lbl" style="margin-top:6mm">Study extent</div><div class="mid" style="font-size:16pt">{{fmt(geo.study_extent_m)}} m</div>
+     <div class="small" style="margin-top:4mm">North up · scale bar on image<br>Imagery Wayback 24 Sep 2026</div>
+   </div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri World Imagery (Wayback 2026-09-24). Boundary from Case_Studies.kml, Site 4; vertices V1–V{{geo.n_edges}}, centroid in WGS 84.</div>
+  <div class="row" style="margin-top:9mm;gap:0">
+   <div style="width:72mm"><div class="lbl">Site area</div><div class="big">{{fmt(geo.area_m2)}} m²</div><div class="small">{{fmt(geo.area_acre,2)}} acres · {{fmt(geo.area_ha,2)}} ha · {{fmt(geo.area_guntas)}} guntas</div></div>
+   <div style="width:56mm"><div class="lbl">Perimeter</div><div class="big">{{fmt(geo.perimeter_m)}} m</div><div class="small">KML boundary, Oct 2026</div></div>
+   <div class="col"><div class="lbl">Boundary</div><div class="big">{{geo.n_edges}} edges</div><div class="small">Irregular polygon, about {{geo.rect_dims_m[0]}} × {{geo.rect_dims_m[1]}} m</div></div>
+  </div>
+  <h2 style="margin-top:8mm">Design brief</h2>
+  <p style="font-size:11.6pt;line-height:1.33">A {{fmt(geo.area_ha,1)}} ha flat, open parcel on NH-44 at Sadahalli Gate, {{(A.runways[1].centroid_west_of_thr_m/1000)|round(1)}} km west of the airport's north runway. How much can it carry under the airport's height surfaces, and what do the zoning, water and boundary gaps mean for a large mixed-use scheme?</p>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Primary opportunity</div><p class="grey" style="font-size:8.6pt">Direct frontage on NH-44 and the airport trumpet ({{fmt(R.context.major_roads.trunk.dist_m)}} m). The planned Doddajala metro station is about 1.4 km away, and the Aerospace Park, Business Park and ITIR are nearby: a strong address for hospitality, office or airport-linked mixed use.</p></div>
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Key constraint</div><p class="grey" style="font-size:8.6pt">Inside the airport's 4 km inner horizontal surface: an indicative top of about 960 m AMSL leaves {{'%.0f'|format(A.min_height_avail_m)}}–{{'%.0f'|format(hmax)}} m above ground. The south edge lies in the 09L approach funnel. AAI NOC is mandatory.</p></div>
+  </div>
+  <div style="border-top:.6pt solid #d4d4d4;margin-top:6mm;padding-top:4.2mm;display:flex">
+   <div class="glbl" style="width:56mm;font-size:7.4pt;padding-top:1mm">Report route</div>
+   <div class="small" style="font-size:7.6pt">03–04 &nbsp;Site &amp; ground &nbsp;&nbsp;&nbsp; 05–08 &nbsp;Environment<br>09–11 &nbsp;Context &amp; services &nbsp;&nbsp;&nbsp; 12 &nbsp;Priorities &amp; sources</div>
+  </div>
+  <div class="small" style="margin-top:4.5mm">Stakeholders: Qnit case-study portfolio &nbsp;/&nbsp; GeoAce Studio design team &nbsp;/&nbsp; Reviewer: pending</div>
+ </div>
+</section>
+
+<!-- 03 SITE DETAILS -->
+<section class="page">{{ head('SITE DETAILS','Boundary, edges & development',3) }}
+ <div class="body">
+  <div class="row" style="gap:3mm">
+   <img class="fig" src="{{fig.boundary}}" style="width:101mm;height:75mm">
+   <img class="fig" src="{{fig.airport}}" style="width:71mm;height:75mm">
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Left: Esri imagery 2026; drain from Overture Maps. Right: runways from Overture (agree with published thresholds within ~10 m); surfaces drawn to ICAO Annex 14 code-4 geometry, indicative only.</div>
+  <div class="row" style="margin-top:6.5mm;gap:13mm">
+   <div class="col"><h2>Site identity</h2><div class="kv">
+     <div>Survey / parcel &nbsp;<b>Sy. 168, 169, 186, 188, 189 in · 190 (7 m out)</b></div>
+     <div>Village / authority &nbsp;<b>Sadahalli (625397) · BIAAPA</b></div>
+     <div>CRS / boundary &nbsp;<b>WGS 84 KML · UTM 43N</b></div>
+     <div>Records / status &nbsp;<b>Sy 189: 1 RCCMS case, disposed</b></div></div></div>
+   <div class="col"><h2>Development controls</h2><div class="kv">
+     <div>Permitted use / source &nbsp;<b>BIAAPA RMP 2021 · zone not online</b></div>
+     <div>FAR / coverage &nbsp;<b>Per zone · zonal certificate needed</b></div>
+     <div>Change of land use &nbsp;<b>BIAAPA → BMRDA → state</b></div>
+     <div>Height limit / basis &nbsp;<b>≈ 960 m AMSL · AAI NOC</b></div></div></div>
+  </div>
+  <h2 style="margin-top:5.5mm;border:0;padding:0;margin-bottom:3mm">Edge conditions</h2>
+  <table class="t">
+   <tr><th style="width:22mm">Edges</th><th>Adjoining condition</th><th style="width:47mm">Clearance / width</th><th style="width:33mm">Evidence</th></tr>
+   <tr><td>R–C · S / SE (738 m)</td><td>Service road; construction sites (Concorde, Brigade HRC Atrium, Marriott); NH-44 frontage at B–C</td><td>NH-44 {{fmt(R.context.major_roads.trunk.dist_m)}} m; drain {{fmt(R.water.streams[0].dist_m)}} m S; metro depot 138 m</td><td>Overture land use · Esri 2026</td></tr>
+   <tr><td>C–K · E / N (1,150 m)</td><td>Gated villa plots on residential lanes</td><td>Lanes on H–K; villa layout overlaps 5,862 m²</td><td>Overture · Esri 2026</td></tr>
+   <tr><td>K–O · NW (888 m)</td><td>Track, scrub, a few houses; orchard to the W</td><td>Orchard 19 m W</td><td>Overture land use</td></tr>
+   <tr><td>O–R · SW (575 m)</td><td>Sadahalli Main Road (O–P); scrub; Aparna (u/c) beyond</td><td>Aparna 17 m W</td><td>Overture · Esri 2026</td></tr>
+  </table>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Height and zoning, not edges, set the envelope. Get the AAI NOCAS colour-coded zoning value and the BIAAPA zonal certificate first. Then check the boundary: Overture maps 5,862 m² of a villa layout and 2,208 m² of a neighbouring project inside the KML.</p></div>
+ </div>
+</section>
+
+<!-- 04 TOPOGRAPHY -->
+<section class="page">{{ head('TOPOGRAPHY','Terrain & the ground beneath',4) }}
+ <div class="body">
+  <img class="fig" src="{{fig.terrain}}" style="height:96mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Copernicus GLO-30 DSM (30 m, resampled to 10 m), {{ter.contour_interval_m}} m contours, over Esri imagery. A–B follows the fitted fall line.</div>
+  <div class="row" style="margin-top:7.5mm;gap:0">
+   <div style="width:72mm"><div class="lbl">Elevation range</div><div class="big">{{'%.0f'|format(ter.elev_min)}} / {{'%.0f'|format(ter.elev_max)}} m</div><div class="small">EGM2008 · DSM includes canopy</div></div>
+   <div style="width:56mm"><div class="lbl">Typical slope</div><div class="big">{{'%.1f'|format(ter.plane_slope_pct)}} %</div><div class="small">Flat · falls to the {{ter.fall_dir}}</div></div>
+   <div class="col"><div class="lbl">Contour interval</div><div class="big">{{ter.contour_interval_m}} m</div><div class="small">GLO-30 DSM / 30 m</div></div>
+  </div>
+  <h2 style="margin-top:7.5mm">Transect A–B</h2>
+  <img src="{{fig.transect}}" style="width:100%;height:29mm;object-fit:contain">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Section A–B sampled every 5 m from the DSM; A is north, B south.</div>
+  <div class="small" style="margin-top:3.5mm;font-size:8pt">Section length {{fmt(tr.length_m)}} m &nbsp; / &nbsp; Relief {{'%.1f'|format(tr.relief_m)}} m &nbsp; / &nbsp; Vertical exaggeration ≈ {{'%.0f'|format(ve)}}×</div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Essentially flat: {{'%.0f'|format(ter.share_lt5_pct)}}% of the ground is under 5%, falling about 1% to the S, with the low point ({{'%.0f'|format(ter.low_pt_z)}} m) at the SE corner by NH-44. Large floor plates need little grading. Because the ground is near 925 m, every metre of fill eats into the airport height limit.</p></div>
+ </div>
+</section>
+<!-- 05 SUN -->
+<section class="page">{{ head('SUN & SOLAR EXPOSURE','Light, shade & orientation',5) }}
+ <div class="body" style="top:52mm">
+  <div class="row" style="gap:6.5mm">
+   <div style="width:110mm"><div class="glbl" style="margin-bottom:3.5mm">01 &nbsp;/&nbsp; Sun path</div><img class="fig" src="{{fig.sunpath}}" style="height:87mm"></div>
+   <div class="col"><div class="lbl" style="margin-bottom:3.5mm">Seasonal comparison</div><img src="{{fig.sunpolar}}" style="width:100%;height:57mm;object-fit:contain">
+     <div class="small" style="margin-top:3mm">21 Mar · 21 Jun · 21 Dec; {{sol.tz}}<br>True north; noon altitude {{'%.0f'|format(sol.events['21 Dec'].noon_alt)}}° (Dec) to {{'%.0f'|format(sol.events['21 Jun'].noon_alt)}}° (Jun, sun to the north)<br>Day length {{'%.1f'|format(sol.events['21 Dec'].daylength_h)}}–{{'%.1f'|format(sol.events['21 Jun'].daylength_h)}} h; no context model</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Solar positions computed (NREL SPA, pvlib) for the site centroid; stereographic dome, Esri imagery. Hour lines at the 21st of each month.</div>
+  <div style="border-top:.6pt solid #ddd;margin-top:5.5mm;padding-top:5mm"><div class="glbl" style="margin-bottom:3.5mm">02 &nbsp;/&nbsp; Solar radiation</div>
+  <div class="row" style="gap:7mm">
+   <div style="width:92mm"><img src="{{fig.solar}}" style="width:100%;height:65mm;object-fit:contain"></div>
+   <div class="col"><div class="lbl">Analysis period</div><div class="mid">{{sol.years[0]}}–{{sol.years[1]}} monthly means</div>
+     <div class="lbl" style="margin-top:6mm">Incident solar energy</div><div class="big" style="font-size:23pt">{{fmt(sol.ghi_year_kwh)}} kWh/m²</div>
+     <div class="small">Horizontal plane, per year ({{'%.2f'|format(sol.ghi_day_mean)}} kWh/m²·day)<br>Highest wall exposure: SE / SW ≈ {{fmt(sol.faces_kwh.SE)}}; north {{fmt(sol.faces_kwh.N)}}<br>Best month {{MON[sol.best_month-1]}}; cloud cuts {{sol.cloud_loss_pct|int}}% vs clear sky</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; NASA POWER CERES SYN1deg monthly GHI {{sol.years[0]}}–{{sol.years[1]}}; wall split modelled from clear-sky geometry scaled to it.</div></div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>With no slope or shade to work around, orient long blocks E–W with main glazing N and S: the noon sun stays above {{'%.0f'|format(sol.events['21 Dec'].noon_alt)}}°, so short overhangs shade both. The {{fmt(geo.area_ha,0)}} ha of roofs and parking at {{fmt(sol.ghi_year_kwh)}} kWh/m²·yr suit large-scale PV, subject to an AAI glare check.</p></div>
+ </div>
+</section>
+
+<!-- 06 WIND -->
+<section class="page">{{ head('WIND & MICROCLIMATE','Air movement & outdoor comfort',6) }}
+ <div class="body">
+  <div class="row" style="gap:6.5mm">
+   <img class="fig" src="{{fig.windmap}}" style="width:121mm;height:81mm">
+   <div class="col"><img src="{{fig.windrose}}" style="width:100%;height:50mm;object-fit:contain">
+    <div class="lbl" style="margin-top:4mm">Season / height</div><div class="mid" style="font-size:11.5pt">2015–24 / 10 m</div>
+    <div class="small">Annual: from {{wst.annual.prevailing}}, mean {{wst.annual.mean_speed}} m/s, calm {{wst.annual.calm_pct}}%<br>Jun–Sep: {{sm.prevailing}} {{sm.prevailing_pct|int}}%, {{sm.mean_speed}} m/s<br>Dec–Feb: {{wi.prevailing}} {{wi.prevailing_pct|int}}%, {{wi.mean_speed}} m/s</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; NOAA ISD hourly observations, {{wst.name}}, {{wst.dist_km}} km E; consistent with NASA POWER MERRA-2 (from {{wmd.annual.prevailing}}, {{wmd.annual.mean_speed}} m/s).</div>
+  <div class="row" style="margin-top:7mm">
+   <div class="col"><h2>Local comfort</h2><img class="fig" src="{{fig.comfort}}" style="height:62mm"></div>
+   <div class="col"><h2>Seasonal temperature</h2><img src="{{fig.temperature}}" style="width:100%;height:62mm;object-fit:contain"></div>
+  </div>
+  <div class="row"><div class="col cap"><b>SOURCE</b> &nbsp;/&nbsp; ESA WorldCover 2021 (10 m) on Esri imagery; dashed = 500 m ring.</div>
+  <div class="col cap"><b>SOURCE</b> &nbsp;/&nbsp; NASA POWER MERRA-2 daily, {{cli.years[0]}}–{{cli.years[1]}}. VOBL station mean {{wst.t_mean}} °C vs model {{cli.t_annual_mean}} °C.</div></div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>The site is open to the monsoon westerly ({{sm.mean_speed}} m/s, {{sm.prevailing_pct|int}}% of Jun–Sep hours): use E–W courts to ventilate it. Winter easterlies carry NH-44 traffic noise and dust, so put a planted buffer and parking along the SE frontage. Canopy is only {{'%.0f'|format(lc.canopy_site)}}%: plan shade trees early.</p></div>
+ </div>
+</section>
+
+<!-- 07 RAIN -->
+<section class="page">{{ head('RAINFALL & WATER','Runoff, storage & groundwater',7) }}
+ <div class="body" style="top:52mm">
+  <div class="row" style="gap:6.5mm">
+   <div style="width:110mm"><div class="glbl" style="margin-bottom:3.5mm">Surface response</div><img class="fig" src="{{fig.runoff}}" style="height:79mm"></div>
+   <div class="col"><div class="lbl" style="margin-bottom:2mm">Monthly rainfall</div><img src="{{fig.rainfall}}" style="width:100%;height:31mm;object-fit:contain">
+     <div class="lbl" style="margin-top:7mm">Event basis</div><div class="big" style="font-size:20pt">{{q10|int}} mm / 24 h</div>
+     <div class="small">10-year return period (Gumbel on {{cli.amax_1day_years[0]}}–{{cli.amax_1day_years[1]}} annual maxima)<br>Mean annual {{fmt(cli.rain_annual_mean)}} mm; {{cli.rain_jun_nov_pct|int}}% falls May–Nov</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; D8 flow on GLO-30 DSM; Overture water. Rain: NASA POWER MERRA-2 grid {{cli.grid[0]}} N {{cli.grid[1]}} E (taluk normal 804 mm, CGWB).</div>
+  <h2 style="margin-top:6mm">Groundwater &amp; recharge</h2>
+  <img src="{{fig.groundwater}}" style="width:100%;height:27mm;object-fit:contain">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Conceptual section on A–B. Strata and water depths from the CGWB Bengaluru Urban profile, not site boreholes.</div>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Surface water</div><p class="grey" style="font-size:8.6pt">Low point SE corner ({{'%.0f'|format(ter.low_pt_z)}} m) by NH-44 → mapped drain {{fmt(R.water.streams[0].dist_m)}} m S.<br>10-yr day on {{fmt(geo.area_ha,2)}} ha: ≈ {{fmt(vol_now,-2)}} m³ runoff now (C 0.35), ≈ {{fmt(vol_built,-2)}} m³ built (C 0.75).<br>Basis: catchment = site; {{fmt(ter.upstream_ha)}} ha drains through the outlet.</p></div>
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Ground conditions</div><p class="grey" style="font-size:8.6pt">Devanahalli extraction 169% of recharge (2024): over-exploited.<br>Shallow aquifer largely desaturated (CGWB NAQUIM 2022); levels 20–60 m bgl.<br>Granite-gneiss; no Cauvery supply in the taluk.</p></div>
+  </div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Hold ≈ {{fmt(vol_built - vol_now,-2)}} m³ of extra 10-year runoff in a detention park at the SE low point before the NH-44 drain. Water is the delivery risk: plan on treated-water reuse, HN Valley-fed tanks and harvesting, not borewells.</p></div>
+ </div>
+</section>
+
+<!-- 08 LANDSCAPE -->
+<section class="page">{{ head('LANDSCAPE & ECOLOGY','Living systems & views',8) }}
+ <div class="body">
+  <img class="fig" src="{{fig.landscape}}" style="height:92mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri imagery; Overture water bodies; plan-view sight lines from the site centre.</div>
+  <div class="row" style="margin-top:7mm;gap:13mm">
+   <div class="col"><h2>Landscape structure</h2>
+    <div style="display:flex;gap:3mm;margin:3mm 0 1mm"><img src="{{ic_land}}" style="width:29%"><img src="{{ic_veg}}" style="width:29%"><img src="{{ic_built}}" style="width:29%"></div>
+    <div style="display:flex;gap:3mm" class="small"><div style="width:32%">Landform</div><div style="width:32%">Vegetation</div><div style="width:32%">Built form</div></div>
+    <div class="kv" style="margin-top:5mm">
+     <div>Canopy cover &nbsp;<b>{{'%.0f'|format(lc.canopy_site)}}% site · {{'%.0f'|format(lc.canopy_ring)}}% 500 m ring</b></div>
+     <div>Permeable ground &nbsp;<b>{{'%.0f'|format(lc.permeable_site)}}% site · {{'%.0f'|format(lc.permeable_ring)}}% ring</b></div>
+     <div>Water / habitat edge &nbsp;<b>drain {{fmt(R.water.streams[0].dist_m)}} m · tanks {{fmt(lake1.dist_m)}} m NW</b></div>
+     <div>Tree survey / season &nbsp;<b>none · WorldCover 2021</b></div></div></div>
+   <div class="col"><h2>View &amp; habitat priorities</h2>
+    <div class="txt" style="font-size:9pt;line-height:1.45">Retain<br><b style="font-weight:400">The scattered trees and scrub belt across the centre, as the seed of a central park.</b><br><br>Investigate<br><b style="font-weight:400">Bird activity near the runways (wildlife-strike rules for open water and refuse) and aircraft noise; no published noise contour was found.</b></div>
+    <div class="small" style="margin-top:9mm">Observer: site centre, plan view (no eye-height model)<br>WorldCover 2021: {{'%.0f'|format(lc.site.Cropland)}}% cropland, {{'%.0f'|format(lc.site.Shrubland)}}% shrub</div></div>
+  </div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Make a shaded central green from the existing tree belt, and keep detention basins dry-bottomed rather than open water, which attracts birds this close to the runways.</p></div>
+ </div>
+</section>
+
+<!-- 09 CONTEXT -->
+<section class="page">{{ head('BUILT CONTEXT & ACCESS','Neighbourhood fit & movement',9) }}
+ <div class="body" style="top:52mm">
+  <img class="fig" src="{{fig.context}}" style="height:71mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Overture Maps buildings and roads (release 2026-09-23) over Esri imagery; A–B is a 1.2 km W–E section through the site.</div>
+  <div class="glbl" style="margin-top:6mm">Street &amp; skyline profile A–B</div>
+  <img src="{{fig.skyline}}" style="width:100%;height:21mm;object-fit:contain;margin-top:2mm">
+  <div class="cap" style="margin-top:1mm">{{sky.n}} buildings cut; heights are tagged for only {{R.context.bld_500_known_h_pct|int}}% of buildings within 500 m (up to {{R.context.bld_500_h_max|int}} m), so hatched blocks are assumed from footprint.</div>
+  <div style="border-top:.6pt solid #ddd;margin-top:4mm;padding-top:4mm" class="row">
+   <div style="width:76mm"><div class="glbl" style="margin-bottom:3mm">Daily access</div><img class="fig" src="{{fig.isochrones}}" style="height:70mm">
+    <div class="cap">Walking 5 / 10 / 15 min at 4.8 km/h on the Overture road network from the nearest road nodes.</div></div>
+   <div class="col"><div class="lbl">Access basis</div><div class="mid" style="font-size:12pt">NH-44 frontage / walk / weekday</div>
+    <div class="kv" style="margin-top:4mm">
+     <div>Transit &nbsp;<b>{{inf.bus_stop.name}} stop · {{fmt(inf.bus_stop.dist_m)}} m</b></div>
+     <div>Rail &nbsp;<b>KIA Halt · {{'%.1f'|format(inf.railway_station.dist_m/1000)}} km</b></div>
+     <div>Metro &nbsp;<b>Doddajala (Blue 2B) ≈ 1.4 km, 2027–28</b></div>
+     <div>Health &nbsp;<b>{{poi.Health[0].name}} · {{poi.Health[0].walk_min|int}} min</b></div>
+     <div>Education &nbsp;<b>{{poi.Education[0].name.split(',')[0]}} · {{poi.Education[0].walk_min|int}} min</b></div>
+     <div>Daily needs &nbsp;<b>none within 1 km mapped</b></div></div>
+    <div class="txt" style="margin-top:5mm;font-weight:700;font-size:9.2pt;line-height:1.4">NH-44 is tolled at Sadahalli and a ₹35 crore underpass is planned at the junction: confirm the legal access point and whether the frontage gets a direct entry.<br>Context: villas to the N, hotels and offices rising to the S and E.</div>
+    <div class="small" style="margin-top:4mm">Overture 2026-09-23.0 · checked {{DATE}}</div></div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 PEOPLE -->
+<section class="page">{{ head('PEOPLE, HISTORY & IDENTITY','The context beyond the boundary',10) }}
+ <div class="body" style="top:52mm">
+  <div class="row">
+   <div class="col"><div class="glbl" style="margin-bottom:3.5mm">Land-use change</div><img class="fig" src="{{fig.landuse_change}}" style="height:45mm"><div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri Wayback releases 27 Feb 2017 (left) and 24 Sep 2026 (right).</div></div>
+   <div class="col"><div class="glbl" style="margin-bottom:3.5mm">People &amp; activity</div><img class="fig" src="{{fig.density}}" style="height:45mm"><div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Built-footprint density from Overture buildings, 2026; activity proxy.</div></div>
+  </div>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12.5pt;font-weight:700;margin-bottom:2.5mm">Recorded change</div><p class="grey" style="font-size:8.6pt">2017 → 2026: the parcel stays open land; the villa layout to the N filled in and large projects started on the S and E.<br>WorldCover 2021: {{'%.0f'|format(lc.site.Cropland)}}% cropland.<br>Heritage: Devanahalli Fort (c.1501, Tipu Sultan's birthplace) in the taluk; none on site.</p></div>
+   <div class="col"><div style="font-size:12.5pt;font-weight:700;margin-bottom:2.5mm">Community needs</div><p class="grey" style="font-size:8.6pt">Census 2011 figures for Sadahalli conflict (2,511 vs 47); Devanahalli taluk 209,622.<br>Daytime: airport, Aerospace Park and Business Park workforces.<br>No shops or clinics within 1 km mapped: retail and health fit the programme.</p></div>
+  </div>
+  <h2 style="margin-top:6mm">Local architectural vocabulary</h2>
+  <div class="row" style="gap:4.5mm">
+   <div class="col"><img class="fig" src="{{ph_court}}" style="height:16mm;border-radius:1.2mm"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Front yard</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Tiled house, Puttur</div></div>
+   <div class="col"><img class="fig" src="{{ph_ver}}" style="height:16mm;border-radius:1.2mm;object-position:50% 70%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Veranda</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Pillared front, Melukote</div></div>
+   <div class="col"><img class="fig" src="{{ph_roof}}" style="height:16mm;border-radius:1.2mm;object-position:50% 30%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Roof form</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Clay-tile roofs, Krishnarajapet</div></div>
+   <div class="col"><img class="fig" src="{{ph_street}}" style="height:16mm;border-radius:1.2mm;object-position:50% 60%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Street edge</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Jagali steps, Malavalli</div></div>
+  </div>
+  <div style="font-size:14.5pt;font-weight:700;line-height:1.3;margin-top:6.5mm">Shaded verandas and courtyards keep the region's buildings cool under a hot, open sky: a cue for low, deep-plan buildings under the airport ceiling.</div>
+  <div class="small" style="margin-top:4mm;font-size:6.9pt">Wikimedia Commons, CC BY-SA 4.0: Prof tpms (Melukote, Krishnarajapet, Malavalli); Bharathesha Alasandemajalu (Puttur) &nbsp;/&nbsp; Old Mysore and coastal Karnataka examples, not on-site records</div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Under a ~35 m ceiling, favour courtyard blocks with shaded colonnades along the internal streets, rather than towers.</p></div>
+ </div>
+</section>
+
+<!-- 11 INFRASTRUCTURE -->
+<section class="page">{{ head('INFRASTRUCTURE & SERVICES','Networks, connections & gaps',11) }}
+ <div class="body">
+  <img class="fig" src="{{fig.services}}" style="width:139mm;height:101mm;margin:0 auto">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Overture Maps infrastructure and roads (OpenStreetMap-derived) over Esri imagery. Network capacity needs provider records.</div>
+  <h2 style="margin-top:9mm;border:0;padding:0;margin-bottom:3mm">Service register</h2>
+  <table class="t">
+   <tr><th style="width:19mm">Service</th><th>Connection / distance</th><th>Capacity / status</th><th>Evidence / next check</th></tr>
+   <tr><td>Water</td><td>No piped main mapped; no Cauvery in taluk</td><td>Aquifer over-exploited (169%)</td><td>KIADB / BIAAPA: bulk or treated supply</td></tr>
+   <tr><td>Power</td><td>Substation {{fmt(inf.substation.dist_m)}} m; HT line to BIAL {{fmt(inf.power_line.dist_m)}} m</td><td>Load not confirmed</td><td>BESCOM: feasibility letter</td></tr>
+   <tr><td>Drainage</td><td>Outfall SE corner → drain {{fmt(R.water.streams[0].dist_m)}} m S (NH-44 side)</td><td>Capacity unknown</td><td>NHAI / GP: outfall consent</td></tr>
+   <tr><td>Sewer / waste</td><td>No sewer mapped</td><td>On-site STP needed</td><td>KSPCB consent; GP collection</td></tr>
+  </table>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Power is close; water and sewer are not. Size an on-site STP with treated-water reuse for flushing and landscape, and secure bulk water before phasing occupancy.</p></div>
+ </div>
+</section>
+
+<!-- 12 SYNTHESIS -->
+<section class="page">{{ head('SYNTHESIS & NEXT STEPS','What matters for this project',12) }}
+ <div class="body" style="top:52mm">
+  <div class="prio"><div class="num">01</div><div class="col"><div class="h">Airport height ceiling</div>
+   <div class="e">Evidence p03 &nbsp; Inside the 4 km inner horizontal (≈ 960 m AMSL): {{'%.0f'|format(A.min_height_avail_m)}}–{{'%.0f'|format(hmax)}} m above ground, lowest at {{A.min_pt}}; the south edge sits in the 09L approach funnel. Indicative only.</div>
+   <div class="a">Next: AAI NOCAS colour-coded zoning value for each corner &nbsp; Owner: architect &nbsp; Due: concept stage</div></div></div>
+  <div class="prio"><div class="num">02</div><div class="col"><div class="h">Zoning and boundary</div>
+   <div class="e">Evidence p03 &nbsp; The BIAAPA RMP 2021 zone for Sy 168–190 is not online. Mapped neighbouring projects overlap the KML by 8,070 m²; Sy 190 is 7 m outside.</div>
+   <div class="a">Next: BIAAPA zonal certificate; survey sketch vs KML &nbsp; Owner: client surveyor &nbsp; Due: before purchase</div></div></div>
+  <div class="prio"><div class="num">03</div><div class="col"><div class="h">Water and sewer</div>
+   <div class="e">Evidence p07, p11 &nbsp; Devanahalli extraction 169% with no Cauvery supply; no sewer mapped.</div>
+   <div class="a">Next: bulk-water source and STP strategy &nbsp; Owner: services consultant &nbsp; Due: feasibility stage</div></div></div>
+  <h2 style="margin-top:7mm;border:0;padding:0;margin-bottom:3mm">Evidence &amp; coverage</h2>
+  <table class="t" style="font-size:7.1pt">
+   <tr><th style="width:24mm">Analysis</th><th>Dataset / date</th><th>Method / resolution</th><th>Status / limitation</th></tr>
+   <tr><td>Site / controls</td><td>KML Oct 2026; RCCMS; research on BIAAPA and airport rules</td><td>UTM 43N; ICAO Annex 14 surfaces</td><td>Zone not found; heights indicative</td></tr>
+   <tr><td>Terrain / water</td><td>Copernicus GLO-30; Overture water</td><td>30 m DSM; D8; Gumbel 1981–2025</td><td>DSM includes trees; no site survey</td></tr>
+   <tr><td>Climate / solar</td><td>NASA POWER MERRA-2, CERES 2015–24; NOAA ISD VOBL</td><td>0.5° / 1° grid; station {{wst.dist_km}} km</td><td>Regional, not microclimate</td></tr>
+   <tr><td>Context / services</td><td>Overture 2026-09; Esri Wayback 2017 / 2026</td><td>Walk 4.8 km/h network; 1.2 km section</td><td>Few heights; capacity unconfirmed</td></tr>
+  </table>
+  <p style="font-size:8.6pt;margin-top:4.5mm">Not run / unavailable: BIAAPA zoning map and regulations (host blocked); AAI CCZM grid value; soil texture (SoilGrids returned 503); noise contours; site borehole and topographic survey.</p>
+  <p style="font-size:8.6pt;margin-top:3.5mm;line-height:1.5">Prepared by Qnit analysis · GeoAce Studio &nbsp;&nbsp; Reviewed by: pending<br>Analysis run {{S.id}} / {{gen}} UTC &nbsp;&nbsp; Boundary version Case_Studies.kml (Oct 2026)</p>
+  <div class="small" style="position:absolute;bottom:2mm;font-size:6.2pt;line-height:1.4">Imagery © Esri, Maxar, Earthstar Geographics · Map data © Overture Maps Foundation, incl. © OpenStreetMap contributors (ODbL) · DEM © DLR/Airbus, Copernicus GLO-30 · Land cover © ESA WorldCover 2021 (CC BY 4.0) · Climate: NASA POWER (LaRC) · Station data: NOAA NCEI ISD · Photos: Wikimedia Commons (CC BY-SA 4.0)</div>
+ </div>
+</section>
+
+<!-- 13 BACK -->
+<section class="page">
+  <img src="{{logo}}" style="position:absolute;left:18.5mm;top:20mm;width:69mm">
+  <img src="{{layers_back}}" style="position:absolute;left:0;top:83.5mm;width:54.6mm">
+  <div style="position:absolute;right:18.5mm;top:88mm;text-align:right;font-size:58pt;font-weight:700;line-height:1.06;letter-spacing:-1pt">Better<br>design<br>starts<br>with<br>you.</div>
+  <div style="position:absolute;right:20.5mm;top:247mm;text-align:right;font-size:8pt;color:#666;line-height:1.55">GeoAce Studio Pvt Ltd<br>geoacestudio.com</div>
+  <img src="{{geoace}}" style="position:absolute;right:20.5mm;top:268mm;width:47mm">
+</section>

@@ -1,7 +1,7 @@
 # Qnit Site Report — section checklist
 
-Template: *Qnit Report Template (13 pages)*. Reports built: **Site 3 — Kogilu** (`QNIT-BLR-S03`) and **Site 1 — Bannerughatta** (`QNIT-BLR-S01`), both 10 Oct 2026, Rev A.
-Sites 2 and 4 are deferred; their data is partly cached (see the bottom of this file).
+Template: *Qnit Report Template (13 pages)*. Reports built: **Site 3 — Kogilu** (`QNIT-BLR-S03`), **Site 1 — Bannerughatta** (`QNIT-BLR-S01`) and **Site 4 — Sadahalli** (`QNIT-BLR-S04`), all 10 Oct 2026, Rev A.
+Site 2 is deferred until the survey-record question is answered; its data is cached (see the bottom of this file).
 
 Legend:
 
@@ -78,6 +78,22 @@ Legend:
 | 09 | Access | Bus stop 128 m; SH-87 123 m E; no public road on the boundary | ✅ | Overture |
 | 11 | Power | Substation "BG Road" 436 m N; HT line 237 m N | ✅ | Overture infrastructure |
 
+## Site 4 — Sadahalli (`QNIT-BLR-S04`): what differs
+
+| p | Field | Site 4 value | Status | Source / method |
+|---|---|---|---|---|
+| 02 | Area / perimeter / edges | 309,050 m² (76.37 ac) · 3,232 m · 18 | ✅ | KML in UTM 43N |
+| 03 | Survey points | Sy 168, 169, 186, 188, 189 inside; Sy 190 7 m outside | ✅ | Point-in-polygon test |
+| 03 | Records | Sy 189: 1 RCCMS case, disposed; others none or not reported | ✅ | Supplied RCCMS |
+| 03 | Permitted use / FAR | BIAAPA RMP 2021; zone not published online | ⛔ | biaapa.tpa.gov.in blocked; no plan layer in the Qnit bucket |
+| 03 | Airport height | Inner horizontal ≈ 960 m AMSL → 32–56 m above ground; south edge in 09L approach funnel | ≈ | Overture runways (match published thresholds within ~10 m) + ICAO Annex 14 code-4 geometry; AAI CCZM value not retrieved |
+| 03 | Boundary overlaps | Villa layout 5,862 m², neighbouring project 2,208 m² inside the KML | ✅ | Overture land use |
+| 04 | Terrain | 915–928 m · 1.0% to S; 97% of the site under 5% slope | ✅ | Copernicus GLO-30 |
+| 06 | Wind / temperature | VOBL 5.4 km: Jun–Sep W 5.1 m/s, Dec–Feb E 3.1 m/s | ✅ | NOAA ISD + MERRA-2 |
+| 07 | Groundwater | Devanahalli 169% (2024); shallow aquifer desaturated | ✅ | CGWB / GWD 2024; NAQUIM 2022 (research) |
+| 09 | Access | NH-44 25 m; bus stop 299 m; KIA Halt 2.8 km; Doddajala metro ≈ 1.4 km (2027–28) | ✅ | Overture; research |
+| 11 | Power | Substation 683 m; HT line to BIAL 991 m | ✅ | Overture infrastructure |
+
 ## Blocked hosts and the fallbacks used
 
 | Need | Blocked host | Fallback used |
@@ -92,4 +108,3 @@ Legend:
 | Site | Cached so far | Key research findings (`research/siteN.json`) |
 |---|---|---|
 | 2 Tindlu | DEM, WorldCover, climate, Overture, Esri + Wayback 2014 | Survey points (Sy 21–26) lie about 450 m S of the KML; the parcel map shows Sy 27/28/35/36/37 instead; Hoskote MP 2031 Agriculture; next to the STRR |
-| 4 Sadahalli | DEM, WorldCover, climate, Overture, Esri + Wayback 2014 | BIAAPA MP 2021 (no 2031 plan); about 4 km W of the KIA 09L threshold, so an AAI height NOC is needed; Devanahalli extraction 169% |

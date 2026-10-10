@@ -29,7 +29,7 @@ def img(path):
     return f"data:{mime};base64,{base64.b64encode(p.read_bytes()).decode()}"
 
 
-f = lambda name: img(next(FIG.glob(f"{S.id}_{name}.*")))
+f = lambda name: img(next(FIG.glob(f"{S.id}_{name}.*"))) if list(FIG.glob(f"{S.id}_{name}.*")) else None
 fmt = lambda v, d=0: f"{round(v, d):,.{max(d, 0)}f}"
 geo, ter, cli, sol, lc = R["geometry"], R["terrain"], R["climate"], R["solar"], R["landcover"]
 wst = R["wind"]["station"]
@@ -47,10 +47,10 @@ vol_gross = q10 / 1000 * geo["area_m2"]
 vol_now = 0.35 * vol_gross
 vol_built = 0.75 * vol_gross
 lakes = [l for l in R["water"]["lakes"] if l["class"] in ("lake", "reservoir")]
-lake1 = dict(lakes[0])
+lake1 = dict(lakes[0] if lakes else R["water"]["lakes"][0])
 lake1["name"] = lake1["name"] or "an unnamed lake"
-drain1 = R["water"]["drains"][0]["dist_m"]
-proad = R["plan"]["roads"][0]
+drain1 = R["water"]["drains"][0]["dist_m"] if R["water"]["drains"] else None
+proad = R["plan"]["roads"][0] if R["plan"]["roads"] else None
 inf = R["infrastructure"]
 af = R["airfields"]
 poi = R["access"]["poi"]
@@ -62,8 +62,8 @@ grocery = next((p for p in poi["Daily needs"] if p["cat"] in ("grocery_store", "
 walk_min = lambda m: round(m / 80)
 sm = wst["seasons"]["SW monsoon (Jun–Sep)"]
 wi = wst["seasons"]["Winter (Dec–Feb)"]
-zone_in = R["plan"]["zones"]["inside_pct"]
-zone_top = next(iter(zone_in.items()))
+zone_in = (R["plan"]["zones"] or {}).get("inside_pct", {})
+zone_top = next(iter(zone_in.items()), (None, None))
 sens = R.get("sensitive", {})
 research = json.loads((ROOT / "research" / f"site{n}.json").read_text())
 
@@ -74,7 +74,7 @@ V = dict(
     zone_top=zone_top, zone_in=zone_in, tr=tr, sens=sens, gen=R["generated_utc"][:16].replace("T", " "),
     fig={k: f(k) for k in ["hero", "boundary", "zoning_screenshot", "terrain", "transect", "sunpath", "sunpolar", "solar", "windmap",
                           "windrose", "comfort", "temperature", "runoff", "rainfall", "groundwater", "landscape", "context",
-                          "skyline", "isochrones", "landuse_change", "density", "services"]},
+                          "skyline", "isochrones", "landuse_change", "density", "services", "airport"]},
     logo=img(ASSET / "tpl" / "Im5.png"), qmark=img(ASSET / "tpl" / "Im36.png"), geoace=img(ASSET / "tpl" / "Im28.png"),
     layers_cover=img(ASSET / "tpl" / "Im10.png"), layers_back=img(ASSET / "tpl" / "Im778.png"),
     ic_land=img(ASSET / "tpl" / "Im443.png"), ic_veg=img(ASSET / "tpl" / "Im445.png"), ic_built=img(ASSET / "tpl" / "Im447.png"),
