@@ -399,6 +399,9 @@ def wind_rose(df, dcol, scol, calm=0.5):
             "vector_from_c": compass(vec_from), "p90_speed": r(x[scol].quantile(0.9), 1)}
 
 
+STATION = {1: ("433025", "HAL Airport (VOBG)"), 2: ("427056", "Kempegowda Intl Airport (VOBL)"),
+           3: ("427056", "Kempegowda Intl Airport (VOBL)"), 4: ("427056", "Kempegowda Intl Airport (VOBL)")}
+STATION_LL = {"427056": (13.200, 77.700), "433025": (12.950, 77.668), "432950": (12.967, 77.583)}  # NOAA isd-history
 SEASONS = {"Winter (Dec–Feb)": [12, 1, 2], "Pre-monsoon (Mar–May)": [3, 4, 5], "SW monsoon (Jun–Sep)": [6, 7, 8, 9],
            "Post-monsoon (Oct–Nov)": [10, 11]}
 
@@ -407,7 +410,8 @@ def wind(s, hw):
     out = {"model": {"source": "NASA POWER — MERRA-2 hourly, 10 m", "annual": wind_rose(hw, "WD10M", "WS10M")}}
     out["model"]["seasons"] = {k: wind_rose(hw[hw.index.month.isin(v)], "WD10M", "WS10M") for k, v in SEASONS.items()}
     # station
-    st = pd.read_csv(CACHE / "isd_427056.csv")
+    usaf, sname = STATION[s.n]
+    st = pd.read_csv(CACHE / f"isd_{usaf}.csv")
     st = st[(st.y >= YEARS[0]) & (st.y <= YEARS[1])].replace(-9999, np.nan)
     st["time"] = pd.to_datetime(dict(year=st.y, month=st.m, day=st.d, hour=st.h)) + pd.Timedelta(hours=5, minutes=30)
     st = st.set_index("time")
@@ -415,7 +419,11 @@ def wind(s, hw):
     st.loc[st["wd"] == 999, "wd"] = np.nan  # variable
     st.loc[(st["ws"] == 0), "wd"] = 0
     st_t = st["t"] / 10.0
-    stn = {"source": "NOAA ISD — Kempegowda Intl Airport (VOBL) hourly observations", "annual": wind_rose(st, "wd", "ws")}
+    stn = {"source": f"NOAA ISD — {sname} hourly observations", "name": sname, "usaf": usaf, "annual": wind_rose(st, "wd", "ws")}
+    lat0, lon0 = STATION_LL[usaf]
+    sx, sy = TO_UTM.transform(lon0, lat0)
+    stn["dist_km"] = r(math.hypot(sx - s.cx, sy - s.cy) / 1000, 1)
+    stn["years"] = [int(st.index.year.min()), int(st.index.year.max())]
     stn["seasons"] = {k: wind_rose(st[st.index.month.isin(v)], "wd", "ws") for k, v in SEASONS.items()}
     stn["t_mean"] = r(st_t.mean())
     dd = st_t.groupby(st_t.index.date).agg(["max", "min", "count"])
@@ -754,6 +762,9 @@ def airfields(s, inf, p):
     kia = Point(*TO_UTM.transform(77.7063, 13.1979))
     out["KIA (VOBL) ARP"] = {"dist_km": r(kia.distance(Point(s.cx, s.cy)) / 1000, 1),
                              "bearing": compass(math.degrees(math.atan2(kia.x - s.cx, kia.y - s.cy))), "basis": "SAT AAI table"}
+    hal = Point(*TO_UTM.transform(77.6632, 12.9500))
+    out["HAL (VOBG) ARP"] = {"dist_km": r(hal.distance(Point(s.cx, s.cy)) / 1000, 1),
+                             "bearing": compass(math.degrees(math.atan2(hal.x - s.cx, hal.y - s.cy))), "basis": "SAT AAI table"}
     # Yelahanka AFS — mapped aerodrome in Overture (land_use / infrastructure)
     lu = read_ov(s, "land_use")
     cand = []
@@ -770,6 +781,34 @@ def airfields(s, inf, p):
         out["Nearest mapped aerodrome"] = {"name": nm, "class": cl, "edge_km": r(g.distance(s.poly) / 1000, 1),
                                            "centroid_km": r(g.centroid.distance(Point(s.cx, s.cy)) / 1000, 1),
                                            "bearing": compass(math.degrees(math.atan2(g.centroid.x - s.cx, g.centroid.y - s.cy)))}
+    return out
+
+
+# ---------------------------------------------------------------- protected areas / quarries / sensitive land uses
+def sensitive(s):
+    lu = read_ov(s, "land_use")
+    if lu.empty:
+        return {}
+    lu["name"] = [name_of(n) for n in lu["names"]]
+    lu["d"] = [g.distance(s.poly) for g in lu.geom]
+    out = {}
+    pa = lu[lu["subtype"] == "protected"].sort_values("d")
+    if len(pa):
+        row = pa.iloc[0]
+        g = row.geom
+        q = g.boundary.interpolate(g.boundary.project(Point(s.cx, s.cy)))
+        out["protected"] = {"name": row["name"], "class": row["class"], "dist_m": r(row.d, 0), "inside": bool(g.intersects(s.poly)),
+                            "bearing": compass8(math.degrees(math.atan2(q.x - s.cx, q.y - s.cy))), "area_km2": r(g.area / 1e6, 1)}
+    qu = lu[lu["class"] == "quarry"].sort_values("d")
+    out["quarries_1km"] = int((qu.d < 1000).sum())
+    out["quarry_nearest_m"] = r(qu.d.iloc[0], 0) if len(qu) else None
+    if len(qu):
+        g = qu.iloc[0].geom
+        out["quarry_bearing"] = compass8(math.degrees(math.atan2(g.centroid.x - s.cx, g.centroid.y - s.cy)))
+    ind = lu[lu["class"] == "industrial"].sort_values("d")
+    out["industrial_nearest_m"] = r(ind.d.iloc[0], 0) if len(ind) else None
+    sch = lu[(lu["class"] == "school") & lu["name"].notna()].sort_values("d")
+    out["school_nearest"] = {"name": sch.iloc[0]["name"], "dist_m": r(sch.iloc[0].d, 0)} if len(sch) else None
     return out
 
 
@@ -815,6 +854,7 @@ def run(n):
     infr, inf = infrastructure(s)
     res["infrastructure"] = infr
     res["airfields"] = airfields(s, inf, pl)
+    res["sensitive"] = sensitive(s)
     z10 = np.load(CACHE / s.id / "dem10.npy")
     tr10 = json.loads((CACHE / s.id / "dem10.json").read_text())["transform"]
     res["skyline"] = skyline(s, b, z10, tr10)

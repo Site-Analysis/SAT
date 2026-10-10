@@ -185,7 +185,7 @@ def fig_boundary():
     for i, (x, y) in enumerate(S.vertices):
         ax.plot(x, y, "o", ms=3.2, mfc="white", mec=GREEN, mew=1, zorder=9)
     north_scale(ax, b)
-    ax.plot([], [], color="#1d74d6", ls=(0, (4, 2)), lw=1.2, label="Draft RMP 2031 plan road (12/18 m)")
+    ax.plot([], [], color="#1d74d6", ls=(0, (4, 2)), lw=1.2, label=f"Draft RMP 2031 plan road ({'/'.join(sorted({str(int(p['row_m'])) for p in R['plan']['roads'] if p['row_m']}))} m)")
     ax.plot([], [], color="#38c6f4", lw=1.6, label="Mapped stream / drain")
     ax.legend(loc="lower right", fontsize=5, frameon=True, framealpha=0.9, edgecolor="#ddd", borderpad=0.5)
     return save(fig, "boundary", jpg=True)
@@ -314,7 +314,7 @@ def fig_sunpath_map():
     ax.plot([], [], color="#f1b45c", lw=1.1, label="21 Mar / 21 Sep")
     ax.plot([], [], color="#c96d1a", lw=1.3, ls=(0, (4, 2)), label="21 Dec")
     ax.legend(loc="lower right", fontsize=5.2, frameon=True, framealpha=0.92, edgecolor="#ddd")
-    label(ax, cx, cy - 0.06 * (b[3] - b[1]), f"{R['geometry']['area_ha']:.2f} ha · Kogilu" if S.n == 3 else f"{R['geometry']['area_ha']:.2f} ha",
+    label(ax, cx, cy - 0.06 * (b[3] - b[1]), f"{R['geometry']['area_ha']:.2f} ha · {S.rec['village']}",
           fs=6, bold=True, color="white", box_=False)
     ax.texts[-1].set_bbox(dict(boxstyle="round,pad=0.35", fc=DKGREEN, ec="none"))
     north_scale(ax, b, corner="tl")
@@ -475,9 +475,12 @@ def fig_comfort():
         ax.add_patch(Rectangle((0, 0), 0, 0, fc=WC_COL[k], alpha=0.75, label=WC_NAME[k]))
     ax.legend(loc="lower right", fontsize=5, frameon=True, framealpha=0.92, edgecolor="#ddd", ncol=2, handlelength=1)
     # annotate nearest lake edge
-    lk = [l for l in R["water"]["lakes"] if l["class"] == "lake"]
+    lk = [l for l in R["water"]["lakes"] if l["class"] in ("lake", "reservoir", "pond")]
     if lk:
-        tag(ax, S.cx, b[1] + 0.12 * (b[3] - b[1]), f"{lk[0]['name']} · {lk[0]['dist_m']:.0f} m {lk[0]['bearing']}", fc=BLUE, fs=5)
+        tag(ax, S.cx, b[1] + 0.12 * (b[3] - b[1]), f"{lk[0]['name'] or 'Lake'} · {lk[0]['dist_m']:.0f} m {lk[0]['bearing']}", fc=BLUE, fs=5)
+    pa = R.get("sensitive", {}).get("protected")
+    if pa and pa["dist_m"] < 600:
+        tag(ax, b[0] + 0.16 * (b[2] - b[0]), S.cy, f"{pa['name']} · {pa['dist_m']:.0f} m {pa['bearing']}", fc=DKGREEN, fs=4.6)
     tag(ax, S.cx, S.cy, f"Site · canopy {lc['canopy_site']:.0f}% ({lc['year']})", fc=DKGREEN, fs=5)
     label(ax, b[0] + 0.2 * (b[2] - b[0]), b[3] - 0.06 * (b[3] - b[1]), f"500 m ring: {lc['built_ring']:.0f}% built · {lc['canopy_ring']:.0f}% tree", fs=5)
     north_scale(ax, b)
@@ -543,7 +546,7 @@ def fig_runoff():
     lx, ly = t["low_pt"]
     ax.plot(lx, ly, "o", ms=5, mfc=BLUE, mec="white", zorder=9)
     tag(ax, lx - 5, ly + 40, f"Low point {t['low_pt_z']:.0f} m", fc="#0d47a1", fs=5)
-    lk = [l for l in R["water"]["lakes"] if l["class"] == "lake"]
+    lk = [l for l in R["water"]["lakes"] if l["class"] in ("lake", "reservoir") and l["name"]]
     for l in lk[:2]:
         gg = [x for x in g["lakes"] if x["name"] == l["name"]][0]["geom"]
         c = gg.representative_point()
@@ -619,7 +622,22 @@ def fig_landscape():
     # observer at site centroid, cones to the three nearest named lakes
     ox, oy = S.cx, S.cy
     cols = ["#3e9ce0", "#2f9e6f", "#e8892b"]
-    lk = [l for l in g["lakes"] if l["name"] and l["class"] in ("lake", "reservoir", "water")][:3]
+    from shapely.geometry import Point as P_
+
+    targets = []
+    lu = read_ov(S, "land_use")
+    if not lu.empty:
+        prot = lu[lu["subtype"] == "protected"]
+        for _, row in prot.iterrows():
+            clip = row.geom.intersection(P_(ox, oy).buffer(1400))
+            if not clip.is_empty and clip.area > 1e4:
+                targets.append({"name": name_of(row["names"]) or "Protected area", "geom": clip, "dist_m": row.geom.distance(S.poly)})
+                break
+    named = [l for l in g["lakes"] if l["class"] in ("lake", "reservoir", "water", "pond") and l["area_ha"] >= 0.5]
+    named = sorted(named, key=lambda l: (l["name"] is None, l["dist_m"]))
+    for l in named[: 3 - len(targets)]:
+        targets.append({"name": l["name"] or "Lake", "geom": l["geom"], "dist_m": l["dist_m"]})
+    lk = targets
     for l, c in zip(lk, cols):
         geom = l["geom"]
         pts = np.array(geom.convex_hull.exterior.coords)

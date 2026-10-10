@@ -107,7 +107,7 @@ def first_release(site, z, rel):
 
 
 PLAN = {  # name: (buffer m, zoom by site size)
-    "hero": (90, {1: 19, 2: 17, 3: 19, 4: 17}),
+    "hero": (260, {1: 19, 2: 17, 3: 19, 4: 17}),
     "context": (1400, {1: 16, 2: 15, 3: 16, 4: 15}),
     "wide": (3000, {1: 15, 2: 14, 3: 15, 4: 14}),
 }
@@ -123,8 +123,8 @@ if __name__ == "__main__":
             mosaic(s, name, buf, zooms[n])
         zh = PLAN["hero"][1][n] - 1
         first = first_release(s, zh, rel)
-        m0 = mosaic(s, "wb_first", 250, zh, release=first[1])
-        m1 = mosaic(s, "wb_last", 250, zh, release=last[1])
+        m0 = mosaic(s, "wb_first", 420, zh, release=first[1])
+        m1 = mosaic(s, "wb_last", 420, zh, release=last[1])
         for nm, (date, r) in (("wb_first", first), ("wb_last", last)):
             p = ROOT / "cache" / s.id / f"img_{nm}.json"
             j = json.loads(p.read_text())

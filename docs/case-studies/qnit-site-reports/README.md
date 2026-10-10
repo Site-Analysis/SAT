@@ -1,7 +1,7 @@
 # Qnit site reports (case studies)
 
 Generator for the 13-page Qnit site report template, filled with real data per site.
-Built so far: `out/QNIT-BLR-S03.pdf` (Site 3, Kogilu). `checklist.md` maps every template field to its source and status.
+Built so far: `out/QNIT-BLR-S03.pdf` (Site 3, Kogilu) and `out/QNIT-BLR-S01.pdf` (Site 1, Bannerughatta). Page text lives in `templates/<site>.html.j2`. `checklist.md` maps every template field to its source and status.
 
 Pipeline (run from this directory, Python 3.12 venv with numpy pandas matplotlib shapely pyproj rasterio pvlib scipy networkx jinja2 pyarrow numcodecs pmtiles pillow requests; `npm i playwright`):
 

@@ -1,0 +1,293 @@
+
+{% macro head(kick, title, n) -%}
+<div class="kicker">{{kick}}</div><div class="hrule"></div><img class="qmark" src="{{qmark}}">
+<div class="title">{{title}}</div><div class="sub">{{S.name}}&nbsp; / &nbsp;{{S.rec.locality}}</div>
+<div class="foot"><b>{{'%02d' % n}}</b><span>{{S.report_id}} &nbsp;/&nbsp; {{DATE}} &nbsp;/&nbsp; {{REV}}</span></div>
+{%- endmacro %}
+
+<!-- 01 COVER -->
+<section class="page">
+  <img src="{{logo}}" style="position:absolute;left:18mm;top:20mm;width:69mm">
+  <div style="position:absolute;right:18.5mm;top:57mm;text-align:right;font-style:italic;font-size:12pt;line-height:1.45">Better study,<br>better decisions.</div>
+  <img src="{{layers_cover}}" style="position:absolute;left:135.7mm;top:77.5mm;width:74.3mm">
+  <div style="position:absolute;left:17mm;top:80mm;font-size:52pt;font-weight:700;line-height:1.08;letter-spacing:-1pt">Kogilu<br>Site<br>Report</div>
+  <div style="position:absolute;left:17.6mm;top:149mm;font-size:12.5pt;color:#333">Site 3 &nbsp;·&nbsp; Sy. 27 &amp; 28 &nbsp;·&nbsp; {{fmt(geo.area_acre,2)}} acres</div>
+  <div class="glbl" style="position:absolute;left:17.6mm;top:201mm;font-size:7pt">Site analysis</div>
+  <div style="position:absolute;left:17.6mm;top:211mm;font-size:12pt;line-height:1.5">Prepared for Qnit case-study portfolio<br>Presented by GeoAce Studio Pvt Ltd</div>
+  <div style="position:absolute;left:17.6mm;top:233.5mm;font-size:8pt;color:#666;line-height:1.55">Kogilu, Yelahanka, Bengaluru North &nbsp;·&nbsp; {{geo.centroid[0]}}° N, {{geo.centroid[1]}}° E<br>{{DATE}} &nbsp;/&nbsp; {{REV}} &nbsp;/&nbsp; {{S.report_id}}</div>
+  <img src="{{geoace}}" style="position:absolute;left:17.6mm;top:264mm;width:47mm">
+</section>
+
+<!-- 02 OVERVIEW -->
+<section class="page">{{ head('SITE OVERVIEW','The site at a glance',2) }}
+ <div class="body">
+  <div class="row" style="gap:5.6mm">
+   <div style="width:135.5mm"><img class="fig" src="{{fig.hero}}" style="height:81mm"></div>
+   <div class="col" style="padding-top:.6mm">
+     <div class="lbl">Latitude</div><div class="mid" style="font-size:13pt">{{'%.6f' % geo.centroid[0]}}° N</div>
+     <div class="lbl" style="margin-top:6mm">Longitude</div><div class="mid" style="font-size:13pt">{{'%.6f' % geo.centroid[1]}}° E</div>
+     <div class="lbl" style="margin-top:6mm">Study extent</div><div class="mid" style="font-size:16pt">{{fmt(geo.study_extent_m)}} m</div>
+     <div class="small" style="margin-top:4mm">North up · scale bar on image<br>Imagery Wayback 24 Sep 2026</div>
+   </div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri World Imagery (Wayback 2026-09-24). Boundary from Case_Studies.kml, Site 3; vertices V1–V4, centroid in WGS 84.</div>
+  <div class="row" style="margin-top:9mm;gap:0">
+   <div style="width:72mm"><div class="lbl">Site area</div><div class="big">{{fmt(geo.area_m2)}} m²</div><div class="small">{{fmt(geo.area_acre,2)}} acres · {{fmt(geo.area_ha,2)}} ha · {{fmt(geo.area_guntas)}} guntas</div></div>
+   <div style="width:56mm"><div class="lbl">Perimeter</div><div class="big">{{fmt(geo.perimeter_m)}} m</div><div class="small">KML boundary, Oct 2026</div></div>
+   <div class="col"><div class="lbl">Boundary</div><div class="big">{{geo.n_edges}} edges</div><div class="small">Quadrilateral, about {{geo.rect_dims_m[0]}} × {{geo.rect_dims_m[1]}} m</div></div>
+  </div>
+  <h2 style="margin-top:8mm">Design brief</h2>
+  <p style="font-size:11.6pt;line-height:1.33">A {{fmt(geo.area_ha,2)}} ha residential parcel in Kogilu, north Bengaluru, already subdivided as a plotted layout. What can it carry under RMP 2015 Residential (Main) controls, and which edge, buffer and height clearance sets the limit?</p>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Primary opportunity</div><p class="grey" style="font-size:8.8pt">{{zone_top[1]}}% of the parcel reads Residential on the draft RMP 2031 layer; Residential (Main) on approved RMP 2015. A school is a {{poi.Education[0].walk_min|int}}-min walk and Yelahanka metro (Blue Line 2B) is due 2027–28: group housing at FAR 2.25–2.50 is the natural programme.</p></div>
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Key constraint</div><p class="grey" style="font-size:8.8pt">A mapped stream runs {{fmt(streams_d)}} m off the west edge (D–A) in the valley "sensitive area". A 25–50 m drain buffer takes {{fmt(buf[25])}}–{{fmt(buf[50])}} m² ({{'%.1f'|format(100*buf[25]/geo.area_m2)}}–{{'%.1f'|format(100*buf[50]/geo.area_m2)}}%). Buildings of 15 m or more need Yelahanka AFS clearance.</p></div>
+  </div>
+  <div style="border-top:.6pt solid #d4d4d4;margin-top:6mm;padding-top:4.2mm;display:flex">
+   <div class="glbl" style="width:56mm;font-size:7.4pt;padding-top:1mm">Report route</div>
+   <div class="small" style="font-size:7.6pt">03–04 &nbsp;Site &amp; ground &nbsp;&nbsp;&nbsp; 05–08 &nbsp;Environment<br>09–11 &nbsp;Context &amp; services &nbsp;&nbsp;&nbsp; 12 &nbsp;Priorities &amp; sources</div>
+  </div>
+  <div class="small" style="margin-top:4.5mm">Stakeholders: Qnit case-study portfolio &nbsp;/&nbsp; GeoAce Studio design team &nbsp;/&nbsp; Reviewer: pending</div>
+ </div>
+</section>
+
+<!-- 03 SITE DETAILS -->
+<section class="page">{{ head('SITE DETAILS','Boundary, edges & development',3) }}
+ <div class="body">
+  <div class="row" style="gap:3mm">
+   <img class="fig" src="{{fig.boundary}}" style="width:101mm;height:75mm">
+   <img class="fig" src="{{fig.zoning_screenshot}}" style="width:71mm;height:75mm;object-position:28% 50%">
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Left: Esri imagery 2026; stream from Overture Maps (2026-09); dashed = draft RMP 2031 plan roads (Qnit planning layer). Right: Qnit 2031 plan layer, BDA RMP 2031 (draft), supplied screenshot.</div>
+  <div class="row" style="margin-top:6.5mm;gap:13mm">
+   <div class="col"><h2>Site identity</h2><div class="kv">
+     <div>Survey / parcel &nbsp;<b>Sy. 27/*/1 · 28/*/XX</b></div>
+     <div>Village / authority &nbsp;<b>Kogilu (938519) · BDA</b></div>
+     <div>CRS / boundary &nbsp;<b>WGS 84 KML · UTM 43N</b></div>
+     <div>Records / status &nbsp;<b>RCCMS: no cases · no mutations</b></div></div></div>
+   <div class="col"><h2>Development controls</h2><div class="kv">
+     <div>Permitted use / source &nbsp;<b>Residential (Main) · RMP 2015</b></div>
+     <div>FAR / coverage &nbsp;<b>2.25–2.50 / 55% (18 m road)</b></div>
+     <div>Setbacks F / R / sides &nbsp;<b>≥ 5 m all round; 5–16 m by height</b></div>
+     <div>Height limit / basis &nbsp;<b>&lt; 15 m without AFS NOC</b></div></div></div>
+  </div>
+  <h2 style="margin-top:5.5mm;border:0;padding:0;margin-bottom:3mm">Edge conditions</h2>
+  <table class="t">
+   <tr><th style="width:15mm">Edge</th><th>Adjoining condition</th><th style="width:44mm">Clearance / width</th><th style="width:38mm">Evidence</th></tr>
+   <tr><td>A–B · S</td><td>Tree belt (plantation strip), open land; {{lake1.name}} beyond</td><td>{{lake1.name}} {{fmt(lake1.dist_m)}} m S; plan 18 m road {{fmt(proad.dist_m)}} m SE</td><td>Esri 2026 · Overture · RMP 2031 layer</td></tr>
+   <tr><td>B–C · E</td><td>Local residential road; open plots and low sheds</td><td>Road width not mapped; survey needed</td><td>Overture 2026-09 · Esri 2026</td></tr>
+   <tr><td>C–D · N</td><td>Vacant plot with earth track; 1–2 storey houses beyond</td><td>No frontage road</td><td>Esri 2026 · Overture buildings</td></tr>
+   <tr><td>D–A · W</td><td>Earth track, mapped stream in the valley strip; brick and sand yards beyond</td><td>Stream {{fmt(streams_d)}} m; primary drain {{fmt(drain1)}} m SW</td><td>Overture water · BBMP SWD 2022</td></tr>
+  </table>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>The west edge controls. RMP 2015 sets 15 / 25 / 50 m drain buffers by drain class: here that is {{fmt(buf[15])}} / {{fmt(buf[25])}} / {{fmt(buf[50])}} m² of the site. Confirm the drain class with GBA (SWD) and the revenue sketch, and the widths of the E and W roads, before fixing the layout.</p></div>
+ </div>
+</section>
+
+<!-- 04 TOPOGRAPHY -->
+<section class="page">{{ head('TOPOGRAPHY','Terrain & the ground beneath',4) }}
+ <div class="body">
+  <img class="fig" src="{{fig.terrain}}" style="height:96mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Copernicus GLO-30 DSM (30 m, resampled to 10 m), 1 m contours, over Esri imagery. A–B follows the fitted fall line.</div>
+  <div class="row" style="margin-top:7.5mm;gap:0">
+   <div style="width:72mm"><div class="lbl">Elevation range</div><div class="big">{{'%.0f'|format(ter.elev_min)}} / {{'%.0f'|format(ter.elev_max)}} m</div><div class="small">EGM2008 · DSM includes canopy</div></div>
+   <div style="width:56mm"><div class="lbl">Typical slope</div><div class="big">{{'%.1f'|format(ter.plane_slope_pct)}} %</div><div class="small">Gentle · falls to the {{ter.fall_dir}}</div></div>
+   <div class="col"><div class="lbl">Contour interval</div><div class="big">{{ter.contour_interval_m}} m</div><div class="small">GLO-30 DSM / 30 m</div></div>
+  </div>
+  <h2 style="margin-top:7.5mm">Transect A–B</h2>
+  <img src="{{fig.transect}}" style="width:100%;height:29mm;object-fit:contain">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Section A–B sampled every 5 m from the DSM; A is south-east, B north-west.</div>
+  <div class="small" style="margin-top:3.5mm;font-size:8pt">Section length {{fmt(tr.length_m)}} m &nbsp; / &nbsp; Relief {{'%.1f'|format(tr.relief_m)}} m &nbsp; / &nbsp; Vertical exaggeration ≈ {{'%.0f'|format(ve)}}×</div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>About {{'%.0f'|format(ter.relief_m)}} m of fall across the parcel, {{'%.1f'|format(ter.plane_slope_pct)}}% to the {{ter.fall_dir}}; the low point ({{'%.0f'|format(ter.low_pt_z)}} m) is the north-west corner, where runoff leaves for the western valley. Step block platforms by 0.5–1 m; no tall retaining walls are indicated. Confirm with a ground survey, as the DSM includes trees.</p></div>
+ </div>
+</section>
+
+<!-- 05 SUN -->
+<section class="page">{{ head('SUN & SOLAR EXPOSURE','Light, shade & orientation',5) }}
+ <div class="body" style="top:52mm">
+  <div class="row" style="gap:6.5mm">
+   <div style="width:110mm"><div class="glbl" style="margin-bottom:3.5mm">01 &nbsp;/&nbsp; Sun path</div><img class="fig" src="{{fig.sunpath}}" style="height:87mm"></div>
+   <div class="col"><div class="lbl" style="margin-bottom:3.5mm">Seasonal comparison</div><img src="{{fig.sunpolar}}" style="width:100%;height:57mm;object-fit:contain">
+     <div class="small" style="margin-top:3mm">21 Mar · 21 Jun · 21 Dec; {{sol.tz}}<br>True north; noon altitude {{'%.0f'|format(sol.events['21 Dec'].noon_alt)}}° (Dec) to {{'%.0f'|format(sol.events['21 Jun'].noon_alt)}}° (Jun, sun to the north)<br>Day length {{'%.1f'|format(sol.events['21 Dec'].daylength_h)}}–{{'%.1f'|format(sol.events['21 Jun'].daylength_h)}} h; no context model</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Solar positions computed (NREL SPA, pvlib) for the site centroid; stereographic dome, Esri imagery. Hour lines at the 21st of each month.</div>
+  <div style="border-top:.6pt solid #ddd;margin-top:5.5mm;padding-top:5mm"><div class="glbl" style="margin-bottom:3.5mm">02 &nbsp;/&nbsp; Solar radiation</div>
+  <div class="row" style="gap:7mm">
+   <div style="width:92mm"><img src="{{fig.solar}}" style="width:100%;height:65mm;object-fit:contain"></div>
+   <div class="col"><div class="lbl">Analysis period</div><div class="mid">{{sol.years[0]}}–{{sol.years[1]}} monthly means</div>
+     <div class="lbl" style="margin-top:6mm">Incident solar energy</div><div class="big" style="font-size:23pt">{{fmt(sol.ghi_year_kwh)}} kWh/m²</div>
+     <div class="small">Horizontal plane, per year ({{'%.2f'|format(sol.ghi_day_mean)}} kWh/m²·day)<br>Highest wall exposure: SE / SW ≈ {{fmt(sol.faces_kwh.SE)}}; north {{fmt(sol.faces_kwh.N)}}<br>Best month {{MON[sol.best_month-1]}}; cloud cuts {{sol.cloud_loss_pct|int}}% vs clear sky</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; NASA POWER CERES SYN1deg monthly GHI {{sol.years[0]}}–{{sol.years[1]}}; wall split modelled from clear-sky geometry scaled to it.</div></div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>The long axis runs E–W ({{geo.long_axis_deg|int}}°), so blocks can face north and south: the noon sun stays above {{'%.0f'|format(sol.events['21 Dec'].noon_alt)}}°, and short overhangs shade both faces. East and west walls take ≈ {{fmt(sol.faces_kwh.E)}} kWh/m²·yr: limit glazing there. Roofs suit PV.</p></div>
+ </div>
+</section>
+
+<!-- 06 WIND -->
+<section class="page">{{ head('WIND & MICROCLIMATE','Air movement & outdoor comfort',6) }}
+ <div class="body">
+  <div class="row" style="gap:6.5mm">
+   <img class="fig" src="{{fig.windmap}}" style="width:121mm;height:81mm">
+   <div class="col"><img src="{{fig.windrose}}" style="width:100%;height:50mm;object-fit:contain">
+    <div class="lbl" style="margin-top:4mm">Season / height</div><div class="mid" style="font-size:11.5pt">2015–24 / 10 m</div>
+    <div class="small">Annual: from {{wst.annual.prevailing}}, mean {{wst.annual.mean_speed}} m/s, calm {{wst.annual.calm_pct}}%<br>Jun–Sep: {{sm.prevailing}} {{sm.prevailing_pct|int}}%, {{sm.mean_speed}} m/s<br>Dec–Feb: {{wi.prevailing}} {{wi.prevailing_pct|int}}%, {{wi.mean_speed}} m/s</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; NOAA ISD hourly observations, Kempegowda Intl Airport (VOBL), {{af['KIA (VOBL) ARP'].dist_km}} km NE; agrees with NASA POWER MERRA-2 (from {{wmd.annual.prevailing}}, {{wmd.annual.mean_speed}} m/s).</div>
+  <div class="row" style="margin-top:7mm">
+   <div class="col"><h2>Local comfort</h2><img class="fig" src="{{fig.comfort}}" style="height:62mm"></div>
+   <div class="col"><h2>Seasonal temperature</h2><img src="{{fig.temperature}}" style="width:100%;height:62mm;object-fit:contain"></div>
+  </div>
+  <div class="row"><div class="col cap"><b>SOURCE</b> &nbsp;/&nbsp; ESA WorldCover 2021 (10 m) on Esri imagery; dashed = 500 m ring.</div>
+  <div class="col cap"><b>SOURCE</b> &nbsp;/&nbsp; NASA POWER MERRA-2 daily, {{cli.years[0]}}–{{cli.years[1]}}. VOBL station mean {{wst.t_mean}} °C vs model {{cli.t_annual_mean}} °C.</div></div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Run internal streets and gaps E–W so the June–September westerly ({{sm.mean_speed}} m/s) flushes the layout, entering over the open west valley. April is the hot month (mean max {{cli.tmax_peak[0]}} °C): keep the southern tree belt and shade play areas and parking.</p></div>
+ </div>
+</section>
+
+<!-- 07 RAIN -->
+<section class="page">{{ head('RAINFALL & WATER','Runoff, storage & groundwater',7) }}
+ <div class="body" style="top:52mm">
+  <div class="row" style="gap:6.5mm">
+   <div style="width:110mm"><div class="glbl" style="margin-bottom:3.5mm">Surface response</div><img class="fig" src="{{fig.runoff}}" style="height:79mm"></div>
+   <div class="col"><div class="lbl" style="margin-bottom:2mm">Monthly rainfall</div><img src="{{fig.rainfall}}" style="width:100%;height:31mm;object-fit:contain">
+     <div class="lbl" style="margin-top:7mm">Event basis</div><div class="big" style="font-size:20pt">{{q10|int}} mm / 24 h</div>
+     <div class="small">10-year return period (Gumbel on {{cli.amax_1day_years[0]}}–{{cli.amax_1day_years[1]}} annual maxima)<br>Mean annual {{fmt(cli.rain_annual_mean)}} mm; {{cli.rain_jun_nov_pct|int}}% falls May–Nov</div></div>
+  </div>
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; D8 flow on GLO-30 DSM; Overture water; BBMP primary storm drains (SWD 2022). Rain: NASA POWER MERRA-2 grid {{cli.grid[0]}} N {{cli.grid[1]}} E.</div>
+  <h2 style="margin-top:6mm">Groundwater &amp; recharge</h2>
+  <img src="{{fig.groundwater}}" style="width:100%;height:27mm;object-fit:contain">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Conceptual section on A–B. Strata and water depths from the CGWB Bengaluru Urban profile, not site boreholes.</div>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Surface water</div><p class="grey" style="font-size:8.6pt">Low point NW corner ({{'%.0f'|format(ter.low_pt_z)}} m) → west stream → primary drain {{fmt(drain1)}} m SW → {{lake1.name}}.<br>10-yr day on {{fmt(geo.area_ha,2)}} ha: ≈ {{fmt(vol_now,-2)}} m³ runoff now (C 0.35), ≈ {{fmt(vol_built,-2)}} m³ built (C 0.75).<br>Basis: catchment = site; land cover WorldCover 2021.</p></div>
+   <div class="col"><div style="font-size:12pt;font-weight:700;margin-bottom:2.5mm">Ground conditions</div><p class="grey" style="font-size:8.6pt">District water level 5–30 m bgl pre-monsoon (CGWB).<br>Bengaluru North extraction over 200% of recharge (2024): over-exploited.<br>Weathered gneiss 10–30 m over fractured rock; percolation to be tested.</p></div>
+  </div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Keep the NW corner and west edge as the drainage and detention zone, sized for ≈ {{fmt(vol_built - vol_now,-2)}} m³ of extra runoff once built; do not culvert the stream. Plan water on Cauvery Stage V or treated reuse, not new borewells.</p></div>
+ </div>
+</section>
+
+<!-- 08 LANDSCAPE -->
+<section class="page">{{ head('LANDSCAPE & ECOLOGY','Living systems & views',8) }}
+ <div class="body">
+  <img class="fig" src="{{fig.landscape}}" style="height:92mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri imagery; Overture water bodies; plan-view sight lines from the site centre to the three nearest named lakes.</div>
+  <div class="row" style="margin-top:7mm;gap:13mm">
+   <div class="col"><h2>Landscape structure</h2>
+    <div style="display:flex;gap:3mm;margin:3mm 0 1mm"><img src="{{ic_land}}" style="width:29%"><img src="{{ic_veg}}" style="width:29%"><img src="{{ic_built}}" style="width:29%"></div>
+    <div style="display:flex;gap:3mm" class="small"><div style="width:32%">Landform</div><div style="width:32%">Vegetation</div><div style="width:32%">Built form</div></div>
+    <div class="kv" style="margin-top:5mm">
+     <div>Canopy cover &nbsp;<b>{{'%.0f'|format(lc.canopy_site)}}% site · {{'%.0f'|format(lc.canopy_ring)}}% 500 m ring</b></div>
+     <div>Permeable ground &nbsp;<b>{{'%.0f'|format(lc.permeable_site)}}% (2021) · {{'%.0f'|format(lc.permeable_ring)}}% ring</b></div>
+     <div>Water / habitat edge &nbsp;<b>stream {{fmt(streams_d)}} m · {{lake1.name}} {{fmt(lake1.dist_m)}} m</b></div>
+     <div>Tree survey / season &nbsp;<b>none · WorldCover 2021</b></div></div></div>
+   <div class="col"><h2>View &amp; habitat priorities</h2>
+    <div class="txt" style="font-size:9pt;line-height:1.45">Retain<br><b style="font-weight:400">The southern tree belt along A–B and the west valley corridor linking to {{lake1.name}}.</b><br><br>Investigate<br><b style="font-weight:400">Lake views are screened at ground level; upper floors gain them, but heights of 15 m or more need AFS clearance.</b></div>
+    <div class="small" style="margin-top:9mm">Observer: site centre, plan view (no eye-height model)<br>Vegetation 2021 predates the layout roads; built cover now higher</div></div>
+  </div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Put the statutory 10% park ({{fmt(park10)}} m², RMP 2015 large-plot rule) along the west valley, so it doubles as the drain buffer and the green link to {{lake1.name}}.</p></div>
+ </div>
+</section>
+
+<!-- 09 CONTEXT -->
+<section class="page">{{ head('BUILT CONTEXT & ACCESS','Neighbourhood fit & movement',9) }}
+ <div class="body" style="top:52mm">
+  <img class="fig" src="{{fig.context}}" style="height:71mm">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Overture Maps buildings and roads (release 2026-09-23) over Esri imagery; A–B is a 1.2 km W–E section through the site.</div>
+  <div class="glbl" style="margin-top:6mm">Street &amp; skyline profile A–B</div>
+  <img src="{{fig.skyline}}" style="width:100%;height:21mm;object-fit:contain;margin-top:2mm">
+  <div class="cap" style="margin-top:1mm">{{sky.n}} buildings cut; none carry mapped heights, so hatched blocks use storeys assumed from footprint (2–4 floors × 3.2 m).</div>
+  <div style="border-top:.6pt solid #ddd;margin-top:4mm;padding-top:4mm" class="row">
+   <div style="width:76mm"><div class="glbl" style="margin-bottom:3mm">Daily access</div><img class="fig" src="{{fig.isochrones}}" style="height:70mm">
+    <div class="cap">Walking 5 / 10 / 15 min at 4.8 km/h on the Overture road network from the layout roads.</div></div>
+   <div class="col"><div class="lbl">Access basis</div><div class="mid" style="font-size:12pt">Layout roads / walk / weekday</div>
+    <div class="kv" style="margin-top:4mm">
+     <div>Transit &nbsp;<b>{{inf.bus_stop.name}} stop · {{fmt(inf.bus_stop.dist_m)}} m</b></div>
+     <div>Rail &nbsp;<b>Yelahanka Jn · {{'%.1f'|format(inf.railway_station.dist_m/1000)}} km; metro due 2027–28</b></div>
+     <div>Health &nbsp;<b>{{poi.Health[0].name}} · {{poi.Health[0].walk_min|int}} min</b></div>
+     <div>Education &nbsp;<b>{{poi.Education[0].name}} · {{poi.Education[0].walk_min|int}} min</b></div>
+     <div>Daily needs &nbsp;<b>{{grocery.name}} · {{grocery.walk_min|int}} min</b></div></div>
+    <div class="txt" style="margin-top:5mm;font-weight:700;font-size:9.2pt;line-height:1.4">No mapped road on the N and S edges; access relies on the E and W lanes. NH-44 (Bellary Rd) is {{'%.1f'|format(R.context.major_roads.trunk.dist_m/1000)}} km W.<br>Context is 1–3 storey houses (median footprint {{R.context.bld_500_footprint_median|int}} m²) with {{R.context.bld_500_large_n}} large blocks: mid-rise up to 15 m fits.</div>
+    <div class="small" style="margin-top:4mm">Overture 2026-09-23.0 · checked {{DATE}}</div></div>
+  </div>
+ </div>
+</section>
+
+<!-- 10 PEOPLE -->
+<section class="page">{{ head('PEOPLE, HISTORY & IDENTITY','The context beyond the boundary',10) }}
+ <div class="body" style="top:52mm">
+  <div class="row">
+   <div class="col"><div class="glbl" style="margin-bottom:3.5mm">Land-use change</div><img class="fig" src="{{fig.landuse_change}}" style="height:45mm"><div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Esri Wayback releases 27 Feb 2017 (left) and 24 Sep 2026 (right).</div></div>
+   <div class="col"><div class="glbl" style="margin-bottom:3.5mm">People &amp; activity</div><img class="fig" src="{{fig.density}}" style="height:45mm"><div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Built-footprint density from Overture buildings, 2026; activity proxy.</div></div>
+  </div>
+  <div class="row" style="margin-top:6mm">
+   <div class="col"><div style="font-size:12.5pt;font-weight:700;margin-bottom:2.5mm">Recorded change</div><p class="grey" style="font-size:8.8pt">2017: orchard with tracks → 2026: plotted layout, road grid and about 20 houses.<br>Imagery 2017 / 2026; WorldCover 2021: {{'%.0f'|format(lc.site.Cropland)}}% cropland.<br>No heritage mapped on site; waste site planned 2.4 km NE.</p></div>
+   <div class="col"><div style="font-size:12.5pt;font-weight:700;margin-bottom:2.5mm">Community needs</div><p class="grey" style="font-size:8.8pt">Census 2011 figure not published for Kogilu; {{R.context.bld_500_n}} buildings within 500 m.<br>Daytime: {{R.access.counts_1km.Education}} schools and colleges within 1 km.<br>Only {{R.access.counts_1km.Health}} health places within 1 km: a clinic fits the civic site.</p></div>
+  </div>
+  <h2 style="margin-top:6mm">Local architectural vocabulary</h2>
+  <div class="row" style="gap:4.5mm">
+   <div class="col"><img class="fig" src="{{ph_court}}" style="height:16mm;border-radius:1.2mm"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Front yard</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Tiled house, Puttur</div></div>
+   <div class="col"><img class="fig" src="{{ph_ver}}" style="height:16mm;border-radius:1.2mm;object-position:50% 70%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Veranda</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Pillared front, Melukote</div></div>
+   <div class="col"><img class="fig" src="{{ph_roof}}" style="height:16mm;border-radius:1.2mm;object-position:50% 30%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Roof form</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Clay-tile roofs, Krishnarajapet</div></div>
+   <div class="col"><img class="fig" src="{{ph_street}}" style="height:16mm;border-radius:1.2mm;object-position:50% 60%"><div style="font-weight:700;font-size:9.5pt;margin-top:3mm">Street edge</div><div class="small" style="font-size:6.8pt;margin-top:1mm">Jagali steps, Malavalli</div></div>
+  </div>
+  <div style="font-size:14.5pt;font-weight:700;line-height:1.3;margin-top:6.5mm">Raised, shaded thresholds — jagali and veranda — mediate between the street and the home, and suit Kogilu's hot April and westerly monsoon wind.</div>
+  <div class="small" style="margin-top:4mm;font-size:6.9pt">Wikimedia Commons, CC BY-SA 4.0: Prof tpms (Melukote, Krishnarajapet, Malavalli); Bharathesha Alasandemajalu (Puttur) &nbsp;/&nbsp; Old Mysore and coastal Karnataka examples, not on-site records</div>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Give each block a raised, shaded front threshold onto the internal street: a contemporary jagali that also keeps entrances above the monsoon runoff.</p></div>
+ </div>
+</section>
+
+<!-- 11 INFRASTRUCTURE -->
+<section class="page">{{ head('INFRASTRUCTURE & SERVICES','Networks, connections & gaps',11) }}
+ <div class="body">
+  <img class="fig" src="{{fig.services}}" style="width:139mm;height:101mm;margin:0 auto">
+  <div class="cap"><b>SOURCE</b> &nbsp;/&nbsp; Overture Maps infrastructure and roads (OpenStreetMap-derived); BBMP primary storm drains (SWD 2022). Network capacity needs provider records.</div>
+  <h2 style="margin-top:9mm;border:0;padding:0;margin-bottom:3mm">Service register</h2>
+  <table class="t">
+   <tr><th style="width:19mm">Service</th><th>Connection / distance</th><th>Capacity / status</th><th>Evidence / next check</th></tr>
+   <tr><td>Water</td><td>Cauvery Stage V area; mapped water tank {{'%.1f'|format(inf.water_tower.dist_m/1000)}} km W</td><td>Kogilu supply not confirmed; aquifer over-exploited</td><td>BWSSB: confirm Stage V main</td></tr>
+   <tr><td>Power</td><td>Substation {{'%.1f'|format(inf.substation.dist_m/1000)}} km W; transformer {{'%.1f'|format(inf.transformer.dist_m/1000)}} km</td><td>Load not confirmed; 220/66 kV Yelahanka grid</td><td>BESCOM: feasibility letter</td></tr>
+   <tr><td>Drainage</td><td>Outfall NW → west stream → drain {{fmt(drain1)}} m SW</td><td>Capacity unknown; local flood history</td><td>GBA SWD: invert levels</td></tr>
+   <tr><td>Sewer / waste</td><td>No sewer mapped at boundary; Jakkur STP 10 MLD</td><td>Connection not confirmed</td><td>BWSSB / BSWML: sewer, collection</td></tr>
+  </table>
+  <div class="impl"><div class="glbl">Design / development implication</div>
+  <p>Water and sewer gate the delivery sequence. Until BWSSB confirms a Cauvery Stage V main and sewer, budget an on-site STP and treated-water reuse, and phase occupancy behind those approvals.</p></div>
+ </div>
+</section>
+
+<!-- 12 SYNTHESIS -->
+<section class="page">{{ head('SYNTHESIS & NEXT STEPS','What matters for this project',12) }}
+ <div class="body" style="top:52mm">
+  <div class="prio"><div class="num">01</div><div class="col"><div class="h">West stream and valley buffer</div>
+   <div class="e">Evidence p03, p07 &nbsp; {{fmt(buf[15])}}–{{fmt(buf[50])}} m² ({{'%.1f'|format(100*buf[15]/geo.area_m2)}}–{{'%.1f'|format(100*buf[50]/geo.area_m2)}}%) may be non-buildable; merge it with the 10% park.</div>
+   <div class="a">Next: drain class from GBA (SWD) + revenue sketch &nbsp; Owner: client surveyor &nbsp; Due: before layout freeze</div></div></div>
+  <div class="prio"><div class="num">02</div><div class="col"><div class="h">Height clearance at 15 m</div>
+   <div class="e">Evidence p03 &nbsp; Yelahanka AFS {{'%.1f'|format(inf.military_airport.dist_m/1000)}} km N, Jakkur aerodrome {{af['Nearest mapped aerodrome'].edge_km}} km SSW, KIA {{af['KIA (VOBL) ARP'].dist_km}} km NE: AFS NOC and AAI NOCAS for 15 m or taller.</div>
+   <div class="a">Next: NOCAS application with top elevation (≈ {{'%.0f'|format(ter.elev_max)}} m + H) &nbsp; Owner: architect &nbsp; Due: concept stage</div></div></div>
+  <div class="prio"><div class="num">03</div><div class="col"><div class="h">Existing layout, water and sewer</div>
+   <div class="e">Evidence p10, p11 &nbsp; A plotted layout is under construction; confirm its sanction and khata, and the Cauvery V and sewer connections.</div>
+   <div class="a">Next: title and approvals search; BWSSB letters &nbsp; Owner: client legal / services &nbsp; Due: before acquisition</div></div></div>
+  <h2 style="margin-top:7mm;border:0;padding:0;margin-bottom:3mm">Evidence &amp; coverage</h2>
+  <table class="t" style="font-size:7.1pt">
+   <tr><th style="width:24mm">Analysis</th><th>Dataset / date</th><th>Method / resolution</th><th>Status / limitation</th></tr>
+   <tr><td>Site / controls</td><td>KML Oct 2026; RCCMS; RMP 2015 ZR; draft RMP 2031 layer</td><td>UTM 43N; plan raster z15 sampling</td><td>Use confirmed; FAR from ZR text, confirm with BDA</td></tr>
+   <tr><td>Terrain / water</td><td>Copernicus GLO-30; Overture water; BBMP SWD 2022</td><td>30 m DSM; D8; Gumbel 1981–2025</td><td>DSM includes trees; no site survey</td></tr>
+   <tr><td>Climate / solar</td><td>NASA POWER MERRA-2, CERES 2015–24; NOAA ISD VOBL</td><td>0.5° / 1° grid; station {{af['KIA (VOBL) ARP'].dist_km}} km</td><td>Regional, not microclimate</td></tr>
+   <tr><td>Context / services</td><td>Overture 2026-09; Esri Wayback 2017 / 2026</td><td>Walk 4.8 km/h network; 1.2 km section</td><td>Heights untagged; capacity unconfirmed</td></tr>
+  </table>
+  <p style="font-size:8.6pt;margin-top:4.5mm">Not run / unavailable: soil texture (SoilGrids returned 503); Open-Meteo and OSM Overpass (host blocked, so NASA POWER and Overture used); Census 2011 village count; site borehole and topographic survey.</p>
+  <p style="font-size:8.6pt;margin-top:3.5mm;line-height:1.5">Prepared by Qnit analysis · GeoAce Studio &nbsp;&nbsp; Reviewed by: pending<br>Analysis run {{S.id}} / {{gen}} UTC &nbsp;&nbsp; Boundary version Case_Studies.kml (Oct 2026)</p>
+  <div class="small" style="position:absolute;bottom:2mm;font-size:6.2pt;line-height:1.4">Imagery © Esri, Maxar, Earthstar Geographics · Map data © Overture Maps Foundation, incl. © OpenStreetMap contributors (ODbL) · DEM © DLR/Airbus, Copernicus GLO-30 · Land cover © ESA WorldCover 2021 (CC BY 4.0) · Climate: NASA POWER (LaRC) · Station data: NOAA NCEI ISD · Plan layer: BDA RMP 2031 draft via Qnit · Photos: Wikimedia Commons (CC BY-SA 4.0)</div>
+ </div>
+</section>
+
+<!-- 13 BACK -->
+<section class="page">
+  <img src="{{logo}}" style="position:absolute;left:18.5mm;top:20mm;width:69mm">
+  <img src="{{layers_back}}" style="position:absolute;left:0;top:83.5mm;width:54.6mm">
+  <div style="position:absolute;right:18.5mm;top:88mm;text-align:right;font-size:58pt;font-weight:700;line-height:1.06;letter-spacing:-1pt">Better<br>design<br>starts<br>with<br>you.</div>
+  <div style="position:absolute;right:20.5mm;top:247mm;text-align:right;font-size:8pt;color:#666;line-height:1.55">GeoAce Studio Pvt Ltd<br>geoacestudio.com</div>
+  <img src="{{geoace}}" style="position:absolute;right:20.5mm;top:268mm;width:47mm">
+</section>

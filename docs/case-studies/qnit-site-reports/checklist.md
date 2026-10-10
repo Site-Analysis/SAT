@@ -1,7 +1,7 @@
 # Qnit Site Report — section checklist
 
-Template: *Qnit Report Template (13 pages)*. Report built: **Site 3 — Kogilu** (`QNIT-BLR-S03`, 10 Oct 2026, Rev A).
-Sites 1, 2 and 4 were deferred at the user's request. Their data is partly cached (see the bottom of this file).
+Template: *Qnit Report Template (13 pages)*. Reports built: **Site 3 — Kogilu** (`QNIT-BLR-S03`) and **Site 1 — Bannerughatta** (`QNIT-BLR-S01`), both 10 Oct 2026, Rev A.
+Sites 2 and 4 are deferred; their data is partly cached (see the bottom of this file).
 
 Legend:
 
@@ -58,6 +58,26 @@ Legend:
 | 11 | Capacity / connection status | Not confirmed | ⛔ | Needs BWSSB / BESCOM / GBA records |
 | 12 | Priorities 01–03, coverage, run ID | Stream buffer · height NOC · layout + services | ✅ | This checklist |
 
+## Site 1 — Bannerughatta (`QNIT-BLR-S01`): what differs from Site 3
+
+| p | Field | Site 1 value | Status | Source / method |
+|---|---|---|---|---|
+| 02 | Area / perimeter / edges | 34,902 m² (8.62 ac) · 861 m · 13 | ✅ | KML in UTM 43N |
+| 03 | Survey points | Sy 22/*/1 inside; Sy 21/*/* label 63 m outside | ✅ | Point-in-polygon test |
+| 03 | Records | Sy 22: 4 RCCMS disposed; **MR 2/2026-27 pending** (dispute verdict) | ✅ | Supplied RCCMS / mutation lookup |
+| 03 | Permitted use | Agricultural (RMP 2015, PD 30); 97.6% Agriculture on draft RMP 2031 layer | ✅ / ≈ | Plan raster z15; RMP 2015 AG rules via research (PD 30 sheet not seen) |
+| 03 | FAR / height | Farm house ≤ 250 m² plinth, G+1, ≤ 1.2 ha; other uses need DC conversion | ≈ | RMP 2015 ZR (research) |
+| 03 | Plan road | 45 m (Bannerghatta Rd / SH-87) 104 m ESE | ✅ | BDA RMP 2031 draft roads |
+| 04 | Terrain | 931–948 m · 6.8% to NW · 2 m contours; 9% of the site under 5% slope | ✅ | Copernicus GLO-30 |
+| 05 | Solar | 1,952 kWh/m²·yr | ✅ | NASA POWER CERES |
+| 06 | Wind / temperature | HAL (VOBG) 17.4 km: annual E, Jun–Sep W 4.5 m/s; hottest day 38.0 °C | ✅ | NOAA ISD + MERRA-2 |
+| 07 | Drains | No BBMP SWD coverage this far south; lake 134 m W | ⛔ / ✅ | SAT dataset extent; Overture water |
+| 07 | Groundwater | Anekal 106% (2025-26), over-exploited | ≈ | IN-GRES via third-party compilation |
+| 08 | Park edge | Bannerghatta NP 456 m W (OSM boundary); ESZ line not mapped | ✅ / ⛔ | Overture land use; ESZ not in available data |
+| 08 | Quarries / industry | 4 quarries within 1 km (nearest 361 m N); industrial 21 m SSE | ✅ | Overture land use |
+| 09 | Access | Bus stop 128 m; SH-87 123 m E; no public road on the boundary | ✅ | Overture |
+| 11 | Power | Substation "BG Road" 436 m N; HT line 237 m N | ✅ | Overture infrastructure |
+
 ## Blocked hosts and the fallbacks used
 
 | Need | Blocked host | Fallback used |
@@ -71,6 +91,5 @@ Legend:
 
 | Site | Cached so far | Key research findings (`research/siteN.json`) |
 |---|---|---|
-| 1 Bannerughatta | DEM, WorldCover, climate, Overture, Esri + Wayback 2017 | RMP 2015 Agricultural zone; Bannerghatta NP ESZ under Supreme Court review (CEC Jan 2026); mutation MR 2/2026-27 pending; Anekal over-exploited |
 | 2 Tindlu | DEM, WorldCover, climate, Overture, Esri + Wayback 2014 | Survey points (Sy 21–26) lie about 450 m S of the KML; the parcel map shows Sy 27/28/35/36/37 instead; Hoskote MP 2031 Agriculture; next to the STRR |
 | 4 Sadahalli | DEM, WorldCover, climate, Overture, Esri + Wayback 2014 | BIAAPA MP 2021 (no 2031 plan); about 4 km W of the KIA 09L threshold, so an AAI height NOC is needed; Devanahalli extraction 169% |
